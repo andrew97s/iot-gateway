@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统配置 · 物联网网关</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo"><span class="logo-mark">G</span>物联网关 IoT-GW</div>
+  <nav>
+    <a href="index.html"><span class="ico">◧</span>首页概览</a>
+    <a href="devices.html"><span class="ico">▤</span>设备管理</a>
+    <a href="plugins.html"><span class="ico">⬡</span>插件管理</a>
+    <a href="messages.html"><span class="ico">☰</span>消息日志</a>
+    <a href="settings.html" class="active"><span class="ico">⚙</span>系统配置</a>
+  </nav>
+  <div class="sys-status">
+    <div><span class="dot">●</span>网关运行中 · 已运行 36 天 4 小时</div>
+    <div class="mt8">GW-0001 · v2.4.1 · 192.168.1.100</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h1>系统配置</h1>
+    <div class="meta"><span>配置修改后动态热生效，无需重启网关</span></div>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <div class="tabs" data-scope="settings-panes">
+        <div class="tab active" data-pane="pane-net">网络 / IP 配置</div>
+        <div class="tab" data-pane="pane-core">系统核心参数</div>
+        <div class="tab" data-pane="pane-platform">上级平台配置</div>
+      </div>
+
+      <div id="settings-panes">
+
+        <!-- ========== 网络/IP ========== -->
+        <div class="tab-pane active" id="pane-net">
+          <div class="card-body">
+            <div class="grid-2e">
+              <div class="card">
+                <div class="card-head">
+                  <h2>网卡 eth0（管理口）</h2><span class="badge ok">已连接 · 1000Mbps</span>
+                </div>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="form-item full">
+                      <label>获取方式</label>
+                      <div class="flex">
+                        <label><input type="radio" name="eth0mode"> DHCP 自动获取</label>
+                        <label><input type="radio" name="eth0mode" checked> 静态 IP</label>
+                      </div>
+                    </div>
+                    <div class="form-item"><label>IP 地址 <span class="req">*</span></label><input type="text" value="192.168.1.100"></div>
+                    <div class="form-item"><label>子网掩码 <span class="req">*</span></label><input type="text" value="255.255.255.0"></div>
+                    <div class="form-item"><label>默认网关</label><input type="text" value="192.168.1.1"></div>
+                    <div class="form-item"><label>DNS</label><input type="text" value="223.5.5.5, 114.114.114.114"></div>
+                    <div class="form-item full"><span class="hint">MAC：3C:2A:F4:18:9B:01 · 修改 IP 需二次确认，应用后请使用新地址访问管理页面</span></div>
+                  </div>
+                  <div class="mt12" style="text-align:right"><button class="btn primary">应用配置</button></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head">
+                  <h2>网卡 eth1（设备接入口）</h2><span class="badge ok">已连接 · 1000Mbps</span>
+                </div>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="form-item full">
+                      <label>获取方式</label>
+                      <div class="flex">
+                        <label><input type="radio" name="eth1mode"> DHCP 自动获取</label>
+                        <label><input type="radio" name="eth1mode" checked> 静态 IP</label>
+                      </div>
+                    </div>
+                    <div class="form-item"><label>IP 地址 <span class="req">*</span></label><input type="text" value="10.10.0.1"></div>
+                    <div class="form-item"><label>子网掩码 <span class="req">*</span></label><input type="text" value="255.255.0.0"></div>
+                    <div class="form-item"><label>默认网关</label><input type="text" placeholder="（可留空）"></div>
+                    <div class="form-item"><label>DNS</label><input type="text" placeholder="（可留空）"></div>
+                    <div class="form-item full"><span class="hint">MAC：3C:2A:F4:18:9B:02 · 建议设备网与管理网隔离</span></div>
+                  </div>
+                  <div class="mt12" style="text-align:right"><button class="btn primary">应用配置</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 核心参数 ========== -->
+        <div class="tab-pane" id="pane-core">
+          <div class="card-body">
+            <div class="grid-2e">
+              <div class="card">
+                <div class="card-head"><h2>网关标识与时间</h2></div>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="form-item"><label>网关编码（gatewayId）<span class="req">*</span></label><input type="text" value="GW-0001"><span class="hint">统一消息中的网关标识，同步上级平台使用</span></div>
+                    <div class="form-item"><label>网关名称</label><input type="text" value="园区一号网关"></div>
+                    <div class="form-item"><label>管理端口</label><input type="number" value="8443"></div>
+                    <div class="form-item">
+                      <label>NTP 时间同步</label>
+                      <div class="flex">
+                        <label class="switch"><input type="checkbox" checked><span class="track"></span></label>
+                        <input type="text" value="ntp.aliyun.com" style="flex:1">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h2>消息与队列</h2></div>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="form-item"><label>内存队列容量（条）</label><input type="number" value="50000"></div>
+                    <div class="form-item"><label>落盘暂存上限（GB）</label><input type="number" value="4"><span class="hint">上级平台不可达时消息落盘，超限按最早丢弃并告警</span></div>
+                    <div class="form-item"><label>默认重试次数</label><input type="number" value="5"></div>
+                    <div class="form-item"><label>重试退避基数（秒）</label><input type="number" value="2"><span class="hint">2, 4, 8, 16… 指数递增</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h2>日志与存储</h2></div>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="form-item"><label>消息日志保留天数</label><input type="number" value="30"></div>
+                    <div class="form-item"><label>插件运行日志保留天数</label><input type="number" value="14"></div>
+                    <div class="form-item"><label>单实例日志上限（MB）</label><input type="number" value="200"></div>
+                    <div class="form-item"><label>磁盘占用告警阈值（%）</label><input type="number" value="85"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h2>设备与插件策略</h2></div>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="form-item"><label>设备离线判定阈值（秒）</label><input type="number" value="300"><span class="hint">超过该时长无心跳/上报则判定离线并生成设备事件</span></div>
+                    <div class="form-item"><label>新设备自动注册</label>
+                      <div class="flex"><label class="switch"><input type="checkbox" checked><span class="track"></span></label><span class="muted small">插件发现的设备自动登记入库</span></div>
+                    </div>
+                    <div class="form-item"><label>新设备自动同步上级平台</label>
+                      <div class="flex"><label class="switch"><input type="checkbox"><span class="track"></span></label><span class="muted small">关闭时需在设备管理中手工指定同步</span></div>
+                    </div>
+                    <div class="form-item"><label>插件异常自动重启（全局默认）</label>
+                      <div class="flex"><label class="switch"><input type="checkbox" checked><span class="track"></span></label><span class="muted small">可在插件配置中单独覆盖</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt16" style="text-align:right">
+              <button class="btn">恢复默认</button>
+              <button class="btn primary">保存全部参数</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 上级平台 ========== -->
+        <div class="tab-pane" id="pane-platform">
+          <div class="card-body">
+            <div class="filter-bar" style="margin-bottom:14px">
+              <span class="muted small">支持对接多个上级平台；平台地址与推送方式可动态配置，保存后热生效；推送方式以适配器形式可扩展（MQTT / HTTP / Kafka / WebSocket / …）</span>
+              <div class="spacer"></div>
+              <button class="btn primary" onclick="openModal('modal-platform')">＋ 新增平台</button>
+            </div>
+            <table class="grid">
+              <thead>
+                <tr><th>平台名称</th><th>推送方式</th><th>地址</th><th>订阅范围</th><th>连接状态</th><th>今日同步</th><th>积压</th><th>启用</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>市级物联平台</td><td><span class="tag blue">MQTT</span></td>
+                  <td class="mono small">tcp://10.1.1.10:1883 · gw/{gatewayId}/up</td>
+                  <td class="small">告警 / 监测 / 设备事件 · 全部设备</td>
+                  <td><span class="badge ok">已连接</span></td><td>23,910</td><td>0</td>
+                  <td><label class="switch"><input type="checkbox" checked><span class="track"></span></label></td>
+                  <td class="actions">
+                    <button class="btn link" onclick="openModal('modal-platform')">编辑</button>
+                    <button class="btn link">测试</button>
+                    <button class="btn link danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>集团监管平台</td><td><span class="tag green">HTTP</span></td>
+                  <td class="mono small">https://iot.group.com/api/gw/report</td>
+                  <td class="small">仅告警 · 全部设备</td>
+                  <td><span class="badge ok">已连接</span></td><td>2,915</td><td>0</td>
+                  <td><label class="switch"><input type="checkbox" checked><span class="track"></span></label></td>
+                  <td class="actions">
+                    <button class="btn link" onclick="openModal('modal-platform')">编辑</button>
+                    <button class="btn link">测试</button>
+                    <button class="btn link danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>大数据中心</td><td><span class="tag purple">Kafka</span></td>
+                  <td class="mono small">10.2.0.5:9092 · topic: iot-gw-up</td>
+                  <td class="small">监测 / 告警 · 指定类型：传感器</td>
+                  <td><span class="badge warn">重连中</span></td><td>15,320</td>
+                  <td style="color:var(--warning)">1,203</td>
+                  <td><label class="switch"><input type="checkbox" checked><span class="track"></span></label></td>
+                  <td class="actions">
+                    <button class="btn link" onclick="openModal('modal-platform')">编辑</button>
+                    <button class="btn link">测试</button>
+                    <button class="btn link danger">删除</button>
+                  </td>
+                </tr>
+                <tr style="opacity:.6">
+                  <td>省级平台（备用）</td><td><span class="tag orange">WebSocket</span></td>
+                  <td class="mono small">wss://prov.iot.gov/gw/ws</td>
+                  <td class="small">告警 · 全部设备</td>
+                  <td><span class="badge off">已停用</span></td><td>0</td><td>0</td>
+                  <td><label class="switch"><input type="checkbox"><span class="track"></span></label></td>
+                  <td class="actions">
+                    <button class="btn link" onclick="openModal('modal-platform')">编辑</button>
+                    <button class="btn link">测试</button>
+                    <button class="btn link danger">删除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 平台编辑弹窗：推送方式切换时参数区动态变化 -->
+<div class="modal-mask" id="modal-platform">
+  <div class="modal">
+    <div class="modal-head"><h3>编辑上级平台 · 市级物联平台</h3><span class="close" onclick="closeModal('modal-platform')">✕</span></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item"><label>平台名称 <span class="req">*</span></label><input type="text" value="市级物联平台"></div>
+        <div class="form-item">
+          <label>推送方式 <span class="req">*</span></label>
+          <select onchange="switchPushType(this)">
+            <option value="MQTT" selected>MQTT</option>
+            <option value="HTTP">HTTP / HTTPS</option>
+            <option value="KAFKA">Kafka</option>
+            <option value="WS">WebSocket</option>
+          </select>
+          <span class="hint">切换后下方参数区动态变化；新推送方式可通过适配器扩展接入</span>
+        </div>
+      </div>
+
+      <!-- MQTT 参数 -->
+      <div class="push-fields form-grid mt12" data-type="MQTT">
+        <div class="form-item"><label>Broker 地址 <span class="req">*</span></label><input type="text" value="tcp://10.1.1.10:1883"></div>
+        <div class="form-item"><label>上行 Topic <span class="req">*</span></label><input type="text" value="gw/{gatewayId}/up"></div>
+        <div class="form-item"><label>下行(反控) Topic</label><input type="text" value="gw/{gatewayId}/down"></div>
+        <div class="form-item"><label>QoS</label><select><option>0</option><option selected>1</option><option>2</option></select></div>
+        <div class="form-item"><label>用户名</label><input type="text" value="gw01"></div>
+        <div class="form-item"><label>密码</label><input type="password" value="********"></div>
+      </div>
+      <!-- HTTP 参数 -->
+      <div class="push-fields form-grid mt12" data-type="HTTP" style="display:none">
+        <div class="form-item full"><label>推送 URL <span class="req">*</span></label><input type="text" placeholder="https://iot.group.com/api/gw/report"></div>
+        <div class="form-item"><label>认证方式</label><select><option>无</option><option>Bearer Token</option><option>Basic Auth</option><option>签名(HMAC)</option></select></div>
+        <div class="form-item"><label>Token / 密钥</label><input type="password" placeholder="******"></div>
+        <div class="form-item"><label>超时（毫秒）</label><input type="number" value="5000"></div>
+        <div class="form-item"><label>批量推送（条/批）</label><input type="number" value="50"></div>
+      </div>
+      <!-- Kafka 参数 -->
+      <div class="push-fields form-grid mt12" data-type="KAFKA" style="display:none">
+        <div class="form-item"><label>Bootstrap Servers <span class="req">*</span></label><input type="text" placeholder="10.2.0.5:9092"></div>
+        <div class="form-item"><label>Topic <span class="req">*</span></label><input type="text" placeholder="iot-gw-up"></div>
+        <div class="form-item"><label>acks</label><select><option>0</option><option selected>1</option><option>all</option></select></div>
+        <div class="form-item"><label>SASL 认证</label><select><option>无</option><option>PLAIN</option><option>SCRAM-SHA-256</option></select></div>
+      </div>
+      <!-- WebSocket 参数 -->
+      <div class="push-fields form-grid mt12" data-type="WS" style="display:none">
+        <div class="form-item full"><label>WebSocket 地址 <span class="req">*</span></label><input type="text" placeholder="wss://prov.iot.gov/gw/ws"></div>
+        <div class="form-item"><label>鉴权 Token</label><input type="password" placeholder="******"></div>
+        <div class="form-item"><label>心跳间隔（秒）</label><input type="number" value="30"></div>
+      </div>
+
+      <div class="form-grid mt12" style="border-top:1px solid var(--border);padding-top:14px">
+        <div class="form-item">
+          <label>订阅消息类型</label>
+          <div class="flex" style="flex-wrap:wrap">
+            <label><input type="checkbox" checked> 告警</label>
+            <label><input type="checkbox" checked> 监测</label>
+            <label><input type="checkbox" checked> 设备事件</label>
+            <label><input type="checkbox" checked> 指令回执</label>
+          </div>
+        </div>
+        <div class="form-item">
+          <label>设备范围</label>
+          <select><option selected>全部设备</option><option>指定设备类型</option><option>指定设备清单</option></select>
+        </div>
+        <div class="form-item"><label>失败重试次数</label><input type="number" value="5"></div>
+        <div class="form-item"><label>接收反控指令</label>
+          <div class="flex"><label class="switch"><input type="checkbox" checked><span class="track"></span></label><span class="muted small">允许该平台向本网关下发设备反控指令</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn">测试连接</button>
+      <button class="btn" onclick="closeModal('modal-platform')">取消</button>
+      <button class="btn primary" onclick="closeModal('modal-platform')">保存并生效</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
