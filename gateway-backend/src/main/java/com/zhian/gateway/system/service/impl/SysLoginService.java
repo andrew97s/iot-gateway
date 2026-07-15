@@ -7,7 +7,7 @@ import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.core.domain.entity.SysUser;
 import com.zhian.gateway.common.core.domain.model.LoginUser;
 import com.zhian.gateway.common.exception.ServiceException;
-import com.zhian.common.exception.user.*;
+import com.zhian.gateway.common.exception.user.*;
 import com.zhian.gateway.common.exception.user.*;
 import com.zhian.gateway.common.utils.DateUtils;
 import com.zhian.gateway.common.utils.MessageUtils;

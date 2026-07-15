@@ -17,7 +17,7 @@ import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.common.bo.SyncDevice;
 import com.zhian.gateway.third.common.util.DeviceUtil;
 import com.zhian.gateway.third.hk.ezviz.vo.*;
-import com.zhian.third.hk.ezviz.vo.*;
+import com.zhian.gateway.third.hk.ezviz.vo.*;
 import com.zhian.gateway.third.vo.ControlVo;
 import com.zhian.gateway.third.vo.MqMessage;
 import lombok.extern.slf4j.Slf4j;

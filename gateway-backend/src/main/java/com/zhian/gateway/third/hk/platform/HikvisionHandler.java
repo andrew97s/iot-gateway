@@ -25,7 +25,7 @@ import com.zhian.gateway.third.common.constants.MsgConstants;
 import com.zhian.gateway.third.common.util.DeviceUtil;
 import com.zhian.gateway.third.hk.platform.consts.PlatformConstants;
 import com.zhian.gateway.third.hk.platform.vo.*;
-import com.zhian.third.hk.platform.vo.*;
+import com.zhian.gateway.third.hk.platform.vo.*;
 import com.zhian.gateway.third.video.jinzhi.JinZhiHandler;
 import com.zhian.gateway.third.video.vo.VideoRecord;
 import com.zhian.gateway.third.vo.ControlVo;

@@ -1,107 +1,91 @@
 <template>
-  <div class="app-container">
+  <div class="gw-page">
     <!-- 搜索栏 -->
-    <el-form :inline="true" label-width="68px" :model="queryParams" ref="queryRef" v-show="showSearch">
-      <el-form-item label="名称" prop="name">
-        <el-input v-model="queryParams.name" clearable placeholder="请输入名称" @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="代码" prop="code">
-        <el-input v-model="queryParams.code" clearable placeholder="请输入代码" @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-select v-model="queryParams.status" clearable placeholder="请选择状态">
+    <div class="gw-card" v-show="showSearch">
+      <div class="gw-card-body gw-filter-bar">
+        <el-input v-model="queryParams.name" clearable placeholder="插件名称" style="width: 170px" @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.code" clearable placeholder="插件代码" style="width: 150px" @keyup.enter="handleQuery" />
+        <el-select v-model="queryParams.status" clearable placeholder="状态（全部）" style="width: 130px">
           <el-option v-for="dict in sys_status" :label="dict.label" :value="dict.value" :key="dict.value" />
         </el-select>
-      </el-form-item>
-      <el-form-item>
         <el-button icon="Search" type="primary" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-<!--      <el-form-item>-->
-<!--        <el-button icon="Refresh" plain @click="refreshStats" :loading="statsLoading">刷新状态</el-button>-->
-<!--      </el-form-item>-->
+        <div class="spacer" />
+        <span class="gw-muted gw-small">
+          每个厂商/协议抽象为一个插件；启停与配置修改动态生效，互不影响
+          <template v-if="runningSummary"> · {{ runningSummary }}</template>
+        </span>
+      </div>
+    </div>
 
-    </el-form>
-
-    <!-- 平台卡片列表 -->
-    <div class="platform-cards" v-loading="loading">
-      <el-empty v-if="!loading && platformList.length === 0" description="暂无平台配置" />
-      <div v-for="row in platformList" :key="row.id" class="platform-card">
-        <el-card shadow="hover" :class="['card-item', getCardClass(row)]">
-          <div class="card-header">
-            <div class="card-title-row">
-              <span class="card-name">{{ row.name }}</span>
-<!--              <el-tag class="card-code" size="small" type="info">{{ row.code }}</el-tag>-->
-              <!-- 插件分类标签 -->
-              <el-tag :type="getCategoryTagType(row.code)" size="small" effect="plain">
-                {{ getCategoryLabel(row.code) }}
-              </el-tag>
+    <!-- 插件卡片列表 -->
+    <div class="gw-plugin-grid" v-loading="loading">
+      <el-empty v-if="!loading && platformList.length === 0" description="暂无插件配置" style="grid-column: 1 / -1" />
+      <div
+        v-for="row in platformList"
+        :key="row.id"
+        class="gw-plugin-card"
+        :class="{ 'is-error': isAbnormal(row), 'is-disabled': row.status !== '1' }"
+      >
+        <div class="pc-head">
+          <div class="pc-ico" :style="{ background: pluginColor(row.code) }">{{ pluginInitials(row.code) }}</div>
+          <div style="flex: 1; min-width: 0">
+            <div class="pc-title-row">
+              <b class="pc-name" :title="row.name">{{ row.name }}</b>
+              <span class="gw-badge" :class="getBadgeClass(row)">{{ getRunningLabel(row) }}</span>
             </div>
-            <div class="card-status-row">
-              <!-- 运行状态 -->
-              <el-tag :type="getRunningTagType(row)" size="small">
-                <el-icon v-if="row.status === '1' && row.running === '1'"><CircleCheck /></el-icon>
-                <el-icon v-else-if="row.status === '1' && row.running !== '1'"><CircleClose /></el-icon>
-                <el-icon v-else><CircleClose /></el-icon>
-                {{ getRunningLabel(row) }}
-              </el-tag>
-              <!-- 插件注册状态 -->
-              <el-tag v-if="statsMap[row.code]" :type="statsMap[row.code].registered ? 'primary' : 'warning'" size="small" class="ml4">
-                {{ statsMap[row.code].registered ? statsMap[row.code].protocol || '已注册' : '无插件' }}
-              </el-tag>
-            </div>
-          </div>
-
-          <div class="card-body">
-<!--            <div class="info-row">-->
-<!--              <el-icon><Connection /></el-icon>-->
-<!--              <span class="info-label">地址</span>-->
-<!--              <span class="info-value">{{ row.ip || '-' }}{{ row.port ? ':' + row.port : '' }}</span>-->
-<!--            </div>-->
-            <div class="info-row" v-if="statsMap[row.code]">
-              <el-icon><Timer /></el-icon>
-              <span class="info-label">最近启动</span>
-              <span class="info-value">{{ formatTime(statsMap[row.code].lastStartTime) }}</span>
-            </div>
-            <div class="info-row" v-if="statsMap[row.code]">
-              <el-icon><DataLine /></el-icon>
-              <span class="info-label">消息/错误</span>
-              <span class="info-value">
-                <el-text type="success">{{ statsMap[row.code].msgCount }}</el-text>
-                /
-                <el-text :type="statsMap[row.code].errCount > 0 ? 'danger' : 'info'">{{ statsMap[row.code].errCount }}</el-text>
+            <div class="gw-muted gw-small pc-meta">
+              <el-tag size="small" type="info" effect="plain">{{ statsMap[row.code]?.protocol || row.code }}</el-tag>
+              <el-tag size="small" :type="getCategoryTagType(row.code)" effect="plain">{{ getCategoryLabel(row.code) }}</el-tag>
+              <el-tag v-if="statsMap[row.code] && !statsMap[row.code].registered" size="small" type="warning" effect="plain">无插件实现</el-tag>
+              <span v-if="statsMap[row.code]?.lastStartTime" class="pc-start-time">
+                启动于 {{ formatTime(statsMap[row.code].lastStartTime) }}
               </span>
             </div>
-            <div class="info-row" v-if="statsMap[row.code]?.connectionInfo && !['已断开','运行中','推送中','未配置'].includes(statsMap[row.code]?.connectionInfo)">
-              <el-icon><InfoFilled /></el-icon>
-              <span class="info-label">连接</span>
-              <span class="info-value text-ellipsis">{{ statsMap[row.code].connectionInfo }}</span>
+            <div
+              v-if="statsMap[row.code]?.connectionInfo && !['已断开','运行中','推送中','未配置'].includes(statsMap[row.code]?.connectionInfo)"
+              class="gw-muted gw-small pc-conn"
+              :title="statsMap[row.code].connectionInfo"
+            >
+              连接：{{ statsMap[row.code].connectionInfo }}
             </div>
           </div>
+        </div>
 
-          <div class="card-footer">
-            <div class="footer-left">
-              <!-- 仅启用/禁用控制插件启停；运行态以标签展示 -->
-              <el-tooltip :content="row.status === '1' ? '点击禁用将停止插件' : '点击启用将启动插件'" placement="top">
-                <el-switch
-                  v-model="row.status"
-                  active-value="1"
-                  inactive-value="0"
-                  :loading="statusLoadingMap[row.code]"
-                  active-text="启用"
-                  inactive-text="禁用"
-                  inline-prompt
-                  @change="toggleStatus(row)"
-                />
-              </el-tooltip>
-            </div>
-            <div class="card-actions">
-              <el-button size="small" icon="Edit" @click="handleUpdate(row)" v-hasPermi="['sys:platform:edit']">配置</el-button>
-<!--              <el-button size="small" icon="ChatLineSquare" @click="handleViewMessages(row)">消息</el-button>-->
-              <el-button size="small" icon="Document" @click="handleViewLogs(row)">日志</el-button>
-            </div>
+        <div class="pc-stats">
+          <div>
+            <div class="v">{{ deviceStatsMap[row.code]?.total ?? 0 }}</div>
+            <div class="k">接入设备</div>
           </div>
-        </el-card>
+          <div>
+            <div class="v">{{ formatCount(statsMap[row.code]?.msgCount) }}</div>
+            <div class="k">累计消息</div>
+          </div>
+          <div>
+            <div class="v" :style="{ color: (statsMap[row.code]?.errCount || 0) > 0 ? '#dc2626' : '#16a34a' }">
+              {{ formatCount(statsMap[row.code]?.errCount) }}
+            </div>
+            <div class="k">错误次数</div>
+          </div>
+        </div>
+
+        <div class="pc-foot">
+          <el-tooltip :content="row.status === '1' ? '点击禁用将停止插件' : '点击启用将启动插件'" placement="top">
+            <el-switch
+              v-model="row.status"
+              active-value="1"
+              inactive-value="0"
+              :loading="statusLoadingMap[row.code]"
+              active-text="启用"
+              inactive-text="禁用"
+              inline-prompt
+              @change="toggleStatus(row)"
+            />
+          </el-tooltip>
+          <div class="spacer" style="flex: 1" />
+          <el-button size="small" icon="Document" @click="handleViewLogs(row)">日志 / 统计</el-button>
+          <el-button size="small" icon="Edit" type="primary" plain @click="handleUpdate(row)" v-hasPermi="['sys:platform:edit']">配置</el-button>
+        </div>
       </div>
     </div>
 
@@ -381,13 +365,14 @@
 </template>
 
 <script setup name="Platform">
-import { CircleCheck, CircleClose, Timer, DataLine, InfoFilled, QuestionFilled } from '@element-plus/icons-vue'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import {
   listPlatform, getPlatform, delPlatform, addPlatform, updatePlatform,
   getPlatformStats, getAllPlatformStats, getPlatformLogs, clearPlatformLogs
 } from '@/api/sys/platform'
 import { listMessage } from '@/api/sys/message'
 import { retryMessage } from '@/api/sys/message'
+import { getDeviceOnlineStats } from '@/api/sys/device'
 
 const { proxy } = getCurrentInstance()
 const { sys_status } = proxy.useDict('sys_status')
@@ -404,6 +389,7 @@ const title         = ref('')
 
 const statusLoadingMap  = ref({})
 const statsMap      = ref({})
+const deviceStatsMap = ref({})   // pfCode -> {total, onlineCount}
 const statsLoading  = ref(false)
 const currentSchema = ref([])  // 当前平台的 configSchema（每项含 code/name/desc/type/defaultValue 等）
 
@@ -525,19 +511,51 @@ function getCategoryTagType(code) {
 }
 
 // ==================== 样式辅助 ====================
-function getCardClass(row) {
-  if (row.status !== '1') return 'card-disabled'
-  if (row.running === '1') return 'card-running'
-  return 'card-stopped'
+const PLUGIN_COLORS = [
+  'linear-gradient(135deg, #2563eb, #06b6d4)',
+  'linear-gradient(135deg, #dc2626, #f97316)',
+  'linear-gradient(135deg, #16a34a, #84cc16)',
+  'linear-gradient(135deg, #7c3aed, #c084fc)',
+  'linear-gradient(135deg, #d97706, #facc15)',
+  'linear-gradient(135deg, #0891b2, #22d3ee)',
+  'linear-gradient(135deg, #db2777, #f472b6)',
+  'linear-gradient(135deg, #475569, #94a3b8)'
+]
+function pluginInitials(code) {
+  if (!code) return '?'
+  const clean = String(code).replace(/[^a-zA-Z0-9]/g, '')
+  return clean.slice(0, 2).toUpperCase() || '?'
 }
-function getRunningTagType(row) {
-  if (row.status !== '1') return 'info'
-  return row.running === '1' ? 'success' : 'danger'
+function pluginColor(code) {
+  let hash = 0
+  const s = String(code || '')
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) >>> 0
+  }
+  return PLUGIN_COLORS[hash % PLUGIN_COLORS.length]
+}
+function isAbnormal(row) {
+  return row.status === '1' && row.running !== '1'
+}
+function getBadgeClass(row) {
+  if (row.status !== '1') return 'off'
+  return row.running === '1' ? 'ok' : 'err'
 }
 function getRunningLabel(row) {
   if (row.status !== '1') return '已禁用'
-  return row.running === '1' ? '运行中' : '已停止'
+  return row.running === '1' ? '运行中' : '异常'
 }
+function formatCount(v) {
+  return Number(v || 0).toLocaleString('zh-CN')
+}
+const runningSummary = computed(() => {
+  const list = platformList.value || []
+  if (list.length === 0) return ''
+  const running = list.filter(r => r.status === '1' && r.running === '1').length
+  const abnormal = list.filter(r => isAbnormal(r)).length
+  const disabled = list.filter(r => r.status !== '1').length
+  return `运行中 ${running} · 异常 ${abnormal} · 已禁用 ${disabled}`
+})
 function normalizeLogType(t) {
   if (t === null || t === undefined) return ''
   return String(t)
@@ -583,12 +601,18 @@ async function getList() {
 async function loadAllStats() {
   try {
     statsLoading.value = true
-    const res = await getAllPlatformStats()
+    const [res, devRes] = await Promise.all([
+      getAllPlatformStats(),
+      getDeviceOnlineStats().catch(() => ({ data: [] }))
+    ])
     const map = {}
     if (Array.isArray(res.data)) {
       res.data.forEach(s => { map[s.platformCode] = s })
     }
     statsMap.value = map
+    const devMap = {}
+    ;(devRes.data || []).forEach(s => { devMap[s.pfCode] = s })
+    deviceStatsMap.value = devMap
   } catch (e) {
   } finally {
     statsLoading.value = false
@@ -741,7 +765,9 @@ function handleQuery() {
   getList()
 }
 function resetQuery() {
-  proxy.resetForm('queryRef')
+  queryParams.value.name = null
+  queryParams.value.code = null
+  queryParams.value.status = null
   handleQuery()
 }
 function handleSelectionChange(selection) {
@@ -825,97 +851,34 @@ getList()
 </script>
 
 <style scoped>
-/* 卡片网格布局 */
-.platform-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 16px;
-  min-height: 120px;
-  align-items: stretch;
-}
-.platform-card { min-width: 0; height: 100%; display: flex; flex-direction: column; }
-.card-item {
-  border-radius: 8px;
-  transition: box-shadow 0.2s;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.card-item :deep(.el-card__body) {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-.card-item.card-running  { border-left: 4px solid #67c23a; }
-.card-item.card-stopped  { border-left: 4px solid #f56c6c; }
-.card-item.card-disabled { border-left: 4px solid #909399; opacity: 0.75; }
-
-/* 卡片头部 */
-.card-header { margin-bottom: 12px; }
-.card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-.card-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-.card-code { font-family: monospace; }
-.card-status-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.ml4 { margin-left: 4px; }
-.ml8 { margin-left: 8px; }
-
-/* 卡片信息行 */
-.card-body { margin-bottom: 12px; flex: 1; }
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  margin-bottom: 4px;
-}
-.info-label {
-  color: var(--el-text-color-secondary);
-  min-width: 52px;
-}
-.info-value {
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.text-ellipsis {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* 卡片底部 */
-.card-footer {
+/* 插件卡片头部 */
+.pc-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
 }
-.footer-left {
+.pc-name {
+  font-size: 15px;
+  color: #0f172a;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pc-meta {
   display: flex;
   align-items: center;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
-.card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.pc-start-time { font-size: 12px; }
+.pc-conn {
+  margin-top: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 /* 配置编辑器 */
 .config-editor {

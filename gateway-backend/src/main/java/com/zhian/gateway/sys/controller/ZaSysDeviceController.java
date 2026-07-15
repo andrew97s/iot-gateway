@@ -145,7 +145,7 @@ public class ZaSysDeviceController extends BaseController
      */
     @ApiOperation("同步设备信息，向外部应用推送")
     @GetMapping(value = "/sync")
-    public AjaxResult sync(@PathVariable("id") Long id)
+    public AjaxResult sync()
     {
         deviceService.pushDevice();
         return success();

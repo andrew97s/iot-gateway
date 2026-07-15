@@ -237,4 +237,27 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
     public List<Map<String, Object>> countByPlatform() {
         return zaSysMessageMapper.countByPlatform();
     }
+
+    @Override
+    public List<Map<String, Object>> countTodayByType() {
+        return zaSysMessageMapper.countTodayByType();
+    }
+
+    @Override
+    public List<Map<String, Object>> selectHourlyTrend() {
+        return zaSysMessageMapper.selectHourlyTrend();
+    }
+
+    @Override
+    public Map<String, Object> selectTodaySendStats() {
+        return zaSysMessageMapper.selectTodaySendStats();
+    }
+
+    @Override
+    public List<ZaSysMessage> selectLatestAlarms(int limit) {
+        com.github.pagehelper.PageHelper.startPage(1, limit, "id desc");
+        ZaSysMessage query = new ZaSysMessage();
+        query.setType("alarm");
+        return zaSysMessageMapper.selectZaSysMessageList(query);
+    }
 }

@@ -1,115 +1,175 @@
 <template>
-  <div class="home-container" v-loading="loading">
-    <!-- 顶部硬件指标卡片 -->
-    <el-row :gutter="16" class="stat-row">
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="metric-card">
-          <div class="metric-inner">
-            <div class="metric-icon cpu-bg"><el-icon :size="24"><Cpu /></el-icon></div>
-            <div class="metric-body">
-              <div class="metric-label">CPU 使用率</div>
-              <div class="metric-val">{{ server.cpu?.used ?? '-' }}%</div>
-              <el-progress :percentage="num(server.cpu?.used)" :stroke-width="6" :color="barColor(server.cpu?.used)" :show-text="false" class="metric-bar" />
-              <div class="metric-sub">{{ server.cpu?.cpuNum }} 核心 · 空闲 {{ server.cpu?.free }}%</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="metric-card">
-          <div class="metric-inner">
-            <div class="metric-icon mem-bg"><el-icon :size="24"><DataBoard /></el-icon></div>
-            <div class="metric-body">
-              <div class="metric-label">内存使用率</div>
-              <div class="metric-val">{{ server.mem?.usage ?? '-' }}%</div>
-              <el-progress :percentage="num(server.mem?.usage)" :stroke-width="6" :color="barColor(server.mem?.usage)" :show-text="false" class="metric-bar" />
-              <div class="metric-sub">{{ server.mem?.used }}G / {{ server.mem?.total }}G</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="metric-card">
-          <div class="metric-inner">
-            <div class="metric-icon jvm-bg"><el-icon :size="24"><Monitor /></el-icon></div>
-            <div class="metric-body">
-              <div class="metric-label">JVM 内存</div>
-              <div class="metric-val">{{ server.jvm?.usage ?? '-' }}%</div>
-              <el-progress :percentage="num(server.jvm?.usage)" :stroke-width="6" :color="barColor(server.jvm?.usage)" :show-text="false" class="metric-bar" />
-              <div class="metric-sub">{{ server.jvm?.used }}M / {{ server.jvm?.total }}M</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="metric-card">
-          <div class="metric-inner">
-            <div class="metric-icon disk-bg"><el-icon :size="24"><FolderOpened /></el-icon></div>
-            <div class="metric-body">
-              <div class="metric-label">磁盘使用率</div>
-              <div class="metric-val">{{ mainDiskUsage }}%</div>
-              <el-progress :percentage="num(mainDiskUsage)" :stroke-width="6" :color="barColor(mainDiskUsage)" :show-text="false" class="metric-bar" />
-              <div class="metric-sub">{{ mainDisk?.used }} / {{ mainDisk?.total }}</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+  <div class="gw-page" v-loading="loading">
+    <!-- 顶部指标卡 -->
+    <div class="gw-stat-grid">
+      <div class="gw-stat">
+        <div class="label">设备总数</div>
+        <div class="value">{{ fmt(device.total) }} <small>台</small></div>
+        <div class="sub">
+          在线率 <span :style="{ color: onlineRateColor }">{{ onlineRate }}%</span>
+          · 离线 {{ fmt(device.offline) }} 台
+        </div>
+      </div>
+      <div class="gw-stat">
+        <div class="label">今日接入消息</div>
+        <div class="value">{{ fmt(today.total) }} <small>条</small></div>
+        <div class="sub">推送成功 {{ fmt(today.sentCount) }} 条</div>
+      </div>
+      <div class="gw-stat">
+        <div class="label">今日告警</div>
+        <div class="value" style="color: #dc2626">{{ fmt(today.alarmCount) }} <small>条</small></div>
+        <div class="sub">未处置 <b style="color: #d97706">{{ fmt(today.unhandledAlarmCount) }}</b> 条</div>
+      </div>
+      <div class="gw-stat">
+        <div class="label">插件运行状态</div>
+        <div class="value">{{ plugin.running || 0 }} <small>/ {{ plugin.enabled || 0 }} 运行中</small></div>
+        <div class="sub">
+          共 {{ plugin.total || 0 }} 个插件
+          <span v-if="abnormalCount > 0" style="color: #dc2626"> · 异常 {{ abnormalCount }}</span>
+        </div>
+      </div>
+      <div class="gw-stat">
+        <div class="label">今日推送成功率</div>
+        <div class="value" :style="{ color: pushRateColor }">{{ pushSuccessRate }}%</div>
+        <div class="sub">
+          失败 <b :style="today.failedCount > 0 ? 'color:#dc2626' : ''">{{ fmt(today.failedCount) }}</b> 条
+        </div>
+      </div>
+    </div>
 
-    <!-- 设备 / 平台计数 -->
-    <el-row :gutter="16" class="stat-row">
-      <el-col :xs="12" :sm="6">
-        <el-card class="count-card">
-          <div class="count-num" style="color: var(--el-color-success)">{{ deviceStats.onlineCount }}</div>
-          <div class="count-label">在线设备</div>
-          <div class="count-sub">共 {{ deviceStats.total }} 台</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="12" :sm="6">
-        <el-card class="count-card">
-          <div class="count-num" style="color: var(--el-color-danger)">{{ deviceStats.total - deviceStats.onlineCount }}</div>
-          <div class="count-label">离线设备</div>
-          <div class="count-sub">共 {{ deviceStats.total }} 台</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="12" :sm="6">
-        <el-card class="count-card">
-          <div class="count-num" style="color: var(--el-color-primary)">{{ runningCount }}</div>
-          <div class="count-label">运行平台</div>
-          <div class="count-sub">共 {{ platformStats.length }} 个</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="12" :sm="6">
-        <el-card class="count-card">
-          <div class="count-num" style="color: var(--el-color-warning)">{{ totalMsgCount }}</div>
-          <div class="count-label">累计消息</div>
-          <div class="count-sub" :style="totalErrCount > 0 ? 'color:var(--el-color-danger)' : ''">
-            错误 {{ totalErrCount }}
+    <!-- 趋势 + 分布/资源 -->
+    <el-row :gutter="14">
+      <el-col :xs="24" :lg="16">
+        <div class="gw-card" style="height: 100%">
+          <div class="gw-card-head">
+            <h2>近 24 小时消息接入趋势</h2>
+            <el-button size="small" text icon="Refresh" @click="loadAll" :loading="loading">刷新</el-button>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 消息接收推送趋势图 -->
-    <el-row>
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <div class="card-hd">
-              <el-icon><DataLine /></el-icon>
-              <span>消息接收推送趋势</span>
-              <el-radio-group v-model="chartDays" size="small" @change="loadMsgChart">
-                <el-radio-button :value="7">近7天</el-radio-button>
-                <el-radio-button :value="14">近14天</el-radio-button>
-                <el-radio-button :value="30">近30天</el-radio-button>
-              </el-radio-group>
-              <el-button size="small" text icon="Refresh" @click="loadAll" :loading="loading">刷新</el-button>
-            </div>
-          </template>
-          <div v-loading="chartLoading">
+          <div class="gw-card-body">
             <div ref="chartRef" class="chart-box" />
           </div>
-        </el-card>
+        </div>
+      </el-col>
+      <el-col :xs="24" :lg="8">
+        <div class="gw-card" style="height: 100%">
+          <div class="gw-card-head"><h2>今日消息类型分布</h2></div>
+          <div class="gw-card-body">
+            <el-empty v-if="typeDist.length === 0" description="今日暂无消息" :image-size="60" />
+            <div class="gw-hbar" v-else>
+              <div class="row" v-for="t in typeDist" :key="t.type">
+                <span>{{ typeLabel(t.type) }}</span>
+                <div class="bar-bg">
+                  <div class="bar" :style="{ width: t.percent + '%', background: typeColor(t.type) }" />
+                </div>
+                <span class="num">{{ fmt(t.total) }}</span>
+              </div>
+            </div>
+            <div class="res-divider">
+              <h2>系统资源</h2>
+              <div class="gw-hbar">
+                <div class="row">
+                  <span>CPU</span>
+                  <div class="bar-bg"><div class="bar" :style="barStyle(server.cpu?.used)" /></div>
+                  <span class="num">{{ server.cpu?.used ?? '-' }}%</span>
+                </div>
+                <div class="row">
+                  <span>内存</span>
+                  <div class="bar-bg"><div class="bar" :style="barStyle(server.mem?.usage)" /></div>
+                  <span class="num">{{ server.mem?.usage ?? '-' }}%</span>
+                </div>
+                <div class="row">
+                  <span>JVM</span>
+                  <div class="bar-bg"><div class="bar" :style="barStyle(server.jvm?.usage)" /></div>
+                  <span class="num">{{ server.jvm?.usage ?? '-' }}%</span>
+                </div>
+                <div class="row">
+                  <span>磁盘</span>
+                  <div class="bar-bg"><div class="bar" :style="barStyle(mainDiskUsage)" /></div>
+                  <span class="num">{{ mainDiskUsage }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 插件状态 + 推送统计/最新告警 -->
+    <el-row :gutter="14">
+      <el-col :xs="24" :lg="12">
+        <div class="gw-card" style="height: 100%">
+          <div class="gw-card-head">
+            <h2>插件运行状态</h2>
+            <el-button size="small" text type="primary" @click="navTo('platform')">管理插件 →</el-button>
+          </div>
+          <div class="gw-card-body no-pad">
+            <el-table :data="plugin.list || []" size="small" :show-header="true" max-height="380">
+              <el-table-column label="插件" prop="name" min-width="130" show-overflow-tooltip />
+              <el-table-column label="协议" width="110" align="center">
+                <template #default="scope">
+                  <el-tag size="small" type="info" effect="plain">{{ scope.row.protocol || '-' }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="90" align="center">
+                <template #default="scope">
+                  <span class="gw-badge" :class="pluginBadge(scope.row)">{{ pluginLabel(scope.row) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="接入设备" prop="deviceCount" width="80" align="center" />
+              <el-table-column label="累计消息" width="90" align="center">
+                <template #default="scope">{{ fmt(scope.row.msgCount) }}</template>
+              </el-table-column>
+              <el-table-column label="错误" width="70" align="center">
+                <template #default="scope">
+                  <span :style="scope.row.errCount > 0 ? 'color:#dc2626' : 'color:#16a34a'">{{ fmt(scope.row.errCount) }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :lg="12">
+        <div class="gw-card" style="height: 100%">
+          <div class="gw-card-head">
+            <h2>消息推送统计（按来源平台）</h2>
+            <el-button size="small" text type="primary" @click="navTo('message')">消息日志 →</el-button>
+          </div>
+          <div class="gw-card-body no-pad">
+            <el-table :data="messageByPlatform" size="small" max-height="170">
+              <el-table-column label="来源平台" prop="pfCode" min-width="110" />
+              <el-table-column label="累计消息" width="100" align="center">
+                <template #default="scope">{{ fmt(scope.row.total) }}</template>
+              </el-table-column>
+              <el-table-column label="推送成功" width="100" align="center">
+                <template #default="scope">
+                  <span style="color:#16a34a">{{ fmt(scope.row.sentCount) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="推送失败" width="100" align="center">
+                <template #default="scope">
+                  <span :style="scope.row.failedCount > 0 ? 'color:#dc2626' : ''">{{ fmt(scope.row.failedCount) }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="gw-card-head" style="border-top: 1px solid #e2e8f0">
+            <h2>最新告警</h2>
+          </div>
+          <div class="gw-card-body">
+            <el-empty v-if="latestAlarms.length === 0" description="暂无告警" :image-size="50" />
+            <div v-for="alarm in latestAlarms" :key="alarm.id" class="alarm-row">
+              <span class="gw-mono gw-muted">{{ shortTime(alarm.createTime) }}</span>
+              <el-tag type="danger" size="small">告警</el-tag>
+              <span class="alarm-text">
+                <span class="gw-mono">{{ alarm.deviceCode || '-' }}</span>
+                <span class="gw-muted"> · {{ alarm.pfCode }}</span>
+              </span>
+              <span class="gw-badge gw-small" :class="alarm.sendStatus === 'sent' ? 'ok' : (alarm.sendStatus === 'failed' ? 'err' : 'off')">
+                {{ alarm.sendStatus === 'sent' ? '已推送' : (alarm.sendStatus === 'failed' ? '推送失败' : '未推送') }}
+              </span>
+            </div>
+          </div>
+        </div>
       </el-col>
     </el-row>
   </div>
@@ -117,109 +177,136 @@
 
 <script setup name="Home">
 import * as echarts from 'echarts'
-import { Cpu, DataBoard, Monitor, FolderOpened, DataLine } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { getOverview } from '@/api/sys/overview'
 import { getServer } from '@/api/monitor/server'
-import { getAllPlatformStats } from '@/api/sys/platform'
-import { getDeviceOnlineStats } from '@/api/sys/device'
-import { listMessage } from '@/api/sys/message'
 
-const loading      = ref(false)
-const chartLoading = ref(false)
-const chartDays    = ref(7)
-const server       = ref({})
-const platformStats = ref([])
-const onlineStats  = ref([])
-const chartRef     = ref(null)
-let   chartInst    = null
+const router = useRouter()
 
-const deviceStats   = computed(() => {
-  let total = 0, online = 0
-  onlineStats.value.forEach(s => { total += Number(s.total || 0); online += Number(s.onlineCount || 0) })
-  return { total, onlineCount: online }
-})
-const runningCount  = computed(() => platformStats.value.filter(p => p.alive).length)
-const totalMsgCount = computed(() => platformStats.value.reduce((s, p) => s + (p.msgCount || 0), 0))
-const totalErrCount = computed(() => platformStats.value.reduce((s, p) => s + (p.errCount || 0), 0))
-const mainDisk      = computed(() => {
-  const f = server.value.sysFiles
-  if (!f?.length) return null
-  return f.reduce((a, b) => (Number(a.usage) > Number(b.usage) ? a : b))
-})
-const mainDiskUsage = computed(() => mainDisk.value?.usage ?? 0)
-
-function num(v) { return Math.min(100, Math.max(0, Number(v) || 0)) }
-function barColor(v) {
-  const n = num(v)
-  if (n >= 85) return '#f56c6c'
-  if (n >= 65) return '#e6a23c'
-  return '#67c23a'
+/** 按关键字在已注册路由中定位目标页（菜单由后端动态下发，路径不固定） */
+function navTo(keyword) {
+  const target = router.getRoutes().find(r => r.path.toLowerCase().includes(keyword) && r.components)
+  if (target) {
+    router.push(target.path)
+  }
 }
 
-// ==================== 图表 ====================
-function buildDays(n) {
+const loading = ref(false)
+const device = ref({})
+const today = ref({})
+const plugin = ref({})
+const typeDistRaw = ref([])
+const trend = ref([])
+const messageByPlatform = ref([])
+const latestAlarms = ref([])
+const server = ref({})
+const chartRef = ref(null)
+let chartInst = null
+
+const TYPE_META = {
+  alarm:     { label: '告警事件', color: '#dc2626' },
+  business:  { label: '监测数据', color: '#2563eb' },
+  device:    { label: '设备事件', color: '#d97706' },
+  control:   { label: '反控指令', color: '#7c3aed' },
+  event:     { label: '事件',     color: '#0891b2' },
+  heartbeat: { label: '心跳',     color: '#64748b' }
+}
+function typeLabel(t) { return TYPE_META[t]?.label || t || '未知' }
+function typeColor(t) { return TYPE_META[t]?.color || '#94a3b8' }
+
+const onlineRate = computed(() => {
+  const t = Number(device.value.total || 0)
+  return t === 0 ? 0 : Math.round((Number(device.value.online || 0) / t) * 1000) / 10
+})
+const onlineRateColor = computed(() => (onlineRate.value >= 90 ? '#16a34a' : onlineRate.value >= 70 ? '#d97706' : '#dc2626'))
+const pushSuccessRate = computed(() => {
+  const total = Number(today.value.total || 0)
+  if (total === 0) return 100
+  return Math.round((Number(today.value.sentCount || 0) / total) * 1000) / 10
+})
+const pushRateColor = computed(() => (pushSuccessRate.value >= 95 ? '#16a34a' : pushSuccessRate.value >= 80 ? '#d97706' : '#dc2626'))
+const abnormalCount = computed(() =>
+  (plugin.value.list || []).filter(p => p.status === '1' && !p.alive).length
+)
+const typeDist = computed(() => {
+  const rows = typeDistRaw.value || []
+  const max = Math.max(1, ...rows.map(r => Number(r.total || 0)))
+  return rows
+    .slice()
+    .sort((a, b) => Number(b.total) - Number(a.total))
+    .map(r => ({ ...r, percent: Math.round((Number(r.total) / max) * 100) }))
+})
+const mainDiskUsage = computed(() => {
+  const f = server.value.sysFiles
+  if (!f?.length) return 0
+  return f.reduce((a, b) => (Number(a.usage) > Number(b.usage) ? a : b)).usage
+})
+
+function fmt(v) {
+  const n = Number(v || 0)
+  return n.toLocaleString('zh-CN')
+}
+function shortTime(t) {
+  if (!t) return '-'
+  return String(t).slice(5, 16)
+}
+function barStyle(v) {
+  const n = Math.min(100, Math.max(0, Number(v) || 0))
+  const color = n >= 85 ? '#dc2626' : n >= 65 ? '#d97706' : '#16a34a'
+  return { width: n + '%', background: color }
+}
+function pluginBadge(row) {
+  if (row.status !== '1') return 'off'
+  return row.alive ? 'ok' : 'err'
+}
+function pluginLabel(row) {
+  if (row.status !== '1') return '已停止'
+  return row.alive ? '运行中' : '异常'
+}
+
+// ==================== 趋势图 ====================
+function buildHours() {
   const arr = []
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    arr.push(d.toISOString().slice(0, 10))
+  const now = new Date()
+  for (let i = 23; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 3600 * 1000)
+    const pad = n => String(n).padStart(2, '0')
+    arr.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`)
   }
   return arr
 }
 
-async function loadMsgChart() {
+function renderChart() {
   if (!chartInst) return
-  chartLoading.value = true
-  const days = buildDays(chartDays.value)
-  try {
-    const res = await listMessage({
-      pageNum: 1, pageSize: 3000,
-      orderByColumn: 'id', isAsc: 'DESC',
-      params: { beginCreateTime: days[0], endCreateTime: days[days.length - 1] }
-    })
-    const rows     = res.rows || []
-    const recvMap  = {}
-    const sentMap  = {}
-    const failMap  = {}
-    days.forEach(d => { recvMap[d] = 0; sentMap[d] = 0; failMap[d] = 0 })
-    rows.forEach(msg => {
-      const day = msg.createTime?.slice(0, 10)
-      if (day && recvMap[day] !== undefined) {
-        recvMap[day]++
-        if (msg.sendStatus === 'sent')   sentMap[day]++
-        if (msg.sendStatus === 'failed') failMap[day]++
+  const hours = buildHours()
+  const map = {}
+  ;(trend.value || []).forEach(r => { map[r.timePoint] = r })
+  const totalData = hours.map(h => Number(map[h]?.total || 0))
+  const alarmData = hours.map(h => Number(map[h]?.alarmCount || 0))
+  const sentData = hours.map(h => Number(map[h]?.sentCount || 0))
+  const labels = hours.map(h => h.slice(11))
+  chartInst.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['接入消息', '推送成功', '告警'], bottom: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10 },
+    grid: { left: '2%', right: '3%', top: '8%', bottom: '14%', containLabel: true },
+    xAxis: { type: 'category', boundaryGap: false, data: labels, axisTick: { show: false }, axisLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#94a3b8', interval: 3 } },
+    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }, axisLabel: { color: '#94a3b8' } },
+    series: [
+      {
+        name: '接入消息', type: 'line', smooth: true, data: totalData, symbol: 'none',
+        areaStyle: { color: 'rgba(37, 99, 235, 0.10)' },
+        lineStyle: { color: '#2563eb', width: 2.5 }, itemStyle: { color: '#2563eb' }
+      },
+      {
+        name: '推送成功', type: 'line', smooth: true, data: sentData, symbol: 'none',
+        lineStyle: { color: '#16a34a', width: 1.5 }, itemStyle: { color: '#16a34a' }
+      },
+      {
+        name: '告警', type: 'line', smooth: true, data: alarmData, symbol: 'none',
+        lineStyle: { color: '#dc2626', width: 1.5 }, itemStyle: { color: '#dc2626' }
       }
-    })
-    const labels = days.map(d => d.slice(5))
-    chartInst.setOption({
-      tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-      legend: { data: ['接收消息', '推送成功', '推送失败'], bottom: 0 },
-      grid: { left: '3%', right: '4%', top: '10%', bottom: '12%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: labels, axisTick: { show: false } },
-      yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { type: 'dashed' } } },
-      series: [
-        {
-          name: '接收消息', type: 'line', smooth: true, data: days.map(d => recvMap[d]),
-          symbol: 'circle', symbolSize: 6,
-          areaStyle: { color: 'rgba(64,158,255,0.12)' },
-          lineStyle: { color: '#409eff' }, itemStyle: { color: '#409eff' }
-        },
-        {
-          name: '推送成功', type: 'line', smooth: true, data: days.map(d => sentMap[d]),
-          symbol: 'circle', symbolSize: 6,
-          areaStyle: { color: 'rgba(103,194,58,0.12)' },
-          lineStyle: { color: '#67c23a' }, itemStyle: { color: '#67c23a' }
-        },
-        {
-          name: '推送失败', type: 'line', smooth: true, data: days.map(d => failMap[d]),
-          symbol: 'circle', symbolSize: 6,
-          areaStyle: { color: 'rgba(245,108,108,0.10)' },
-          lineStyle: { color: '#f56c6c' }, itemStyle: { color: '#f56c6c' }
-        }
-      ]
-    })
-  } finally {
-    chartLoading.value = false
-  }
+    ]
+  })
 }
 
 function onResize() { chartInst?.resize() }
@@ -240,47 +327,47 @@ onBeforeUnmount(() => {
 async function loadAll() {
   loading.value = true
   try {
-    const [srvRes, pfRes, devRes] = await Promise.all([
-      getServer(),
-      getAllPlatformStats(),
-      getDeviceOnlineStats()
+    const [ovRes, srvRes] = await Promise.all([
+      getOverview(),
+      getServer().catch(() => ({ data: {} }))
     ])
-    server.value        = srvRes.data || {}
-    platformStats.value = Array.isArray(pfRes.data)  ? pfRes.data  : []
-    onlineStats.value   = Array.isArray(devRes.data) ? devRes.data : []
+    const d = ovRes.data || {}
+    device.value = d.device || {}
+    today.value = d.today || {}
+    plugin.value = d.plugin || {}
+    typeDistRaw.value = d.typeDistribution || []
+    trend.value = d.trend || []
+    messageByPlatform.value = d.messageByPlatform || []
+    latestAlarms.value = d.latestAlarms || []
+    server.value = srvRes.data || {}
   } finally {
     loading.value = false
   }
-  loadMsgChart()
+  renderChart()
 }
 </script>
 
 <style scoped>
-.home-container { padding: 4px 0; margin-left: 10px;margin-right: 10px; }
-.stat-row { margin-bottom: 16px; }
-
-/* 硬件指标卡片 */
-.metric-card { height: 100%; }
-.metric-inner { display: flex; align-items: flex-start; gap: 14px; }
-.metric-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; }
-.cpu-bg  { background: linear-gradient(135deg, #667eea, #764ba2); }
-.mem-bg  { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-.jvm-bg  { background: linear-gradient(135deg, #fa709a, #fee140); }
-.disk-bg { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-.metric-body  { flex: 1; min-width: 0; }
-.metric-label { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 2px; }
-.metric-val   { font-size: 26px; font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
-.metric-bar   { margin-bottom: 4px; }
-.metric-sub   { font-size: 12px; color: var(--el-text-color-secondary); }
-
-/* 计数卡片 */
-.count-card  { text-align: center; padding: 4px 0; }
-.count-num   { font-size: 36px; font-weight: 800; line-height: 1.2; }
-.count-label { font-size: 13px; color: var(--el-text-color-regular); margin-top: 4px; }
-.count-sub   { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
-
-/* 趋势图 */
-.chart-box { width: 100%; height: 340px; }
-.card-hd { display: flex; align-items: center; gap: 10px; }
-.card-hd span { flex: 1; font-weight: 600; }
+.chart-box { width: 100%; height: 330px; }
+.res-divider {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+.res-divider h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: #0f172a;
+}
+.alarm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+.alarm-row:last-child { border-bottom: none; }
+.alarm-text { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 </style>

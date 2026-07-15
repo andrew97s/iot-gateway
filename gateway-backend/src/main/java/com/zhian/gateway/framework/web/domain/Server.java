@@ -2,7 +2,7 @@ package com.zhian.gateway.framework.web.domain;
 
 import com.zhian.gateway.common.utils.Arith;
 import com.zhian.gateway.common.utils.ip.IpUtils;
-import com.zhian.framework.web.domain.server.*;
+import com.zhian.gateway.framework.web.domain.server.*;
 import com.zhian.gateway.framework.web.domain.server.*;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;

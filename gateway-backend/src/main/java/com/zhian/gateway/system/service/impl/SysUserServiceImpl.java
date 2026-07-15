@@ -15,7 +15,7 @@ import com.zhian.gateway.system.domain.SysPost;
 import com.zhian.gateway.system.domain.SysUserPost;
 import com.zhian.gateway.system.domain.SysUserRole;
 import com.zhian.gateway.system.mapper.*;
-import com.zhian.system.mapper.*;
+import com.zhian.gateway.system.mapper.*;
 import com.zhian.gateway.system.service.ISysConfigService;
 import com.zhian.gateway.system.service.ISysUserService;
 import org.slf4j.Logger;

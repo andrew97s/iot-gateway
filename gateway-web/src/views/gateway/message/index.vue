@@ -1,21 +1,26 @@
 <template>
-  <div class="app-container">
-    <!-- 搜索栏 -->
-    <el-form :inline="true" :label-position="defaultQueryLabelPosition" label-width="80px" :model="queryParams" ref="queryRef" v-show="showSearch">
-      <!-- 默认显示：设备信息 + 上报时间 -->
-      <el-form-item label="设备信息" prop="deviceCode">
+  <div class="gw-page">
+    <!-- 筛选栏 -->
+    <div class="gw-card" v-show="showSearch">
+      <div class="gw-card-body gw-filter-bar">
         <el-input
           v-model="queryParams.deviceCode"
           clearable
           :placeholder="exactMatch ? '设备编码或位置（精准）' : '设备编码或位置（模糊）'"
-          style="width: 180px"
+          style="width: 200px"
           @keyup.enter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="精准匹配">
-        <el-switch v-model="exactMatch" active-text="开" inactive-text="关" inline-prompt />
-      </el-form-item>
-      <el-form-item label="上报时间">
+        <el-switch v-model="exactMatch" active-text="精准" inactive-text="模糊" inline-prompt />
+        <el-select v-model="queryParams.type" clearable placeholder="消息类型（全部）" style="width: 150px" @change="handleQuery">
+          <el-option v-for="(meta, key) in MSG_TYPES" :key="key" :label="meta.label" :value="key" />
+        </el-select>
+        <el-select v-model="queryParams.pfCode" clearable filterable placeholder="来源插件（全部）" style="width: 160px" @change="handleQuery">
+          <el-option v-for="pf in platformOptions" :key="pf.code" :label="pf.name" :value="pf.code" />
+        </el-select>
+        <el-select v-model="queryParams.sendStatus" clearable placeholder="推送状态（全部）" style="width: 140px" @change="handleQuery">
+          <el-option label="已推送" value="sent" />
+          <el-option label="推送失败" value="failed" />
+        </el-select>
         <el-date-picker
           v-model="daterangeCreateTime"
           end-placeholder="结束日期"
@@ -25,81 +30,90 @@
           value-format="YYYY-MM-DD"
           style="width: 240px"
         />
-      </el-form-item>
-    </el-form>
-
-    <el-row class="mb8" :gutter="10">
-      <el-col :span="1.5">
+        <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
+        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        <div class="spacer" />
         <el-button :disabled="multiple" icon="Delete" plain type="danger" v-hasPermi="['sys:message:remove']" @click="handleDelete">删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button icon="WarnTriangleFilled" plain type="danger" v-hasPermi="['sys:message:remove']" @click="handleClear">清空</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button icon="Download" plain type="warning" v-hasPermi="['sys:message:export']" @click="handleExport">导出</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
+        <el-button icon="Download" plain v-hasPermi="['sys:message:export']" @click="handleExport">导出</el-button>
+      </div>
+    </div>
 
-    <el-table :data="messageList" v-loading="loading" @selection-change="handleSelectionChange">
-      <el-table-column align="center" type="selection" width="40" />
-      <el-table-column align="center" label="平台" prop="pfCode" width="120" />
-      <el-table-column align="center" label="设备编号" prop="deviceCode" width="200" />
-      <el-table-column align="center" label="消息类型" prop="type" width="128">
-        <template #default="scope">
-          <el-tooltip v-if="isControlType(scope.row.type)" placement="top" content="上级平台经全息网关对设备发起的反控指令；不产生对业务侧的对外推送。">
-            <el-tag type="warning" size="small">{{ getMsgTypeLabel(scope.row.type) }}</el-tag>
-          </el-tooltip>
-          <el-tag v-else :type="getMsgTypeTag(scope.row.type)" size="small">{{ getMsgTypeLabel(scope.row.type) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column align="center" label="处置完成" prop="results" width="90">
-        <template #default="scope">
-          <dict-tag :options="sys_yes_no" :value="scope.row.results" />
-        </template>
-      </el-table-column>
-      <el-table-column align="center" label="推送状态" prop="sendStatus" width="100">
-        <template #default="scope">
-          <template v-if="isControlType(scope.row.type)">
-            <el-tooltip content="反控指令不经网关对外推送" placement="top">
-              <span class="text-secondary">—</span>
-            </el-tooltip>
-          </template>
-          <template v-else>
-            <span v-if="!scope.row.sendStatus" class="text-secondary">-</span>
-            <el-tag v-else-if="scope.row.sendStatus === 'sent'" type="success" size="small">已推送</el-tag>
-            <el-tag v-else-if="scope.row.sendStatus === 'failed'" type="danger" size="small">失败</el-tag>
-            <el-tag v-else type="info" size="small">{{ scope.row.sendStatus }}</el-tag>
-          </template>
-        </template>
-      </el-table-column>
-      <el-table-column align="center" label="上报时间" prop="createTime" width="170" />
-      <el-table-column align="center" label="操作" min-width="240">
-        <template #default="scope">
-          <el-button icon="View" link type="primary" v-hasPermi="['sys:message:list']" @click="handleView(scope.row)">查看</el-button>
-          <el-button
-            v-if="!isControlType(scope.row.type)"
-            icon="Promotion"
-            link
-            type="primary"
-            v-hasPermi="['sys:message:edit']"
-            :loading="pushingMap[scope.row.id]"
-            @click="handlePush(scope.row)"
-          >推送</el-button>
-          <el-button
-            v-if="!isControlType(scope.row.type)"
-            icon="Tickets"
-            link
-            type="info"
-            v-hasPermi="['sys:message:list']"
-            @click="openPushLogs(scope.row)"
-          >推送记录</el-button>
-          <el-button icon="Delete" link type="danger" v-hasPermi="['sys:message:remove']" @click="handleDelete(scope.row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :total="total" @pagination="getList" v-show="total > 0" />
+    <!-- 消息表格 -->
+    <div class="gw-card">
+      <div class="gw-card-body no-pad">
+        <el-table :data="messageList" v-loading="loading" @selection-change="handleSelectionChange">
+          <el-table-column align="center" type="selection" width="40" />
+          <el-table-column align="center" label="接收时间" prop="createTime" width="165">
+            <template #default="scope">
+              <span class="gw-mono gw-muted">{{ scope.row.createTime }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="消息类型" prop="type" width="110">
+            <template #default="scope">
+              <el-tooltip v-if="isControlType(scope.row.type)" placement="top" content="上级平台经网关对设备发起的反控指令；不产生对上级平台的对外推送。">
+                <el-tag type="warning" size="small">{{ getMsgTypeLabel(scope.row.type) }}</el-tag>
+              </el-tooltip>
+              <el-tag v-else :type="getMsgTypeTag(scope.row.type)" size="small">{{ getMsgTypeLabel(scope.row.type) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="设备编码" prop="deviceCode" min-width="170">
+            <template #default="scope">
+              <span class="gw-mono" style="font-weight: 600">{{ scope.row.deviceCode || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="来源插件" prop="pfCode" width="130">
+            <template #default="scope">
+              <el-tag size="small" type="info" effect="plain">{{ platformName(scope.row.pfCode) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="处置完成" prop="results" width="90">
+            <template #default="scope">
+              <dict-tag :options="sys_yes_no" :value="scope.row.results" />
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="同步上级平台" prop="sendStatus" width="120">
+            <template #default="scope">
+              <template v-if="isControlType(scope.row.type)">
+                <el-tooltip content="反控指令不经网关对外推送" placement="top">
+                  <span class="text-secondary">— 下行消息</span>
+                </el-tooltip>
+              </template>
+              <template v-else>
+                <span v-if="!scope.row.sendStatus" class="gw-badge off plain">未推送</span>
+                <span v-else-if="scope.row.sendStatus === 'sent'" class="gw-badge ok">已推送</span>
+                <span v-else-if="scope.row.sendStatus === 'failed'" class="gw-badge err">
+                  失败{{ scope.row.retryCount ? ` (重试${scope.row.retryCount})` : '' }}
+                </span>
+                <span v-else class="gw-badge info plain">{{ scope.row.sendStatus }}</span>
+              </template>
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="操作" min-width="230" fixed="right">
+            <template #default="scope">
+              <el-button link type="primary" v-hasPermi="['sys:message:list']" @click="handleView(scope.row)">详情</el-button>
+              <el-button
+                v-if="!isControlType(scope.row.type)"
+                link
+                type="primary"
+                v-hasPermi="['sys:message:edit']"
+                :loading="pushingMap[scope.row.id]"
+                @click="handlePush(scope.row)"
+              >重推</el-button>
+              <el-button
+                v-if="!isControlType(scope.row.type)"
+                link
+                type="info"
+                v-hasPermi="['sys:message:list']"
+                @click="openPushLogs(scope.row)"
+              >推送记录</el-button>
+              <el-button link type="danger" v-hasPermi="['sys:message:remove']" @click="handleDelete(scope.row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :total="total" @pagination="getList" v-show="total > 0" />
+      </div>
+    </div>
 
     <!-- 消息详情对话框 -->
     <el-dialog v-model="open" append-to-body :title="title" width="720px">
@@ -240,33 +254,31 @@ const { queryParams, form } = toRefs(data)
 const platformOptions = ref([])
 selectPlatform().then(res => { platformOptions.value = res.data })
 
+const MSG_TYPES = {
+  alarm:     { label: '告警', tag: 'danger' },
+  business:  { label: '监测/业务', tag: 'success' },
+  device:    { label: '设备', tag: 'primary' },
+  control:   { label: '反控', tag: 'warning' },
+  event:     { label: '事件', tag: 'warning' },
+  heartbeat: { label: '心跳', tag: 'info' }
+}
+
 function isControlType(type) {
   return type === 'control'
 }
 
 function getMsgTypeLabel(type) {
   if (!type) return '-'
-  const map = {
-    alarm: '告警',
-    business: '业务',
-    device: '设备',
-    control: '反控',
-    event: '事件',
-    heartbeat: '心跳'
-  }
-  return map[type] || type
+  return MSG_TYPES[type]?.label || type
 }
 
 function getMsgTypeTag(type) {
-  const m = {
-    alarm: 'danger',
-    business: 'success',
-    device: 'primary',
-    control: 'warning',
-    event: 'warning',
-    heartbeat: 'info'
-  }
-  return m[type] || ''
+  return MSG_TYPES[type]?.tag || ''
+}
+
+function platformName(pfCode) {
+  if (!pfCode) return '-'
+  return platformOptions.value.find(p => p.code === pfCode)?.name || pfCode
 }
 
 function stringifyForCopy(val) {
@@ -355,7 +367,10 @@ function handleQuery() {
 function resetQuery() {
   daterangeCreateTime.value = []
   exactMatch.value = false
-  proxy.resetForm('queryRef')
+  queryParams.value.deviceCode = null
+  queryParams.value.type = null
+  queryParams.value.pfCode = null
+  queryParams.value.sendStatus = null
   handleQuery()
 }
 

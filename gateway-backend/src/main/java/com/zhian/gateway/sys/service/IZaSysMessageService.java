@@ -111,4 +111,33 @@ public interface IZaSysMessageService  extends IService<ZaSysMessage>
      * @return list of {pfCode, total, sentCount, failedCount}
      */
     java.util.List<java.util.Map<String, Object>> countByPlatform();
+
+    /**
+     * 今日消息按类型统计
+     *
+     * @return list of {type, total}
+     */
+    java.util.List<java.util.Map<String, Object>> countTodayByType();
+
+    /**
+     * 近24小时逐小时消息趋势
+     *
+     * @return list of {timePoint, total, alarmCount, sentCount, failedCount}
+     */
+    java.util.List<java.util.Map<String, Object>> selectHourlyTrend();
+
+    /**
+     * 今日推送/告警汇总
+     *
+     * @return {total, sentCount, failedCount, alarmCount, unhandledAlarmCount}
+     */
+    java.util.Map<String, Object> selectTodaySendStats();
+
+    /**
+     * 最新告警消息
+     *
+     * @param limit 条数
+     * @return 告警消息列表
+     */
+    List<ZaSysMessage> selectLatestAlarms(int limit);
 }

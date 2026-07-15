@@ -79,4 +79,19 @@ public interface ZaSysMessageMapper extends BaseMapper<ZaSysMessage>
      * 按平台统计消息数量（total/sentCount/failedCount）
      */
     List<java.util.Map<String, Object>> countByPlatform();
+
+    /**
+     * 今日消息按类型统计
+     */
+    List<java.util.Map<String, Object>> countTodayByType();
+
+    /**
+     * 近24小时逐小时消息趋势
+     */
+    List<java.util.Map<String, Object>> selectHourlyTrend();
+
+    /**
+     * 今日推送/告警汇总
+     */
+    java.util.Map<String, Object> selectTodaySendStats();
 }

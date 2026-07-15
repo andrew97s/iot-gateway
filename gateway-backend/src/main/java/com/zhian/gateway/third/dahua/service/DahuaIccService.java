@@ -22,7 +22,7 @@ import com.zhian.gateway.third.common.constants.AlarmType;
 import com.zhian.gateway.third.dahua.DhIccHandler;
 import com.zhian.gateway.third.dahua.common.IccDeviceType;
 import com.zhian.gateway.third.dahua.vo.*;
-import com.zhian.third.dahua.vo.*;
+import com.zhian.gateway.third.dahua.vo.*;
 import com.zhian.gateway.third.video.vo.VideoRecord;
 import com.zhian.gateway.third.vo.MqMessage;
 import lombok.extern.slf4j.Slf4j;
