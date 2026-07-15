@@ -1,0 +1,45 @@
+package com.zhian.gateway.framework.license;
+
+import com.alibaba.fastjson2.JSON;
+import com.zhian.gateway.common.constant.HttpStatus;
+import com.zhian.gateway.common.core.domain.AjaxResult;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.HashMap;
+import java.util.Map;
+
+
+/**
+ * LicenseCheckInterceptor
+ *
+ * @author sunHeng
+ * @since 1.0.0
+ */
+@Component
+public class LicenseCheckInterceptor implements HandlerInterceptor {
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        LicenseVerify licenseVerify = new LicenseVerify();
+
+        //校验证书是否有效
+        boolean verifyResult = licenseVerify.verify();
+
+        if(verifyResult){
+            return true;
+        }else{
+            response.setCharacterEncoding("utf-8");
+            Map<String, String> result = new HashMap<>(2);
+            result.put(AjaxResult.CODE_TAG, String.valueOf(HttpStatus.ERROR));
+            result.put(AjaxResult.MSG_TAG, "您的授权无效，请核查服务器是否取得授权或重新申请证书！");
+
+            response.getWriter().write(JSON.toJSONString(result));
+
+            return false;
+        }
+    }
+
+}

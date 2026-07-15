@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhian.gateway.sys.mapper.ZaSysDeviceMapper">
+    
+    <resultMap type="ZaSysDevice" id="ZaSysDeviceResult">
+        <result property="id"    column="id"    />
+        <result property="type"    column="type"    />
+        <result property="model"    column="model"    />
+        <result property="net"    column="net"    />
+        <result property="code"    column="code"    />
+        <result property="name"    column="name"    />
+        <result property="longitude"    column="longitude"    />
+        <result property="latitude"    column="latitude"    />
+        <result property="wireless"    column="wireless"    />
+        <result property="remark"    column="remark"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="pfCode"    column="pf_code"    />
+        <result property="cascadeId"    column="cascade_id"    />
+        <result property="online"    column="online"    />
+        <result property="ip"    column="ip"    />
+    </resultMap>
+
+    <sql id="selectZaSysDeviceVo">
+        select * from za_sys_device t
+    </sql>
+
+    <select id="selectByCode" resultType="com.zhian.gateway.sys.domain.ZaSysDevice">
+        <include refid="selectZaSysDeviceVo"/>
+        where 1
+        <if test="pfCode != null  and pfCode != ''"> and t.pf_code = #{pfCode}</if>
+        <if test="code != null  and code != ''"> and t.code = #{code}</if>
+        limit 1
+    </select>
+
+    <select id="selectZaSysDeviceList" parameterType="ZaSysDevice" resultMap="ZaSysDeviceResult">
+        <include refid="selectZaSysDeviceVo"/>
+        <where>  
+            <if test="type != null  and type != ''"> and t.type = #{type}</if>
+            <if test="model != null  and model != ''"> and t.model = #{model}</if>
+            <if test="net != null  and net != ''"> and t.net = #{net}</if>
+            <if test="code != null  and code != ''"> and t.code = #{code}</if>
+            <if test="name != null  and name != ''"> and t.name like concat('%', #{name}, '%')</if>
+            <if test="longitude != null "> and t.longitude = #{longitude}</if>
+            <if test="latitude != null "> and t.latitude = #{latitude}</if>
+            <if test="wireless != null  and wireless != ''"> and t.wireless = #{wireless}</if>
+            <if test="pfCode != null "> and t.pf_code = #{pfCode}</if>
+            <if test="cascadeId != null "> and t.cascade_id = #{cascadeId}</if>
+            <if test="online != null "> and t.`online` = #{online}</if>
+            <if test="ip != null "> and t.`ip` = #{ip}</if>
+            <if test="params.searchValue != null ">
+             and (t.name like concat('%', #{params.searchValue}, '%') or t.code like concat('%', #{params.searchValue}, '%'))
+            </if>
+        </where>
+    </select>
+    
+    <select id="selectZaSysDeviceById" parameterType="Long" resultMap="ZaSysDeviceResult">
+        <include refid="selectZaSysDeviceVo"/>
+        where t.id = #{id}
+    </select>
+    <select id="selectZaSysDeviceByCode" parameterType="Long" resultMap="ZaSysDeviceResult">
+        <include refid="selectZaSysDeviceVo"/>
+        where 1
+        <if test="net != null  and net != ''"> and t.net = #{net}</if>
+        <if test="code != null  and code != ''"> and t.code = #{code}</if>
+         limit 1
+    </select>
+        
+    <insert id="insertZaSysDevice" parameterType="ZaSysDevice" >
+        insert into za_sys_device
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="model != null and model != ''">model,</if>
+            <if test="net != null">net,</if>
+            <if test="code != null and code != ''">code,</if>
+            <if test="name != null and name != ''">name,</if>
+            <if test="longitude != null">longitude,</if>
+            <if test="latitude != null">latitude,</if>
+            <if test="wireless != null and wireless != ''">wireless,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="pfCode != null">pf_code,</if>
+            <if test="cascadeId != null">cascade_id,</if>
+            <if test="online != null">`online`,</if>
+            <if test="ip != null">`ip`,</if>
+            <if test="bizId != null">`biz_id`,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="model != null and model != ''">#{model},</if>
+            <if test="net != null">#{net},</if>
+            <if test="code != null and code != ''">#{code},</if>
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="longitude != null">#{longitude},</if>
+            <if test="latitude != null">#{latitude},</if>
+            <if test="wireless != null and wireless != ''">#{wireless},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="pfCode != null">#{pfCode},</if>
+            <if test="cascadeId != null">#{cascadeId},</if>
+            <if test="online != null">#{online},</if>
+            <if test="ip != null">#{ip},</if>
+            <if test="bizId != null">#{bizId},</if>
+         </trim>
+    </insert>
+
+    <update id="updateZaSysDevice" parameterType="ZaSysDevice">
+        update za_sys_device
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="type != null and type != ''">type = #{type},</if>
+            <if test="model != null and model != ''">model = #{model},</if>
+            <if test="net != null">net = #{net},</if>
+            <if test="code != null and code != ''">code = #{code},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="longitude != null">longitude = #{longitude},</if>
+            <if test="latitude != null">latitude = #{latitude},</if>
+            <if test="wireless != null and wireless != ''">wireless = #{wireless},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="pfCode != null">pf_code = #{pfCode},</if>
+            <if test="cascadeId != null">cascade_id = #{cascadeId},</if>
+            <if test="online != null">`online` = #{online},</if>
+            <if test="ip != null">`ip` = #{ip},</if>
+            <if test="bizId != null">`biz_id` = #{bizId},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteZaSysDeviceById" parameterType="Long">
+        delete from za_sys_device where id = #{id}
+    </delete>
+
+    <delete id="deleteZaSysDeviceByIds" parameterType="String">
+        delete from za_sys_device where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="purge">
+        truncate table za_sys_device
+    </delete>
+
+    <!-- 按平台统计设备数量 -->
+    <select id="selectOnlineStats" resultType="java.util.Map">
+        select pf_code as pfCode,
+               count(*)                                        as total,
+               sum(case when `online` = '1' then 1 else 0 end) as onlineCount
+        from za_sys_device
+        group by pf_code
+    </select>
+</mapper>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhian.gateway.sys.mapper.ZaSysDatasetMapper">
+    
+    <resultMap type="ZaSysDataset" id="ZaSysDatasetResult">
+        <result property="id"    column="id"    />
+        <result property="type"    column="type"    />
+        <result property="name"    column="name"    />
+        <result property="code"    column="code"    />
+        <result property="sqls"    column="sqls"    />
+        <result property="param"    column="param"    />
+        <result property="remark"    column="remark"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectZaSysDatasetVo">
+        select id, type, name, code, sqls, param, remark, create_by, create_time, update_by, update_time from za_sys_dataset t
+    </sql>
+
+    <select id="selectZaSysDatasetList" parameterType="ZaSysDataset" resultMap="ZaSysDatasetResult">
+        <include refid="selectZaSysDatasetVo"/>
+        <where>  
+            <if test="type != null  and type != ''"> and t.type = #{type}</if>
+            <if test="name != null  and name != ''"> and t.name like ('%' ||  #{name} || '%' )</if>
+            <if test="code != null  and code != ''"> and t.code = #{code}</if>
+        </where>
+    </select>
+    
+    <select id="selectZaSysDatasetById" parameterType="Long" resultMap="ZaSysDatasetResult">
+        <include refid="selectZaSysDatasetVo"/>
+        where t.id = #{id}
+    </select>
+    <select id="selectZaSysDatasetByCode" parameterType="String" resultMap="ZaSysDatasetResult">
+        <include refid="selectZaSysDatasetVo"/>
+        where t.code = #{code}
+    </select>
+        
+    <insert id="insertZaSysDataset" parameterType="ZaSysDataset" >
+        insert into za_sys_dataset
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="name != null and name != ''">name,</if>
+            <if test="code != null and code != ''">code,</if>
+            <if test="sqls != null and sqls != ''">sqls,</if>
+            <if test="param != null">param,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="code != null and code != ''">#{code},</if>
+            <if test="sqls != null and sqls != ''">#{sqls},</if>
+            <if test="param != null">#{param},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateZaSysDataset" parameterType="ZaSysDataset">
+        update za_sys_dataset
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="type != null and type != ''">type = #{type},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="code != null and code != ''">code = #{code},</if>
+            <if test="sqls != null and sqls != ''">sqls = #{sqls},</if>
+            <if test="param != null">param = #{param},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <select id="querySql" parameterType="String" resultType="Map">
+        ${sql}
+    </select>
+
+    <delete id="deleteZaSysDatasetById" parameterType="Long">
+        delete from za_sys_dataset where id = #{id}
+    </delete>
+
+    <delete id="deleteZaSysDatasetByIds" parameterType="String">
+        delete from za_sys_dataset where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

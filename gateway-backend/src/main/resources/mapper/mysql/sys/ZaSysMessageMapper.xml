@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhian.gateway.sys.mapper.ZaSysMessageMapper">
+    
+    <resultMap type="ZaSysMessage" id="ZaSysMessageResult">
+        <result property="id"         column="id"          />
+        <result property="pfCode"     column="pf_code"     />
+        <result property="deviceId"   column="device_id"   />
+        <result property="deviceCode" column="device_code" />
+        <result property="type"       column="type"        />
+        <result property="content"    column="content"     />
+        <result property="createTime" column="create_time" />
+        <result property="handleStatus"    column="handle_status"     />
+        <result property="handleResult"    column="handle_result"     />
+        <result property="sendStatus" column="send_status" />
+        <result property="sendResult" column="send_result" />
+        <result property="retryCount" column="retry_count" />
+        <result property="retryTime"  column="retry_time"  />
+    </resultMap>
+
+    <sql id="selectZaSysMessageVo">
+        select * from za_sys_message t
+    </sql>
+
+    <select id="selectZaSysMessageList" parameterType="ZaSysMessage" resultMap="ZaSysMessageResult">
+        <include refid="selectZaSysMessageVo"/>
+        <where>  
+            <if test="pfCode != null  and pfCode != ''"> and t.pf_code = #{pfCode}</if>
+            <if test="deviceId != null "> and t.device_id = #{deviceId}</if>
+            <if test="deviceCode != null  and deviceCode != ''"> and t.device_code like concat('%', #{deviceCode}, '%')</if>
+            <if test="type != null  and type != ''"> and t.type = #{type}</if>
+            <if test="params.beginCreateTime != null and params.beginCreateTime != '' and params.endCreateTime != null and params.endCreateTime != ''"> and t.create_time between #{params.beginCreateTime} and #{params.endCreateTime}</if>
+            <if test="handleStatus != null  and handleStatus != ''"> and t.handle_status = #{handleStatus}</if>
+        </where>
+    </select>
+    
+    <select id="selectZaSysMessageById" parameterType="Long" resultMap="ZaSysMessageResult">
+        <include refid="selectZaSysMessageVo"/>
+        where t.id = #{id}
+    </select>
+        
+    <insert id="insertZaSysMessage" parameterType="ZaSysMessage" >
+        insert into za_sys_message
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="pfCode != null and pfCode != ''">pf_code,</if>
+            <if test="deviceId != null">device_id,</if>
+            <if test="deviceCode != null and deviceCode != ''">device_code,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="content != null and content != ''">content,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="handleStatus != null">handle_status,</if>
+            <if test="handleResult != null">handle_result,</if>
+            <if test="sendStatus != null">send_status,</if>
+            <if test="sendResult != null">send_result,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="pfCode != null and pfCode != ''">#{pfCode},</if>
+            <if test="deviceId != null">#{deviceId},</if>
+            <if test="deviceCode != null and deviceCode != ''">#{deviceCode},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="content != null and content != ''">#{content},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="handleStatus != null">#{handleStatus},</if>
+            <if test="handleResult != null">#{handleResult},</if>
+            <if test="sendStatus != null">#{sendStatus},</if>
+            <if test="sendResult != null">#{sendResult},</if>
+         </trim>
+    </insert>
+
+    <update id="updateZaSysMessage" parameterType="ZaSysMessage">
+        update za_sys_message
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="pfCode != null and pfCode != ''">pf_code = #{pfCode},</if>
+            <if test="deviceId != null">device_id = #{deviceId},</if>
+            <if test="deviceCode != null and deviceCode != ''">device_code = #{deviceCode},</if>
+            <if test="type != null and type != ''">type = #{type},</if>
+            <if test="content != null and content != ''">content = #{content},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="handleResult != null">handle_result = #{handleResult</if>
+            <if test="sendStatus != null">send_status = #{sendStatus},</if>
+            <if test="retryCount != null">retry_count = #{retryCount},</if>
+            <if test="retryTime != null">retry_time = #{retryTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <!-- 按平台统计消息数量 -->
+    <select id="countByPlatform" resultType="java.util.Map">
+        select pf_code as pfCode,
+               count(*) as total,
+               sum(case when send_status = 'sent'   then 1 else 0 end) as sentCount,
+               sum(case when send_status = 'failed' then 1 else 0 end) as failedCount
+        from za_sys_message
+        group by pf_code
+    </select>
+
+    <delete id="deleteZaSysMessageById" parameterType="Long">
+        delete from za_sys_message where id = #{id}
+    </delete>
+
+    <delete id="deleteZaSysMessageByIds" parameterType="String">
+        delete from za_sys_message where id in 
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="purge">
+        truncate table za_sys_message
+    </delete>
+
+    <update id="vacuum">
+        select 'vacuum';
+    </update>
+</mapper>
