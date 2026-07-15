@@ -11,6 +11,7 @@
         <result property="deviceCode" column="device_code" />
         <result property="type"       column="type"        />
         <result property="content"    column="content"     />
+        <result property="unifiedContent" column="unified_content" />
         <result property="createTime" column="create_time" />
         <result property="handleStatus"    column="handle_status"     />
         <result property="handleResult"    column="handle_result"     />
@@ -51,6 +52,7 @@
             <if test="deviceCode != null and deviceCode != ''">device_code,</if>
             <if test="type != null and type != ''">type,</if>
             <if test="content != null and content != ''">content,</if>
+            <if test="unifiedContent != null and unifiedContent != ''">unified_content,</if>
             <if test="createTime != null">create_time,</if>
             <if test="handleStatus != null">handle_status,</if>
             <if test="handleResult != null">handle_result,</if>
@@ -64,6 +66,7 @@
             <if test="deviceCode != null and deviceCode != ''">#{deviceCode},</if>
             <if test="type != null and type != ''">#{type},</if>
             <if test="content != null and content != ''">#{content},</if>
+            <if test="unifiedContent != null and unifiedContent != ''">#{unifiedContent},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="handleStatus != null">#{handleStatus},</if>
             <if test="handleResult != null">#{handleResult},</if>
@@ -80,6 +83,7 @@
             <if test="deviceCode != null and deviceCode != ''">device_code = #{deviceCode},</if>
             <if test="type != null and type != ''">type = #{type},</if>
             <if test="content != null and content != ''">content = #{content},</if>
+            <if test="unifiedContent != null and unifiedContent != ''">unified_content = #{unifiedContent},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
             <if test="handleResult != null">handle_result = #{handleResult},</if>
             <if test="sendStatus != null">send_status = #{sendStatus},</if>

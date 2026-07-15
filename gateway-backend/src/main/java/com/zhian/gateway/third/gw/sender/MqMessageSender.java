@@ -31,17 +31,17 @@ public class MqMessageSender implements MessageSender {
      */
     public static final String PLATFORM_NAME = "gateway";
     /**
-     * The constant QUEUE_NAME.
+     * 队列名（实例级，支持多上级平台各自独立的 MQ 配置）
      */
-    public static String QUEUE_NAME = "za_monitor";
+    private String queueName = "za_monitor";
     /**
-     * The constant QUEUE_EXCHANGE.
+     * 交换机
      */
-    public static String QUEUE_EXCHANGE = "za";
+    private String queueExchange = "za";
     /**
-     * The constant QUEUE_KEY.
+     * 路由键
      */
-    public static String QUEUE_KEY = "za";
+    private String queueKey = "za";
     /**
      * The constant channel.
      */
@@ -79,16 +79,16 @@ public class MqMessageSender implements MessageSender {
 
         ShutdownListener shutdownListener =
                 (ShutdownSignalException cause) -> log.error("RabbitMQ {} 连接异常断开: {}", ip, cause.getMessage());
-        QUEUE_EXCHANGE = platform.getConfigStr("exchange");
-        QUEUE_NAME = platform.getConfigStr("queue");
-        QUEUE_KEY = platform.getConfigStr("key");
-        channel = RabbitMqUtil.produce(connection, QUEUE_EXCHANGE, QUEUE_NAME, QUEUE_KEY, args, shutdownListener);
+        queueExchange = platform.getConfigStr("exchange", queueExchange);
+        queueName = platform.getConfigStr("queue", platform.getConfigStr("queueName", queueName));
+        queueKey = platform.getConfigStr("key", queueKey);
+        channel = RabbitMqUtil.produce(connection, queueExchange, queueName, queueKey, args, shutdownListener);
         if (channel == null) {
             log.error("创建RabbitMQ生产队列失败");
             errorService.log(ZaSysError.TYPE_API_ERROR, "创建RabbitMQ生产队列失败", RabbitMqUtil.getException().getMessage(), platform.getConfig());
             throw new IllegalArgumentException("网关初始化失败,创建MQ通道为空!");
         }
-        return false;
+        return true;
     }
 
     @Override
@@ -103,20 +103,18 @@ public class MqMessageSender implements MessageSender {
         return channel != null && channel.isOpen();
     }
 
-    @SuppressWarnings("CallToPrintStackTrace")
     @Override
     public void send(String message) {
         log.debug("publish msg to rabbit: {}", message);
+        if (channel == null) {
+            throw new IllegalStateException("未获取到RabbitMQ的连接,无法处理消息");
+        }
         try {
-            if (channel != null) {
-                channel.basicPublish(QUEUE_EXCHANGE, QUEUE_KEY, null, message.getBytes(StandardCharsets.UTF_8));
-            } else {
-                log.error("未获取到RabbitMQ的连接,无法处理消息");
-            }
+            channel.basicPublish(queueExchange, queueKey, null, message.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            e.printStackTrace();
             SpringUtils.getBean(IZaSysErrorService.class).log(ZaSysError.TYPE_MQ, "RabbitMQ发送消息失败", e.getMessage(), message);
-
+            // 抛出异常由调用方记录推送结果并支持重推
+            throw new IllegalStateException("RabbitMQ发送消息失败: " + e.getMessage(), e);
         }
     }
 }

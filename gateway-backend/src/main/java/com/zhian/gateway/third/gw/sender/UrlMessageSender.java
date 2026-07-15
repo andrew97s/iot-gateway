@@ -50,9 +50,9 @@ public class UrlMessageSender implements MessageSender {
     public void send(String message) {
         List<String> urls = resolveUrls();
         if (urls.isEmpty()) {
-            log.warn("URL推送：未配置任何推送地址，消息被丢弃");
-            return;
+            throw new IllegalStateException("URL推送：未配置任何推送地址");
         }
+        List<String> failed = new ArrayList<>();
         for (String url : urls) {
             try {
                 log.debug("URL({})推送消息:{}", url, message);
@@ -62,7 +62,12 @@ public class UrlMessageSender implements MessageSender {
                 log.error("URL({})推送失败:{}", url, e.getMessage());
                 SpringUtils.getBean(IZaSysErrorService.class)
                         .log(ZaSysError.TYPE_OTHER, "HTTP发送消息失败[" + url + "]", e.getMessage(), message);
+                failed.add(url + " -> " + e.getMessage());
             }
+        }
+        // 任一地址失败即视为本次推送失败（由调用方记录并支持重推，保证可靠性）
+        if (!failed.isEmpty()) {
+            throw new IllegalStateException("URL推送失败: " + String.join(" ; ", failed));
         }
     }
 

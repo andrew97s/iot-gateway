@@ -123,44 +123,66 @@
         <!-- ==================== 上级平台配置 ==================== -->
         <el-tab-pane label="上级平台配置" name="upstream">
           <div class="tab-body" v-loading="upstreamLoading">
-            <!-- 消息推送通道（gateway 插件） -->
+            <!-- 上级平台列表（多平台） -->
             <div class="gw-card mb14">
               <div class="gw-card-head">
-                <h2>消息推送通道</h2>
-                <span v-if="gatewayPlugin" class="gw-badge" :class="gatewayAlive ? 'ok' : (gatewayPlugin.status === '1' ? 'err' : 'off')">
-                  {{ gatewayPlugin.status !== '1' ? '已禁用' : (gatewayAlive ? '推送中' : '已断开') }}
-                </span>
+                <h2>上级平台（消息推送）</h2>
+                <el-button size="small" type="primary" icon="Plus" v-hasPermi="['sys:upstream:add']" @click="openUpstreamDialog()">新增上级平台</el-button>
               </div>
-              <div class="gw-card-body">
-                <el-empty v-if="!gatewayPlugin" description="未找到消息推送插件（code=gateway），请检查插件配置" :image-size="70" />
-                <template v-else>
-                  <el-descriptions :column="2" border size="small">
-                    <el-descriptions-item label="推送方式">
-                      <el-tag size="small" :type="pushTypeTag">{{ pushTypeLabel }}</el-tag>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="启用状态">
+              <div class="gw-card-body no-pad">
+                <el-table :data="upstreamList" size="default">
+                  <el-table-column label="平台名称" prop="name" min-width="130" />
+                  <el-table-column label="平台代码" prop="code" width="130" align="center">
+                    <template #default="scope"><span class="gw-mono">{{ scope.row.code }}</span></template>
+                  </el-table-column>
+                  <el-table-column label="推送方式" width="110" align="center">
+                    <template #default="scope">
+                      <el-tag size="small" :type="PUSH_TYPE_META[scope.row.pushType]?.tag || 'info'" effect="plain">
+                        {{ PUSH_TYPE_META[scope.row.pushType]?.label || scope.row.pushType }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="目标地址" min-width="220">
+                    <template #default="scope">
+                      <span class="gw-mono gw-small">{{ upstreamTarget(scope.row) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="通道状态" width="100" align="center">
+                    <template #default="scope">
+                      <span v-if="scope.row.status !== '1'" class="gw-badge off">已停用</span>
+                      <span v-else class="gw-badge" :class="upstreamAliveMap[scope.row.code] ? 'ok' : 'err'">
+                        {{ upstreamAliveMap[scope.row.code] ? '在线' : '断开' }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="启用" width="80" align="center">
+                    <template #default="scope">
                       <el-switch
-                        v-model="gatewayPlugin.status"
+                        v-model="scope.row.status"
                         active-value="1"
                         inactive-value="0"
-                        :loading="gatewaySwitchLoading"
-                        active-text="启用"
-                        inactive-text="禁用"
-                        inline-prompt
-                        @change="toggleGatewayPlugin"
+                        v-hasPermi="['sys:upstream:edit']"
+                        @change="toggleUpstream(scope.row)"
                       />
-                    </el-descriptions-item>
-                    <el-descriptions-item label="目标地址" :span="2">
-                      <span class="gw-mono gw-small">{{ gatewayTargetSummary }}</span>
-                    </el-descriptions-item>
-                  </el-descriptions>
-                  <div class="mt12">
-                    <el-button type="primary" plain icon="Edit" v-hasPermi="['sys:platform:edit']" @click="openGatewayConfig">配置推送通道</el-button>
-                    <span class="gw-muted gw-small" style="margin-left: 10px">
-                      接入消息统一转换后经此通道同步至上级平台（支持 HTTP / MQ / Redis，可扩展）；保存后热生效
-                    </span>
-                  </div>
-                </template>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="170" align="center">
+                    <template #default="scope">
+                      <el-button link type="primary" v-hasPermi="['sys:upstream:edit']" @click="openUpstreamDialog(scope.row)">编辑</el-button>
+                      <el-button link type="primary" :loading="testingMap[scope.row.id]" v-hasPermi="['sys:upstream:edit']" @click="handleTestUpstream(scope.row)">测试</el-button>
+                      <el-button link type="danger" v-hasPermi="['sys:upstream:remove']" @click="deleteUpstream(scope.row)">删除</el-button>
+                    </template>
+                  </el-table-column>
+                  <template #empty>
+                    <el-empty description="暂无上级平台，新增后接入消息将统一格式化并同步推送" :image-size="70" />
+                  </template>
+                </el-table>
+              </div>
+              <div class="gw-card-body" style="border-top: 1px solid #f1f5f9">
+                <span class="gw-muted gw-small">
+                  支持同时对接多个上级平台；推送方式支持 HTTP/HTTPS 直推、Redis 队列、RabbitMQ 消息队列。
+                  消息按统一格式（含全局唯一 messageId，上级按其去重保证幂等）推送，失败自动标记并支持重推；配置保存后热生效。
+                </span>
               </div>
             </div>
 
@@ -214,50 +236,109 @@
       </el-tabs>
     </div>
 
-    <!-- 推送通道配置对话框 -->
-    <el-dialog v-model="gatewayConfigOpen" title="配置消息推送通道" width="620px" append-to-body>
-      <el-form label-width="110px">
-        <el-form-item label="推送方式">
-          <el-select v-model="gatewayForm.pushType" style="width: 100%">
-            <el-option label="MQ 消息队列（RabbitMQ）" value="mq" />
-            <el-option label="HTTP URL 推送" value="url" />
-            <el-option label="Redis 队列" value="redis" />
+    <!-- 上级平台编辑对话框 -->
+    <el-dialog v-model="upstreamOpen" :title="upstreamForm.id ? '编辑上级平台' : '新增上级平台'" width="640px" append-to-body>
+      <el-form :model="upstreamForm" label-width="110px" ref="upstreamFormRef">
+        <el-row :gutter="12">
+          <el-col :span="12">
+            <el-form-item label="平台名称" prop="name" :rules="[{ required: true, message: '请输入平台名称' }]">
+              <el-input v-model="upstreamForm.name" placeholder="如：市级物联平台" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="平台代码" prop="code" :rules="[{ required: true, message: '请输入平台代码' }]">
+              <el-input v-model="upstreamForm.code" placeholder="唯一代码，如 city-pf" :disabled="!!upstreamForm.id" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="推送方式" prop="pushType">
+          <el-select v-model="upstreamForm.pushType" style="width: 100%">
+            <el-option label="HTTP / HTTPS 直接推送" value="url" />
+            <el-option label="Redis 队列推送" value="redis" />
+            <el-option label="RabbitMQ 消息队列" value="mq" />
           </el-select>
-          <div class="gw-muted gw-small">切换后下方参数动态变化；保存后插件自动重载生效</div>
+          <div class="gw-muted gw-small">切换后下方参数动态变化；保存后推送通道热重载生效</div>
         </el-form-item>
 
-        <template v-if="gatewayForm.pushType === 'url'">
+        <template v-if="upstreamForm.pushType === 'url'">
           <el-form-item label="推送地址列表">
-            <el-input v-model="gatewayForm.pushUrls" type="textarea" :rows="4" placeholder="每行一个 URL，或英文逗号分隔" />
+            <el-input v-model="upstreamCfg.pushUrls" type="textarea" :rows="4" placeholder="每行一个 URL，或英文逗号分隔；网关将统一消息 JSON 以 POST 推送" />
           </el-form-item>
         </template>
 
-        <template v-if="gatewayForm.pushType === 'mq'">
+        <template v-if="upstreamForm.pushType === 'mq'">
           <el-form-item label="MQ 地址">
-            <el-input v-model="gatewayForm.ip" placeholder="RabbitMQ 主机地址" style="width: 60%" />
-            <el-input-number v-model="gatewayForm.port" :min="1" :max="65535" placeholder="端口" style="width: 38%; margin-left: 2%" />
+            <el-input v-model="upstreamCfg.ip" placeholder="RabbitMQ 主机地址" style="width: 58%" />
+            <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" placeholder="5672" style="width: 40%; margin-left: 2%" />
           </el-form-item>
-          <el-form-item label="vhost">
-            <el-input v-model="gatewayForm.vhost" placeholder="默认 /" />
-          </el-form-item>
-          <el-form-item label="队列名">
-            <el-input v-model="gatewayForm.queueName" placeholder="默认 za_monitor" />
-          </el-form-item>
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="用户名">
+                <el-input v-model="upstreamCfg.username" placeholder="用户名" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="密码">
+                <el-input v-model="upstreamCfg.password" type="password" show-password placeholder="密码" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="vhost">
+                <el-input v-model="upstreamCfg.vhost" placeholder="默认 /" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="队列名">
+                <el-input v-model="upstreamCfg.queue" placeholder="默认 za_monitor" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="交换机">
+                <el-input v-model="upstreamCfg.exchange" placeholder="默认 za" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="路由键">
+                <el-input v-model="upstreamCfg.key" placeholder="默认 za" />
+              </el-form-item>
+            </el-col>
+          </el-row>
         </template>
 
-        <template v-if="gatewayForm.pushType === 'redis'">
+        <template v-if="upstreamForm.pushType === 'redis'">
           <el-form-item label="Redis 地址">
-            <el-input v-model="gatewayForm.ip" placeholder="默认 127.0.0.1" style="width: 60%" />
-            <el-input-number v-model="gatewayForm.port" :min="1" :max="65535" placeholder="6379" style="width: 38%; margin-left: 2%" />
+            <el-input v-model="upstreamCfg.ip" placeholder="默认 127.0.0.1" style="width: 58%" />
+            <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" placeholder="6379" style="width: 40%; margin-left: 2%" />
           </el-form-item>
-          <el-form-item label="库编号（db）">
-            <el-input v-model="gatewayForm.db" placeholder="默认 6" />
-          </el-form-item>
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="密码">
+                <el-input v-model="upstreamCfg.password" type="password" show-password placeholder="密码" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="库编号（db）">
+                <el-input v-model="upstreamCfg.db" placeholder="默认 6" />
+              </el-form-item>
+            </el-col>
+          </el-row>
         </template>
+
+        <el-form-item label="启用">
+          <el-switch v-model="upstreamForm.status" active-value="1" inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="upstreamForm.remark" type="textarea" :rows="2" />
+        </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="gatewayConfigOpen = false">取 消</el-button>
-        <el-button type="primary" :loading="gatewaySaving" @click="saveGatewayConfig">保存并生效</el-button>
+        <el-button :loading="upstreamTesting" @click="testUpstreamForm">测试连接</el-button>
+        <el-button @click="upstreamOpen = false">取 消</el-button>
+        <el-button type="primary" :loading="upstreamSaving" @click="saveUpstream">保存并生效</el-button>
       </template>
     </el-dialog>
 
@@ -290,7 +371,9 @@ import {
   getCoreParams, saveCoreParams,
   listNetworkInterfaces, getNetworkConfig, saveNetworkConfig
 } from '@/api/sys/setting'
-import { selectPlatform, updatePlatform, getAllPlatformStats } from '@/api/sys/platform'
+import {
+  selectUpstream, addUpstream, updateUpstream, delUpstream, testUpstream, getUpstreamStatus
+} from '@/api/sys/upstream'
 import { listCascade, addCascade, updateCascade, delCascade } from '@/api/sys/cascade'
 
 const { proxy } = getCurrentInstance()
@@ -391,111 +474,145 @@ async function saveCore() {
   }
 }
 
-// ==================== 上级平台：推送通道 ====================
+// ==================== 上级平台（多平台） ====================
 const upstreamLoading = ref(false)
-const gatewayPlugin = ref(null)
-const gatewayAlive = ref(false)
-const gatewaySwitchLoading = ref(false)
-const gatewayConfigOpen = ref(false)
-const gatewaySaving = ref(false)
-const gatewayForm = reactive({ pushType: 'mq', pushUrls: '', queueName: '', ip: '', port: null, vhost: '', db: '' })
+const upstreamList = ref([])
+const upstreamAliveMap = ref({})
+const upstreamOpen = ref(false)
+const upstreamSaving = ref(false)
+const upstreamTesting = ref(false)
+const testingMap = reactive({})
+const upstreamForm = ref({})
+const upstreamCfg = ref({})
 
 const PUSH_TYPE_META = {
-  mq: { label: 'MQ 消息队列', tag: 'primary' },
-  url: { label: 'HTTP URL 推送', tag: 'success' },
-  redis: { label: 'Redis 队列', tag: 'warning' }
+  url: { label: 'HTTP直推', tag: 'success' },
+  redis: { label: 'Redis队列', tag: 'warning' },
+  mq: { label: 'RabbitMQ', tag: 'primary' }
 }
-const gatewayConfigObject = computed(() => {
-  const cfg = gatewayPlugin.value?.config
-  if (!cfg) return {}
-  try { return JSON.parse(cfg) } catch { return {} }
-})
-const pushTypeLabel = computed(() => PUSH_TYPE_META[gatewayConfigObject.value.pushType || 'mq']?.label || gatewayConfigObject.value.pushType)
-const pushTypeTag = computed(() => PUSH_TYPE_META[gatewayConfigObject.value.pushType || 'mq']?.tag || 'info')
-const gatewayTargetSummary = computed(() => {
-  const c = gatewayConfigObject.value
-  const type = c.pushType || 'mq'
-  if (type === 'url') return (c.pushUrls || c.pushUrl || '(未配置推送URL)').toString().replace(/\n/g, ' ; ')
-  if (type === 'mq') return `RabbitMQ ${c.ip || gatewayPlugin.value?.ip || '-'}:${c.port || gatewayPlugin.value?.port || '-'} vhost=${c.vhost || '/'} queue=${c.queueName || 'za_monitor'}`
-  return `Redis ${c.ip || '127.0.0.1'}:${c.port || 6379} db=${c.db || 6} list=gateway_queue`
-})
+
+function parseCfg(row) {
+  if (!row?.config) return {}
+  try { return JSON.parse(row.config) } catch { return {} }
+}
+
+function upstreamTarget(row) {
+  const c = parseCfg(row)
+  if (row.pushType === 'url') {
+    return (c.pushUrls || c.pushUrl || '(未配置URL)').toString().replace(/\n/g, ' ; ')
+  }
+  if (row.pushType === 'mq') {
+    return `${c.ip || '-'}:${c.port || 5672} vhost=${c.vhost || '/'} queue=${c.queue || 'za_monitor'}`
+  }
+  if (row.pushType === 'redis') {
+    return `${c.ip || '127.0.0.1'}:${c.port || 6379} db=${c.db || 6}`
+  }
+  return '-'
+}
 
 async function loadUpstream() {
   upstreamLoading.value = true
   try {
-    const [pfRes, statsRes, cascadeRes] = await Promise.all([
-      selectPlatform(),
-      getAllPlatformStats().catch(() => ({ data: [] })),
+    const [upRes, statusRes, cascadeRes] = await Promise.all([
+      selectUpstream(),
+      getUpstreamStatus().catch(() => ({ data: [] })),
       listCascade({ pageNum: 1, pageSize: 100 }).catch(() => ({ rows: [] }))
     ])
-    const list = pfRes.data || []
-    gatewayPlugin.value = list.find(p => p.code === 'gateway') || null
-    const stats = (statsRes.data || []).find(s => s.platformCode === 'gateway')
-    gatewayAlive.value = Boolean(stats?.alive)
+    upstreamList.value = upRes.data || []
+    const aliveMap = {}
+    ;(statusRes.data || []).forEach(s => { aliveMap[s.code] = s.alive })
+    upstreamAliveMap.value = aliveMap
     cascadeList.value = cascadeRes.rows || []
   } finally {
     upstreamLoading.value = false
   }
 }
 
-async function toggleGatewayPlugin() {
-  const row = gatewayPlugin.value
-  const text = row.status === '1' ? '启用' : '禁用'
+function openUpstreamDialog(row) {
+  if (row) {
+    upstreamForm.value = { id: row.id, name: row.name, code: row.code, pushType: row.pushType, status: row.status || '1', remark: row.remark }
+    upstreamCfg.value = { vhost: '/', ...parseCfg(row) }
+  } else {
+    upstreamForm.value = { id: null, name: '', code: '', pushType: 'url', status: '1', remark: '' }
+    upstreamCfg.value = { pushUrls: '', ip: '', port: null, username: '', password: '', vhost: '/', queue: 'za_monitor', exchange: 'za', key: 'za', db: '6' }
+  }
+  upstreamOpen.value = true
+}
+
+function buildUpstreamPayload() {
+  const c = upstreamCfg.value
+  let cfg = {}
+  if (upstreamForm.value.pushType === 'url') {
+    cfg = { pushUrls: c.pushUrls || '' }
+  } else if (upstreamForm.value.pushType === 'mq') {
+    cfg = { ip: c.ip, port: c.port, username: c.username, password: c.password, vhost: c.vhost || '/', queue: c.queue || 'za_monitor', exchange: c.exchange || 'za', key: c.key || 'za' }
+  } else if (upstreamForm.value.pushType === 'redis') {
+    cfg = { ip: c.ip || '127.0.0.1', port: String(c.port || 6379), password: c.password, db: String(c.db || 6) }
+  }
+  return { ...upstreamForm.value, config: JSON.stringify(cfg) }
+}
+
+async function saveUpstream() {
   try {
-    await proxy.$modal.confirm(`确认${text}消息推送通道？${text === '禁用' ? '禁用后接入消息将不再同步至上级平台。' : ''}`)
-    gatewaySwitchLoading.value = true
-    await updatePlatform({ id: row.id, code: row.code, status: row.status })
-    proxy.$modal.msgSuccess(text + '成功')
+    await proxy.$refs['upstreamFormRef'].validate()
+  } catch (e) { return }
+  upstreamSaving.value = true
+  try {
+    const payload = buildUpstreamPayload()
+    if (payload.id) {
+      await updateUpstream(payload)
+    } else {
+      await addUpstream(payload)
+    }
+    proxy.$modal.msgSuccess('保存成功，推送通道已热重载')
+    upstreamOpen.value = false
+    await loadUpstream()
+  } finally {
+    upstreamSaving.value = false
+  }
+}
+
+async function toggleUpstream(row) {
+  try {
+    await updateUpstream({ id: row.id, code: row.code, status: row.status })
+    proxy.$modal.msgSuccess(row.status === '1' ? '已启用，推送通道已重载' : '已停用')
     await loadUpstream()
   } catch (e) {
     row.status = row.status === '1' ? '0' : '1'
-  } finally {
-    gatewaySwitchLoading.value = false
   }
 }
 
-function openGatewayConfig() {
-  const c = gatewayConfigObject.value
-  gatewayForm.pushType = c.pushType || 'mq'
-  gatewayForm.pushUrls = c.pushUrls || c.pushUrl || ''
-  gatewayForm.queueName = c.queueName || ''
-  gatewayForm.ip = c.ip || ''
-  gatewayForm.port = c.port ? Number(c.port) : null
-  gatewayForm.vhost = c.vhost || ''
-  gatewayForm.db = c.db || ''
-  gatewayConfigOpen.value = true
-}
-
-async function saveGatewayConfig() {
-  const row = gatewayPlugin.value
-  if (!row) return
-  gatewaySaving.value = true
+async function handleTestUpstream(row) {
+  testingMap[row.id] = true
   try {
-    const cfg = { ...gatewayConfigObject.value, pushType: gatewayForm.pushType }
-    if (gatewayForm.pushType === 'url') {
-      cfg.pushUrls = gatewayForm.pushUrls
-      cfg.pushUrl = (gatewayForm.pushUrls || '').split(/[\n,]/).map(s => s.trim()).filter(Boolean)[0] || ''
-    }
-    if (gatewayForm.pushType === 'mq') {
-      cfg.ip = gatewayForm.ip
-      cfg.port = gatewayForm.port
-      cfg.vhost = gatewayForm.vhost
-      cfg.queueName = gatewayForm.queueName
-    }
-    if (gatewayForm.pushType === 'redis') {
-      cfg.ip = gatewayForm.ip
-      cfg.port = gatewayForm.port
-      cfg.db = gatewayForm.db
-    }
-    await updatePlatform({ id: row.id, code: row.code, config: JSON.stringify(cfg) })
-    proxy.$modal.msgSuccess('推送通道配置已保存并生效')
-    gatewayConfigOpen.value = false
-    await loadUpstream()
+    const res = await testUpstream(row)
+    proxy.$modal.msgSuccess(res.msg || '连接成功')
   } catch (e) {
-    proxy.$modal.msgError('保存失败')
+    // 错误提示由 request 拦截器统一弹出
   } finally {
-    gatewaySaving.value = false
+    testingMap[row.id] = false
   }
+}
+
+async function testUpstreamForm() {
+  upstreamTesting.value = true
+  try {
+    const res = await testUpstream(buildUpstreamPayload())
+    proxy.$modal.msgSuccess(res.msg || '连接成功')
+  } catch (e) {
+  } finally {
+    upstreamTesting.value = false
+  }
+}
+
+function deleteUpstream(row) {
+  proxy.$modal.confirm(`确认删除上级平台「${row.name}」？删除后消息不再同步至该平台。`)
+    .then(() => delUpstream(row.id))
+    .then(() => {
+      proxy.$modal.msgSuccess('删除成功')
+      loadUpstream()
+    })
+    .catch(() => {})
 }
 
 // ==================== 上级平台：级联 ====================

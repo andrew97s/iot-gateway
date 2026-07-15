@@ -42,10 +42,14 @@ public class ZaSysMessage extends BaseEntity
     @ApiModelProperty("类别")
     private String type;
 
-    /** 消息内容 */
+    /** 消息内容（接入插件的原始报文） */
     @Excel(name = "消息内容")
-    @ApiModelProperty("消息内容")
+    @ApiModelProperty("消息内容(原始报文)")
     private String content;
+
+    /** 转换后的统一消息（JSON，多条时为JSON数组） */
+    @ApiModelProperty("统一消息内容")
+    private String unifiedContent;
 
     /** 处置完成 */
     @Excel(name = "处置状态")

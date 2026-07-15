@@ -118,15 +118,38 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
     }
 
     /**
-     * 推送消息
+     * 推送消息（兼容旧调用：转换统一消息后推送全部上级平台 + 级联）
      *
      * @param message the message
      */
     public void consumeMsg(MqMessage message) {
-        //推送到RabbitMQ
+        //转换统一消息并推送到全部上级平台
         messageSyncHandler.processMsg(message);
-        //推送到上级
+        //推送到级联上级
         cascadeHandler.pushMsg(message);
+    }
+
+    /**
+     * 转换统一消息并推送全部上级平台，返回统一报文与各平台推送结果（写入消息日志）
+     *
+     * @param message 插件原始事件
+     * @param unifiedParts 收集统一报文
+     * @param results 收集推送结果
+     */
+    protected void convertAndPush(MqMessage message,
+                                  List<String> unifiedParts,
+                                  List<MessageSyncHandler.UpstreamPushResult> results) {
+        // 1. 原始事件 → 统一消息（告警/设备/监测类型按标准字典映射）
+        String unifiedJson = messageSyncHandler.convert(message).toJson();
+        unifiedParts.add(unifiedJson);
+        // 2. 推送全部启用的上级平台，逐平台记录结果
+        results.addAll(messageSyncHandler.pushToUpstreams(unifiedJson));
+        // 3. 级联上级平台（WebSocket）沿用原始事件通道
+        try {
+            cascadeHandler.pushMsg(message);
+        } catch (Exception e) {
+            log.warn("级联推送失败: {}", e.getMessage());
+        }
     }
 
     /**
@@ -189,24 +212,28 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
         ProcessInfo info = null;
         try {
             info = doProcessMsg((T) msgObject);
-            // 执行推送上级平台
+            // 转换统一消息并推送上级平台，收集统一报文与逐平台推送结果
             if (info != null && CollUtil.isNotEmpty(info.getMsgList())) {
-                List<MqMessage> msgList = info.getMsgList();
-                for (MqMessage message : msgList) {
-                    consumeMsg(message);
+                List<String> unifiedParts = new java.util.ArrayList<>();
+                List<MessageSyncHandler.UpstreamPushResult> results = new java.util.ArrayList<>();
+                for (MqMessage message : info.getMsgList()) {
+                    convertAndPush(message, unifiedParts, results);
                 }
+                info.setUnifiedContent(unifiedParts.size() == 1
+                        ? unifiedParts.get(0) : "[" + String.join(",", unifiedParts) + "]");
+                info.setPushResults(results);
             }
         } catch (Exception e) {
             log.error("处理消息发生异常:{}", e.getMessage());
             ZaSysDevice device = MessageUtil.getDevice();
             if (device == null) {
                 device = new ZaSysDevice();
-                device.setPfCode(device.getPfCode());
+                device.setPfCode(getPlatform());
             }
             String msg = msgObject instanceof String ? (String) msgObject : JSONObject.toJSONString(msgObject);
             info = ProcessInfo.newError(device, msg, e.getMessage());
         } finally {
-            // 记录日志
+            // 记录日志（原始报文 + 统一消息 + 各上级平台同步状态）
             logMessage(info);
             // 清除设备信息
             MessageUtil.clear();

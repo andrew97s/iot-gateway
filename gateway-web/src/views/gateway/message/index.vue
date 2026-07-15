@@ -116,7 +116,7 @@
     </div>
 
     <!-- 消息详情对话框 -->
-    <el-dialog v-model="open" append-to-body :title="title" width="720px">
+    <el-dialog v-model="open" append-to-body :title="title" width="960px">
       <el-descriptions :column="2" border size="small" class="mb12">
         <el-descriptions-item label="平台">{{ form.pfCode }}</el-descriptions-item>
         <el-descriptions-item label="设备编号">{{ form.deviceCode }}</el-descriptions-item>
@@ -152,13 +152,26 @@
           <span class="push-url">{{ form.pushUrl }}</span>
         </el-descriptions-item>
       </el-descriptions>
-      <div class="content-toolbar">
-        <span class="content-label">消息内容</span>
-        <el-button type="primary" link size="small" icon="DocumentCopy" @click="copyMessageContent">复制</el-button>
-      </div>
-      <div class="content-body">
-        <JsonPretty :data="form.content" show-icon />
-      </div>
+      <el-row :gutter="12">
+        <el-col :span="form.unifiedContent ? 12 : 24">
+          <div class="content-toolbar">
+            <span class="content-label">原始报文（插件接入）</span>
+            <el-button type="primary" link size="small" icon="DocumentCopy" @click="copyMessageContent">复制</el-button>
+          </div>
+          <div class="content-body">
+            <JsonPretty :data="form.content" show-icon />
+          </div>
+        </el-col>
+        <el-col :span="12" v-if="form.unifiedContent">
+          <div class="content-toolbar">
+            <span class="content-label">统一消息（同步上级平台）</span>
+            <el-button type="primary" link size="small" icon="DocumentCopy" @click="copyUnifiedContent">复制</el-button>
+          </div>
+          <div class="content-body">
+            <JsonPretty :data="form.unifiedContent" show-icon />
+          </div>
+        </el-col>
+      </el-row>
       <template #footer>
         <el-button
           v-if="!isControlType(form.type)"
@@ -320,6 +333,10 @@ function copyMessageContent() {
   copyPlainText(stringifyForCopy(form.value.content))
 }
 
+function copyUnifiedContent() {
+  copyPlainText(stringifyForCopy(form.value.unifiedContent))
+}
+
 function getList() {
   loading.value = true
   queryParams.value.params = {}
@@ -385,6 +402,7 @@ function handleView(row) {
   getMessage(row.id || ids.value).then(res => {
     form.value = res.data
     try { form.value.content = JSON.parse(form.value.content) } catch {}
+    try { form.value.unifiedContent = form.value.unifiedContent ? JSON.parse(form.value.unifiedContent) : null } catch {}
     open.value = true
     title.value = '查看消息详情'
   })

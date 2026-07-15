@@ -2,6 +2,7 @@ package com.zhian.gateway.sys.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zhian.gateway.common.utils.DateUtils;
+import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -12,7 +13,6 @@ import com.zhian.gateway.sys.mapper.ZaSysMessageMapper;
 import com.zhian.gateway.sys.service.IZaSysMessageService;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.gw.MessageSyncHandler;
-import com.zhian.gateway.third.gw.MessageSyncHandler.PushTargetSnapshot;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -73,16 +73,48 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
         ZaSysDevice device = info.getDevice();
 
         ZaSysMessage message = new ZaSysMessage();
+        message.setId(SnowflakeIdWorker.getInstance().nextId());
         message.setCreateTime(new Date());
         message.setContent(info.getContent());
+        message.setUnifiedContent(info.getUnifiedContent());
         message.setType(info.getType());
         message.setDeviceId(device.getId());
         message.setDeviceCode(device.getCode());
         message.setHandleStatus(info.getHandleStatus());
         message.setHandleResult(info.getHandleResult());
         message.setPfCode(device.getPfCode());
+
+        // 汇总各上级平台推送结果：全部成功=sent，任一失败=failed（失败消息可重推）
+        List<MessageSyncHandler.UpstreamPushResult> results = info.getPushResults();
+        if (results != null && !results.isEmpty()) {
+            boolean allOk = results.stream().allMatch(MessageSyncHandler.UpstreamPushResult::isSuccess);
+            message.setSendStatus(allOk ? ZaSysMessage.SEND_STATUS_SENT : ZaSysMessage.SEND_STATUS_FAILED);
+        }
         zaSysMessageMapper.insertZaSysMessage(message);
+
+        // 逐上级平台记录推送明细
+        if (results != null) {
+            for (MessageSyncHandler.UpstreamPushResult r : results) {
+                insertPushLog(message.getId(), r);
+            }
+        }
         return message;
+    }
+
+    private void insertPushLog(Long messageId, MessageSyncHandler.UpstreamPushResult r) {
+        try {
+            ZaSysMessageLog pushLog = new ZaSysMessageLog();
+            pushLog.setId(SnowflakeIdWorker.getInstance().nextId());
+            pushLog.setMessageId(messageId);
+            pushLog.setType(r.getPushType());
+            pushLog.setTarget(truncate((r.getUpstreamName() == null ? "" : r.getUpstreamName() + " | ") + r.getTarget(), 1900));
+            pushLog.setTime(new Date());
+            pushLog.setStatus(r.isSuccess() ? ZaSysMessageLog.STATUS_SUCCESS : ZaSysMessageLog.STATUS_FAILURE);
+            pushLog.setFailReason(r.isSuccess() ? null : truncate(r.getError() == null ? "未知错误" : r.getError(), 950));
+            pushLogMapper.insert(pushLog);
+        } catch (Exception ex) {
+            log.warn("写入推送记录失败 messageId={}", messageId, ex);
+        }
     }
 
     /**
@@ -177,39 +209,33 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
     @Override
     public boolean retryMessage(Long id) {
         ZaSysMessage msg = zaSysMessageMapper.selectZaSysMessageById(id);
-        if (msg == null || msg.getContent() == null) {
+        if (msg == null) {
             return false;
         }
-        MessageSyncHandler messageSyncHandler = SpringUtils.getBean("messageSyncHandler", MessageSyncHandler.class);
-        PushTargetSnapshot meta = messageSyncHandler.currentPushTarget()
-                .orElse(new PushTargetSnapshot("unknown", "网关不可用"));
-
-        ZaSysMessageLog pushLog = new ZaSysMessageLog();
-        pushLog.setId(SnowflakeIdWorker.getInstance().nextId());
-        pushLog.setMessageId(id);
-        pushLog.setType(meta.pushMode);
-        pushLog.setTarget(truncate(meta.targetAddress, 1900));
-        pushLog.setTime(new Date());
+        // 优先重推统一消息（保持原 messageId，上级平台按其去重保证幂等）；无统一消息时回退原始报文
+        String payload = StringUtils.isNotEmpty(msg.getUnifiedContent()) ? msg.getUnifiedContent() : msg.getContent();
+        if (StringUtils.isEmpty(payload)) {
+            return false;
+        }
+        MessageSyncHandler messageSyncHandler = SpringUtils.getBean("gatewayHandler", MessageSyncHandler.class);
+        List<MessageSyncHandler.UpstreamPushResult> results = messageSyncHandler.pushToUpstreams(payload);
 
         boolean ok;
-        try {
-            messageSyncHandler.processMsg(msg.getContent());
-            ok = true;
-        } catch (Exception e) {
-            log.error("消息[{}]推送失败", id, e);
+        if (results.isEmpty()) {
+            // 未配置任何上级平台
             ok = false;
-            pushLog.setFailReason(truncate(e.getMessage(), 950));
-        }
-        pushLog.setStatus(ok ? ZaSysMessageLog.STATUS_SUCCESS : ZaSysMessageLog.STATUS_FAILURE);
-        if (ok) {
-            pushLog.setFailReason(null);
-        } else if (pushLog.getFailReason() == null) {
-            pushLog.setFailReason("未知错误");
-        }
-        try {
-            pushLogMapper.insert(pushLog);
-        } catch (Exception ex) {
-            log.warn("写入推送记录失败 messageId={}", id, ex);
+            MessageSyncHandler.UpstreamPushResult none = new MessageSyncHandler.UpstreamPushResult();
+            none.setUpstreamName("-");
+            none.setPushType("unknown");
+            none.setTarget("未配置上级平台");
+            none.setSuccess(false);
+            none.setError("未配置任何启用的上级平台");
+            insertPushLog(id, none);
+        } else {
+            ok = results.stream().allMatch(MessageSyncHandler.UpstreamPushResult::isSuccess);
+            for (MessageSyncHandler.UpstreamPushResult r : results) {
+                insertPushLog(id, r);
+            }
         }
 
         ZaSysMessage update = new ZaSysMessage();

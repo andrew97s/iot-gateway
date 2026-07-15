@@ -33,6 +33,18 @@ public class PlatformTask {
     @Scheduled(cron = "19 0/10 * * * ?")
     public void alive(){
         log.debug("定时巡检各接入服务是否正常");
+        // 「系统配置-核心参数」可关闭插件异常自动重启
+        try {
+            String autoRestart = com.zhian.gateway.common.utils.spring.SpringUtils
+                    .getBean(com.zhian.gateway.system.service.ISysConfigService.class)
+                    .selectConfigByKey("gateway.plugin.autorestart");
+            if ("false".equalsIgnoreCase(autoRestart)) {
+                log.debug("插件异常自动重启已关闭，跳过巡检重启");
+                return;
+            }
+        } catch (Exception ignore) {
+            // 配置不可用时默认开启
+        }
         ZaSysPlatform pc = new ZaSysPlatform();
         pc.setStatus("1");
         pc.setRunning(ZaSysPlatform.STATE_RUNNING);

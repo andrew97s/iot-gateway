@@ -42,6 +42,12 @@ public class ProcessInfo {
     // 处理结果对象(推送上级平台)
     private List<MqMessage> msgList;
 
+    // 转换后的统一消息（JSON，多条时为JSON数组）
+    private String unifiedContent;
+
+    // 各上级平台推送结果（记录消息日志用）
+    private List<com.zhian.gateway.third.gw.MessageSyncHandler.UpstreamPushResult> pushResults;
+
     public static ProcessInfo newInstance(ZaSysDevice device, String content, String type , List<MqMessage> msgList) {
         if (device == null) {
             return null;
