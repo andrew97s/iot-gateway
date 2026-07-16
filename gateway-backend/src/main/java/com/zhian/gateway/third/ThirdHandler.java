@@ -101,4 +101,21 @@ public interface ThirdHandler {
     default List<java.util.Map<String, Object>> getConfigSchema() {
         return Collections.emptyList();
     }
+
+    /** 厂商名称 */
+    default String getVendor() {
+        return "";
+    }
+
+    /** 插件版本 */
+    default String getVersion() {
+        return "1.0.0";
+    }
+
+    /**
+     * 能力声明：alarm / monitor / device / control 等
+     */
+    default List<String> getCapabilities() {
+        return java.util.Arrays.asList("alarm", "monitor", "device", "control");
+    }
 }

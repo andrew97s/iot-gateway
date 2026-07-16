@@ -2,6 +2,7 @@ package com.zhian.gateway.third;
 
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
+import com.zhian.gateway.plugin.PluginCatalog;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.domain.ZaPlatformLog;
@@ -47,11 +48,20 @@ public class ThirdApplicationRunner implements ApplicationRunner {
     private IZaSysErrorService zaSysErrorService;
     @Autowired
     private IZaPlatformLogService zaPlatformLogService;
+    @Autowired(required = false)
+    private PluginCatalog pluginCatalog;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
         for (ThirdHandler handler : SpringUtils.getBeanList(ThirdHandler.class)) {
             handlerMap.put(handler.getPlatform(), handler);
+        }
+        if (pluginCatalog != null) {
+            try {
+                pluginCatalog.refresh();
+            } catch (Exception e) {
+                log.warn("刷新插件目录失败: {}", e.getMessage());
+            }
         }
         // 独立线程，不阻塞 Spring 启动
         new Thread(this::startAll).start();

@@ -1,0 +1,24 @@
+-- 接入插件框架说明（无需强制改表）
+-- 实例仍使用 za_sys_platform；扩展元数据写入 config JSON：
+--   _pluginType / _vendor / _version / _capabilities
+--
+-- 新 API 前缀：/sys/plugin
+--   GET  /sys/plugin/types
+--   POST /sys/plugin/packages          上传 zip（plugin.yaml + config-schema.json）
+--   GET  /sys/plugin/instances
+--   POST /sys/plugin/instances         从类型创建实例
+--   PUT  /sys/plugin/instances/{id}/config
+--   POST /sys/plugin/instances/{id}/start|stop|restart
+--   DELETE /sys/plugin/instances/{id}
+--   POST /sys/plugin/instances/{id}/test
+--   GET  /sys/plugin/instances/{id}/stats|/logs
+--
+-- 权限沿用 sys:platform:list|query|add|edit|remove
+--
+-- 插件包示例结构：
+--   plugin-hikvision-1.2.0.zip
+--   ├── plugin.yaml
+--   ├── config-schema.json
+--   └── module/   （可选；当前版本需网关内置同名 Handler 方可运行）
+
+SELECT 1;

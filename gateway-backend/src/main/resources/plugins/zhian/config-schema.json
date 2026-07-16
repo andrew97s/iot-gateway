@@ -1,0 +1,9 @@
+[
+  {"code": "username", "name": "MQTT 用户名", "type": "string", "required": false},
+  {"code": "password", "name": "MQTT 密码", "type": "password", "required": false},
+  {"code": "clientId", "name": "ClientId", "type": "string", "required": false},
+  {"code": "topic", "name": "订阅 Topic", "type": "string", "required": false, "defaultValue": "gw/+/up"},
+  {"code": "qos", "name": "QoS", "type": "integer", "defaultValue": 1, "min": 0, "max": 2},
+  {"code": "autoRestart", "name": "异常自动重启", "type": "boolean", "defaultValue": true},
+  {"code": "maxRestart", "name": "最大重启次数", "type": "integer", "defaultValue": 5}
+]

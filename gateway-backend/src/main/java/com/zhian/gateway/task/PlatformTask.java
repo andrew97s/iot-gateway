@@ -58,6 +58,21 @@ public class PlatformTask {
             // TODO 定期刷新插件接入的设备状态
 
             //自动启动一次
+            try {
+                com.zhian.gateway.plugin.PluginManager pluginManager =
+                        com.zhian.gateway.common.utils.spring.SpringUtils.getBean(
+                                com.zhian.gateway.plugin.PluginManager.class);
+                pluginManager.bumpRestartCount(platform.getCode());
+                // 检查实例配置的最大重启次数
+                Integer max = platform.getConfigInt("maxRestart");
+                if (max != null && max >= 0 && pluginManager.getRestartCount(platform.getCode()) > max) {
+                    log.warn("{} 超过最大自动重启次数 {}，标记异常停止", platform.getName(), max);
+                    platform.setRunning(ZaSysPlatform.STATE_STOP);
+                    zaSysPlatformService.updateZaSysPlatform(platform);
+                    continue;
+                }
+            } catch (Exception ignore) {
+            }
             if(!handler.start(platform)) {
                 zaSysErrorService.logWithPlatform(platform.getCode(), ZaSysError.TYPE_API_TIMEOUT,
                         platform.getName() + "对接服务重启失败", "对接异常停止", null);
