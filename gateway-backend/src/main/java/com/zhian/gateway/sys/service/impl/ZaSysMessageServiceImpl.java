@@ -265,13 +265,28 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
     }
 
     @Override
+    public List<Map<String, Object>> countTodayByPlatform() {
+        return zaSysMessageMapper.countTodayByPlatform();
+    }
+
+    @Override
     public List<Map<String, Object>> countTodayByType() {
         return zaSysMessageMapper.countTodayByType();
     }
 
     @Override
+    public List<Map<String, Object>> countTodayByTypeAndPlatform(String pfCode) {
+        return zaSysMessageMapper.countTodayByTypeAndPlatform(pfCode);
+    }
+
+    @Override
     public List<Map<String, Object>> selectHourlyTrend() {
         return zaSysMessageMapper.selectHourlyTrend();
+    }
+
+    @Override
+    public List<Map<String, Object>> selectHourlyTrendByPlatform(String pfCode) {
+        return zaSysMessageMapper.selectHourlyTrendByPlatform(pfCode);
     }
 
     @Override

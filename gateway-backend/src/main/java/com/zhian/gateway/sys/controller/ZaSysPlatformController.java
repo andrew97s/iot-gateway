@@ -13,6 +13,7 @@ import com.alibaba.fastjson2.JSONWriter;
 import com.zhian.gateway.sys.domain.ZaPlatformLog;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaPlatformLogService;
+import com.zhian.gateway.sys.service.IZaSysMessageService;
 import com.zhian.gateway.sys.service.IZaSysPlatformService;
 import com.zhian.gateway.third.ThirdApplicationRunner;
 import io.swagger.annotations.*;
@@ -24,7 +25,9 @@ import com.zhian.gateway.common.utils.StringUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 平台信息Controller
@@ -41,6 +44,8 @@ public class ZaSysPlatformController extends BaseController
     private IZaSysPlatformService platformService;
     @Autowired
     private IZaPlatformLogService zaPlatformLogService;
+    @Autowired
+    private IZaSysMessageService messageService;
 
     /**
      * 不分页查询平台信息列表
@@ -192,6 +197,73 @@ public class ZaSysPlatformController extends BaseController
     public AjaxResult statsAll()
     {
         return success(ThirdApplicationRunner.getAllPlatformStats());
+    }
+
+    /**
+     * 今日按平台消息统计（插件卡片「今日消息 / 转换失败」）
+     */
+    @ApiOperation("今日按平台消息统计")
+    @PreAuthorize("@ss.hasPermi('sys:platform:list')")
+    @GetMapping(value = "/today-msg-stats")
+    public AjaxResult todayMsgStats()
+    {
+        return success(messageService.countTodayByPlatform());
+    }
+
+    /**
+     * 指定插件消息统计详情（抽屉：累计/今日/类型分布/近24h）
+     */
+    @ApiOperation("插件消息统计详情")
+    @PreAuthorize("@ss.hasPermi('sys:platform:list')")
+    @GetMapping(value = "/msg-stats/{code}")
+    public AjaxResult msgStats(@PathVariable("code") String code)
+    {
+        Map<String, Object> data = new LinkedHashMap<>();
+        long total = 0L;
+        long failed = 0L;
+        long todayTotal = 0L;
+        long todayFailed = 0L;
+        List<Map<String, Object>> all = messageService.countByPlatform();
+        if (all != null) {
+            for (Map<String, Object> row : all) {
+                if (code.equals(String.valueOf(row.get("pfCode")))) {
+                    total = toLong(row.get("total"));
+                    failed = toLong(row.get("failedCount"));
+                    break;
+                }
+            }
+        }
+        List<Map<String, Object>> today = messageService.countTodayByPlatform();
+        if (today != null) {
+            for (Map<String, Object> row : today) {
+                if (code.equals(String.valueOf(row.get("pfCode")))) {
+                    todayTotal = toLong(row.get("total"));
+                    todayFailed = toLong(row.get("failedCount"));
+                    break;
+                }
+            }
+        }
+        data.put("total", total);
+        data.put("failedCount", failed);
+        data.put("todayTotal", todayTotal);
+        data.put("todayFailed", todayFailed);
+        data.put("typeDist", messageService.countTodayByTypeAndPlatform(code));
+        data.put("hourlyTrend", messageService.selectHourlyTrendByPlatform(code));
+        return success(data);
+    }
+
+    private static long toLong(Object v) {
+        if (v == null) {
+            return 0L;
+        }
+        if (v instanceof Number) {
+            return ((Number) v).longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(v));
+        } catch (Exception e) {
+            return 0L;
+        }
     }
 
     /**

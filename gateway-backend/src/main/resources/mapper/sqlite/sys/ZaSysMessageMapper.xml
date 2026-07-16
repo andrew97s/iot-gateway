@@ -103,11 +103,31 @@
         group by pf_code
     </select>
 
+    <!-- 今日按平台统计消息数量 -->
+    <select id="countTodayByPlatform" resultType="java.util.Map">
+        select pf_code as pfCode,
+               count(*) as total,
+               sum(case when send_status = 'sent'   then 1 else 0 end) as sentCount,
+               sum(case when send_status = 'failed' then 1 else 0 end) as failedCount
+        from za_sys_message
+        where datetime(create_time) >= datetime('now', 'localtime', 'start of day')
+        group by pf_code
+    </select>
+
     <!-- 今日消息按类型统计 -->
     <select id="countTodayByType" resultType="java.util.Map">
         select type, count(*) as total
         from za_sys_message
         where datetime(create_time) >= datetime('now', 'localtime', 'start of day')
+        group by type
+    </select>
+
+    <!-- 指定平台今日消息按类型统计 -->
+    <select id="countTodayByTypeAndPlatform" resultType="java.util.Map">
+        select type, count(*) as total
+        from za_sys_message
+        where datetime(create_time) >= datetime('now', 'localtime', 'start of day')
+          and pf_code = #{pfCode}
         group by type
     </select>
 
@@ -120,6 +140,20 @@
                sum(case when send_status = 'failed' then 1 else 0 end) as failedCount
         from za_sys_message
         where datetime(create_time) >= datetime('now', 'localtime', '-24 hours')
+        group by strftime('%Y-%m-%d %H:00', create_time)
+        order by timePoint
+    </select>
+
+    <!-- 指定平台近24小时逐小时趋势 -->
+    <select id="selectHourlyTrendByPlatform" resultType="java.util.Map">
+        select strftime('%Y-%m-%d %H:00', create_time) as timePoint,
+               count(*) as total,
+               sum(case when type = 'alarm' then 1 else 0 end) as alarmCount,
+               sum(case when send_status = 'sent'   then 1 else 0 end) as sentCount,
+               sum(case when send_status = 'failed' then 1 else 0 end) as failedCount
+        from za_sys_message
+        where datetime(create_time) >= datetime('now', 'localtime', '-24 hours')
+          and pf_code = #{pfCode}
         group by strftime('%Y-%m-%d %H:00', create_time)
         order by timePoint
     </select>

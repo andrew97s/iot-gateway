@@ -113,6 +113,11 @@ public interface IZaSysMessageService  extends IService<ZaSysMessage>
     java.util.List<java.util.Map<String, Object>> countByPlatform();
 
     /**
+     * 今日按平台统计消息数量
+     */
+    java.util.List<java.util.Map<String, Object>> countTodayByPlatform();
+
+    /**
      * 今日消息按类型统计
      *
      * @return list of {type, total}
@@ -120,11 +125,21 @@ public interface IZaSysMessageService  extends IService<ZaSysMessage>
     java.util.List<java.util.Map<String, Object>> countTodayByType();
 
     /**
+     * 指定平台今日消息按类型统计
+     */
+    java.util.List<java.util.Map<String, Object>> countTodayByTypeAndPlatform(String pfCode);
+
+    /**
      * 近24小时逐小时消息趋势
      *
      * @return list of {timePoint, total, alarmCount, sentCount, failedCount}
      */
     java.util.List<java.util.Map<String, Object>> selectHourlyTrend();
+
+    /**
+     * 指定平台近24小时逐小时消息趋势
+     */
+    java.util.List<java.util.Map<String, Object>> selectHourlyTrendByPlatform(String pfCode);
 
     /**
      * 今日推送/告警汇总

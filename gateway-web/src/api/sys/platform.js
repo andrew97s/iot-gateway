@@ -84,6 +84,22 @@ export function getAllPlatformStats() {
   })
 }
 
+// 今日按平台消息统计
+export function getTodayMsgStats() {
+  return request({
+    url: '/sys/platform/today-msg-stats',
+    method: 'get'
+  })
+}
+
+// 指定插件消息统计详情（抽屉）
+export function getPluginMsgStats(code) {
+  return request({
+    url: '/sys/platform/msg-stats/' + code,
+    method: 'get'
+  })
+}
+
 // 分页查询指定平台运行日志（za_platform_log）
 export function getPlatformLogs(code, query) {
   return request({
