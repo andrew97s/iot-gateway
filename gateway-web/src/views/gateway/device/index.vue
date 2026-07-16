@@ -58,24 +58,24 @@
       <div class="gw-card-body no-pad">
         <el-table :data="deviceList" v-loading="loading" @selection-change="handleSelectionChange">
           <el-table-column type="selection" width="42" align="center" />
-          <el-table-column label="设备编码" min-width="160">
+          <el-table-column label="设备编码" min-width="180" show-overflow-tooltip>
             <template #default="scope">
               <span class="gw-mono" style="font-weight: 600">{{ scope.row.code }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="位置 / 名称" prop="name" min-width="150" show-overflow-tooltip />
-          <el-table-column label="类型" width="110" align="center">
+          <el-table-column label="位置 / 名称" prop="name" min-width="140" show-overflow-tooltip />
+          <el-table-column label="类型" width="100" align="center" show-overflow-tooltip>
             <template #default="scope">
               <el-tag size="small" effect="plain">{{ scope.row.type || '-' }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="型号" prop="model" width="130" align="center" show-overflow-tooltip />
-          <el-table-column label="归属插件" width="130" align="center">
+          <el-table-column label="型号" prop="model" min-width="110" align="center" show-overflow-tooltip />
+          <el-table-column label="归属插件" min-width="120" align="center" show-overflow-tooltip>
             <template #default="scope">
               <el-tag size="small" type="info" effect="plain">{{ platformName(scope.row.pfCode) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="IP" width="130" align="center">
+          <el-table-column label="IP" width="120" align="center" show-overflow-tooltip>
             <template #default="scope">
               <span class="gw-mono">{{ scope.row.ip || '-' }}</span>
             </template>

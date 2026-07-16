@@ -1,7 +1,7 @@
 <template>
   <div class="navbar">
     <hamburger id="hamburger-container" class="hamburger-container" :is-active="appStore.sidebar.opened" @toggleClick="toggleSideBar" />
-    <breadcrumb id="breadcrumb-container" class="breadcrumb-container" v-if="!settingsStore.topNav" />
+    <div v-if="!settingsStore.topNav" class="page-title">{{ pageTitle }}</div>
     <top-nav id="topmenu-container" class="topmenu-container" v-if="settingsStore.topNav" />
 
     <NoticeBar />
@@ -57,7 +57,6 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus'
-import Breadcrumb from '@/components/system/Breadcrumb/index.vue'
 import TopNav from '@/components/system/TopNav/index.vue'
 import Hamburger from '@/components/system/Hamburger/index.vue'
 import Screenfull from '@/components/system/Screenfull/index.vue'
@@ -69,6 +68,7 @@ import useSettingsStore from '@/store/modules/settings'
 import defaultSettings from '@/settings'
 import Qrcode from 'qrcode.vue'
 import NoticeBar from './NoticeBar.vue'
+import { useRoute } from 'vue-router'
 
 let hostInfo = {}
 try {
@@ -76,10 +76,18 @@ try {
 } catch {}
 const appDownloadUrl = hostInfo.appDownloadUrl
 
+const route = useRoute()
 const appStore = useAppStore()
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 const router = useRouter()
+
+/** 顶部展示当前页标题（对齐原型 topbar，替代面包屑） */
+const pageTitle = computed(() => {
+  const matched = route.matched.filter((item) => item.meta && item.meta.title)
+  if (!matched.length) return settingsStore.title || ''
+  return matched[matched.length - 1].meta.title
+})
 
 function toggleSideBar() {
   appStore.toggleSideBar()
@@ -129,7 +137,8 @@ function setLayout() {
   overflow: hidden;
   position: relative;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: none;
 
   .hamburger-container {
     line-height: 46px;
@@ -144,8 +153,16 @@ function setLayout() {
     }
   }
 
-  .breadcrumb-container {
+  .page-title {
     float: left;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #0f172a;
+    letter-spacing: 0.2px;
   }
 
   .topmenu-container {
