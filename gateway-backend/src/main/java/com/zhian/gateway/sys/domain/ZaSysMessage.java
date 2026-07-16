@@ -80,4 +80,20 @@ public class ZaSysMessage extends BaseEntity
     /** 推送状态常量 */
     public static final String SEND_STATUS_SENT    = "sent";
     public static final String SEND_STATUS_FAILED  = "failed";
+
+    /** 统一消息 messageId（非表字段，列表/详情展示用） */
+    @ApiModelProperty(hidden = true)
+    private String messageId;
+
+    /** 消息摘要（非表字段） */
+    @ApiModelProperty(hidden = true)
+    private String summary;
+
+    /** 上级同步成功数 / 总数（非表字段） */
+    @ApiModelProperty(hidden = true)
+    private Integer syncSuccess;
+    @ApiModelProperty(hidden = true)
+    private Integer syncTotal;
+    @ApiModelProperty(hidden = true)
+    private String syncLabel;
 }

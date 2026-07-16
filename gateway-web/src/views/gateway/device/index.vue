@@ -1,678 +1,429 @@
 <template>
   <div class="gw-page">
-    <!-- 筛选栏 -->
+    <div class="page-summary">
+      共 <b>{{ totalStats.total }}</b> 台 · 在线 <b class="ok">{{ totalStats.onlineCount }}</b> · 离线 <b class="err">{{ totalStats.total - totalStats.onlineCount }}</b>
+    </div>
+
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
-        <el-input
-          v-model="searchKeyword"
-          clearable
-          :placeholder="exactMatch ? '设备编码 / 位置（精准）' : '设备编码 / 位置（模糊）'"
-          style="width: 220px"
-          @input="handleSearch"
-        >
-          <template #prefix><el-icon><Search /></el-icon></template>
-        </el-input>
-        <el-tooltip content="精准匹配：完全相等；关闭后模糊查询" placement="top">
-          <el-switch v-model="exactMatch" active-text="精准" inactive-text="模糊" inline-prompt @change="handleSearch" />
-        </el-tooltip>
-        <el-select v-model="queryParams.pfCode" clearable filterable placeholder="归属插件（全部）" style="width: 170px" @change="handlePfChange">
-          <el-option v-for="pf in platformOptions" :key="pf.code" :value="pf.code">
-            <span>{{ pf.name }}</span>
-            <span class="gw-muted gw-small" style="float: right">
-              {{ onlineStatsMap[pf.code]?.onlineCount || 0 }}/{{ onlineStatsMap[pf.code]?.total || 0 }}
-            </span>
-          </el-option>
+        <el-input v-model="filters.keyword" clearable placeholder="设备编码 / 名称" style="width: 200px" @keyup.enter="handleQuery" />
+        <el-select v-model="filters.type" clearable filterable placeholder="全部类型" style="width: 140px">
+          <el-option v-for="t in deviceTypes" :key="t.code" :label="t.name" :value="t.code" />
         </el-select>
-        <el-select v-model="filterOnline" clearable placeholder="状态（全部）" style="width: 120px" @change="handleSearch">
+        <el-select v-model="filters.pfCode" clearable filterable placeholder="全部插件" style="width: 160px">
+          <el-option v-for="pf in platformOptions" :key="pf.code" :label="pf.name" :value="pf.code" />
+        </el-select>
+        <el-select v-model="filters.online" clearable placeholder="全部状态" style="width: 120px">
           <el-option label="在线" value="1" />
           <el-option label="离线" value="0" />
         </el-select>
-        <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+        <el-select v-model="filters.sync" clearable placeholder="同步状态（全部）" style="width: 150px">
+          <el-option label="已同步" value="synced" />
+          <el-option label="未同步" value="unsynced" />
+        </el-select>
+        <el-button type="primary" icon="Search" @click="handleQuery">查询</el-button>
+        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
-        <el-button icon="Promotion" plain type="primary" @click="handleSyncDevice">同步设备至上级</el-button>
-        <el-button icon="Upload" plain @click="importTemplate?.handleImport">导入</el-button>
-        <el-button icon="Download" plain @click="handleExport">导出</el-button>
-        <el-button icon="WarnTriangleFilled" plain type="danger" v-hasPermi="['sys:device:remove']" @click="handleClear">清空</el-button>
+        <el-button plain :disabled="!selectedRows.length" @click="openSync(selectedRows)">批量同步至上级平台</el-button>
+        <el-button type="danger" plain :disabled="!selectedRows.length" v-hasPermi="['sys:device:remove']" @click="handleBatchDelete">批量删除</el-button>
       </div>
     </div>
 
-    <!-- 设备表格 -->
     <div class="gw-card">
-      <div class="gw-card-head">
-        <h2>
-          设备列表
-          <span class="gw-muted gw-small" style="font-weight: 400; margin-left: 10px">
-            共 {{ totalStats.total }} 台 · 在线 <span style="color:#16a34a">{{ totalStats.onlineCount }}</span>
-            · 离线 <span style="color:#dc2626">{{ totalStats.total - totalStats.onlineCount }}</span>
-          </span>
-        </h2>
-        <div class="gw-filter-bar">
-          <template v-if="selectedRows.length > 0">
-            <span class="gw-muted gw-small">已选 {{ selectedRows.length }} 台</span>
-            <el-button size="small" type="primary" plain icon="Promotion" :loading="batchSyncLoading" @click="handleBatchSync">同步选中</el-button>
-            <el-button size="small" type="danger" plain icon="Delete" v-hasPermi="['sys:device:remove']" @click="handleBatchDelete">删除选中</el-button>
-          </template>
-          <el-button size="small" circle icon="Refresh" @click="refreshAll" :loading="statsLoading" />
-        </div>
-      </div>
       <div class="gw-card-body no-pad">
-        <el-table :data="deviceList" v-loading="loading" @selection-change="handleSelectionChange">
+        <el-table :data="filteredList" v-loading="loading" @selection-change="(s) => (selectedRows = s)">
           <el-table-column type="selection" width="42" align="center" />
-          <el-table-column label="设备编码" min-width="180" show-overflow-tooltip>
-            <template #default="scope">
-              <span class="gw-mono" style="font-weight: 600">{{ scope.row.code }}</span>
-            </template>
+          <el-table-column label="设备编码" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }"><span class="gw-mono" style="font-weight:600">{{ row.code }}</span></template>
           </el-table-column>
-          <el-table-column label="位置 / 名称" prop="name" min-width="140" show-overflow-tooltip />
-          <el-table-column label="类型" width="100" align="center" show-overflow-tooltip>
-            <template #default="scope">
-              <el-tag size="small" effect="plain">{{ scope.row.type || '-' }}</el-tag>
-            </template>
+          <el-table-column label="名称" min-width="120" show-overflow-tooltip>
+            <template #default="{ row }">{{ displayName(row) }}</template>
           </el-table-column>
-          <el-table-column label="型号" prop="model" min-width="110" align="center" show-overflow-tooltip />
-          <el-table-column label="归属插件" min-width="120" align="center" show-overflow-tooltip>
-            <template #default="scope">
-              <el-tag size="small" type="info" effect="plain">{{ platformName(scope.row.pfCode) }}</el-tag>
-            </template>
+          <el-table-column label="类型" width="100" align="center">
+            <template #default="{ row }"><span class="gw-tag">{{ typeName(row.type) }}</span></template>
           </el-table-column>
-          <el-table-column label="IP" width="120" align="center" show-overflow-tooltip>
-            <template #default="scope">
-              <span class="gw-mono">{{ scope.row.ip || '-' }}</span>
-            </template>
+          <el-table-column label="型号" prop="model" min-width="110" show-overflow-tooltip>
+            <template #default="{ row }"><span class="gw-muted">{{ row.model || '-' }}</span></template>
+          </el-table-column>
+          <el-table-column label="归属插件" min-width="120" show-overflow-tooltip>
+            <template #default="{ row }">{{ platformName(row.pfCode) }}</template>
+          </el-table-column>
+          <el-table-column label="位置" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.name || '-' }}</template>
           </el-table-column>
           <el-table-column label="状态" width="90" align="center">
-            <template #default="scope">
-              <span class="gw-badge" :class="isOnline(scope.row) ? 'ok' : 'off'">
-                {{ isOnline(scope.row) ? '在线' : '离线' }}
-              </span>
+            <template #default="{ row }">
+              <span class="gw-badge" :class="isOnline(row) ? 'ok' : 'off'">{{ isOnline(row) ? '在线' : '离线' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="最后上报" width="160" align="center">
-            <template #default="scope">
-              <span class="gw-mono gw-muted">{{ formatDeviceTime(scope.row.updateTime) }}</span>
+          <el-table-column label="最后上报" width="150" align="center">
+            <template #default="{ row }"><span class="gw-mono gw-muted gw-small">{{ formatTime(row.updateTime) }}</span></template>
+          </el-table-column>
+          <el-table-column label="同步状态" width="130" align="center">
+            <template #default="{ row }">
+              <span class="gw-badge plain" :class="syncBadgeClass(row)">{{ row.syncLabel || '未同步' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="220" align="center" fixed="right">
-            <template #default="scope">
-              <el-button size="small" link type="primary" @click="handleView(scope.row)">详情</el-button>
-              <el-button size="small" link type="warning" @click="handleEdit(scope.row)">修改</el-button>
-              <el-button size="small" link type="primary" :loading="rowSyncMap[scope.row.code]" @click="handleRowSync(scope.row)">同步</el-button>
-              <el-button size="small" link type="danger" v-hasPermi="['sys:device:remove']" @click="handleDeleteDevice(scope.row)">删除</el-button>
+          <el-table-column label="操作" width="180" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openEdit(row)">修改</el-button>
+              <el-button link type="primary" @click="openSync([row])">同步</el-button>
+              <el-button link type="danger" v-hasPermi="['sys:device:remove']" @click="handleDelete(row)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
-        <pagination
-          v-model:limit="queryParams.pageSize"
-          v-model:page="queryParams.pageNum"
-          :total="total"
-          @pagination="getList"
-          v-show="total > 0"
-        />
+        <div class="table-foot">
+          <span class="gw-muted gw-small">已选 {{ selectedRows.length }} 项 · 共 {{ total }} 条记录</span>
+          <pagination v-show="total > 0" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" :total="total" @pagination="getList" />
+        </div>
       </div>
     </div>
 
-    <!-- 设备详情对话框 -->
-    <el-dialog v-model="open" append-to-body :title="title" width="720px">
-      <div class="detail-dialog-body">
-        <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="设备编码" :span="2"><span class="gw-mono">{{ form.code }}</span></el-descriptions-item>
-          <el-descriptions-item label="设备位置" :span="2">{{ form.name }}</el-descriptions-item>
-          <el-descriptions-item label="归属插件">{{ platformName(form.pfCode) }}</el-descriptions-item>
-          <el-descriptions-item label="网关代码">{{ form.net }}</el-descriptions-item>
-          <el-descriptions-item label="设备类别">{{ form.type }}</el-descriptions-item>
-          <el-descriptions-item label="设备型号">{{ form.model }}</el-descriptions-item>
-          <el-descriptions-item label="IP地址">{{ form.ip || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="在线状态">
-            <span class="gw-badge" :class="isOnline(form) ? 'ok' : 'off'">{{ isOnline(form) ? '在线' : '离线' }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="无线设备">
-            <dict-tag :options="sys_boolean" :value="form.wireless" />
-          </el-descriptions-item>
-          <el-descriptions-item label="上次通信">
-            <span v-if="form.updateTime">{{ formatDeviceTime(form.updateTime) }}</span>
-            <span v-else class="gw-muted">-</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="经纬度 / 上报时间" :span="2">
-            <span>经度 {{ form.longitude != null && form.longitude !== '' ? form.longitude : '—' }}</span>
-            <span class="detail-inline-sep">·</span>
-            <span>纬度 {{ form.latitude != null && form.latitude !== '' ? form.latitude : '—' }}</span>
-            <span class="detail-inline-sep">·</span>
-            <span>上报 {{ form.createTime || '—' }}</span>
-          </el-descriptions-item>
-        </el-descriptions>
-        <div v-if="hasDeviceRemark" class="device-remark-block">
-          <div class="device-remark-head">
-            <span class="device-remark-title">扩展属性 / 备注</span>
-            <el-button type="primary" link size="small" icon="DocumentCopy" @click="copyDeviceRemark">复制</el-button>
-          </div>
-          <div class="device-remark-body">
-            <JsonPretty :data="form.remark" show-icon />
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="open = false">关 闭</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 设备编辑对话框 -->
-    <el-dialog v-model="editOpen" append-to-body title="修改设备信息" width="520px">
-      <el-form :model="editForm" label-width="90px" ref="editFormRef">
-        <el-form-item label="设备编码">
-          <span class="gw-mono">{{ editForm.code }}</span>
+    <!-- 修改设备 -->
+    <el-dialog v-model="editOpen" :title="`修改设备 · ${editForm.code || ''}`" width="680px" append-to-body destroy-on-close>
+      <el-form :model="editForm" label-position="top" class="edit-grid">
+        <el-form-item label="设备编码" required>
+          <el-input v-model="editForm.code" />
+          <div class="field-hint">网关内唯一，同步上级平台时作为设备标识</div>
         </el-form-item>
-        <el-form-item label="设备位置" prop="name">
-          <el-input v-model="editForm.name" placeholder="请输入设备位置" />
+        <el-form-item label="设备名称" required>
+          <el-input v-model="editForm.displayName" placeholder="显示名称（写入扩展属性）" />
         </el-form-item>
-        <el-form-item label="设备类别" prop="type">
-          <el-input v-model="editForm.type" placeholder="请输入设备类别" />
+        <el-form-item label="设备类型" required>
+          <el-select v-model="editForm.type" filterable allow-create style="width: 100%">
+            <el-option v-for="t in deviceTypes" :key="t.code" :label="t.name" :value="t.code" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="设备型号" prop="model">
-          <el-input v-model="editForm.model" placeholder="请输入设备型号" />
+        <el-form-item label="型号">
+          <el-input v-model="editForm.model" />
         </el-form-item>
-        <el-form-item label="经度" prop="longitude">
-          <el-input v-model="editForm.longitude" placeholder="经度（可选）" />
+        <el-form-item label="归属插件">
+          <el-input :model-value="`${platformName(editForm.pfCode)} (${editForm.pfCode || '-'})`" disabled />
+          <div class="field-hint">由接入来源决定，不可修改</div>
         </el-form-item>
-        <el-form-item label="纬度" prop="latitude">
-          <el-input v-model="editForm.latitude" placeholder="纬度（可选）" />
+        <el-form-item label="状态">
+          <el-input :model-value="isOnline(editForm) ? '在线' : '离线'" disabled />
         </el-form-item>
-        <el-form-item label="在线状态" prop="online">
-          <el-radio-group v-model="editForm.online">
-            <el-radio label="1"><el-text type="success">在线</el-text></el-radio>
-            <el-radio label="0"><el-text type="danger">离线</el-text></el-radio>
-          </el-radio-group>
-          <div class="gw-muted gw-small" style="width: 100%">状态变更将向上级平台推送设备事件</div>
+        <el-form-item label="安装位置" class="full">
+          <el-input v-model="editForm.name" placeholder="位置文本" />
+        </el-form-item>
+        <el-form-item label="经度"><el-input v-model="editForm.longitude" /></el-form-item>
+        <el-form-item label="纬度"><el-input v-model="editForm.latitude" /></el-form-item>
+        <el-form-item label="扩展属性（JSON）" class="full">
+          <el-input v-model="editForm.remarkText" type="textarea" :rows="3" placeholder='{ "channelNo": 3 }' />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="primary" @click="submitEdit" :loading="editLoading">保 存</el-button>
-        <el-button @click="editOpen = false">取 消</el-button>
+        <el-button @click="editOpen = false">取消</el-button>
+        <el-button type="primary" :loading="editLoading" @click="submitEdit">保存</el-button>
       </template>
     </el-dialog>
 
-    <!-- 批量同步设备弹窗 -->
-    <el-dialog v-model="pushDeviceOpen" append-to-body title="同步设备至上级平台" width="720px" @close="resetSyncState">
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        class="mb12"
-        title="按筛选条件将设备档案以设备消息推送至上级平台（推送通道见「系统配置 - 上级平台」）"
-      />
-      <el-form :inline="true" label-width="80px" :model="pushDeviceForm">
-        <el-form-item label="网关代码">
-          <el-input v-model="pushDeviceForm.net" clearable placeholder="不限" style="width: 140px" />
-        </el-form-item>
-        <el-form-item label="设备编码">
-          <el-input v-model="pushDeviceForm.code" clearable placeholder="不限" style="width: 140px" />
-        </el-form-item>
-        <el-form-item label="设备型号">
-          <el-input v-model="pushDeviceForm.model" clearable placeholder="不限" style="width: 140px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="querySyncDevices" :loading="syncQueryLoading">筛选设备</el-button>
-        </el-form-item>
-      </el-form>
-
-      <div v-if="syncQueried">
-        <div class="sync-summary">
-          筛选到 <el-text type="primary" tag="b">{{ syncDeviceList.length }}</el-text> 台设备
-        </div>
-        <el-table :data="syncDeviceList" max-height="280" size="small" v-loading="syncQueryLoading" border>
-          <el-table-column label="设备编码" prop="code" min-width="150" />
-          <el-table-column label="位置" prop="name" min-width="140" show-overflow-tooltip />
-          <el-table-column label="插件" prop="pfCode" width="90" align="center" />
-          <el-table-column label="型号" prop="model" width="110" align="center" show-overflow-tooltip />
-          <el-table-column label="同步状态" width="90" align="center">
-            <template #default="scope">
-              <el-tag :type="getSyncStatusType(syncStatusMap[scope.row.code])" size="small">
-                {{ syncStatusMap[scope.row.code] || '待同步' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <div v-if="syncProgress.total > 0" class="sync-progress-bar">
-          <el-progress
-            :percentage="syncProgress.percent"
-            :status="syncProgress.status || undefined"
-            striped
-            striped-flow
-            :duration="syncProgress.status ? 0 : 6"
-          />
-          <el-text size="small" class="sync-progress-text">
-            已同步 {{ syncProgress.done }} / {{ syncProgress.total }} 台
-          </el-text>
-        </div>
-      </div>
-      <el-empty v-else description="请先设置筛选条件，点击「筛选设备」查看待同步设备" :image-size="80" />
-
+    <!-- 同步至上级平台 -->
+    <el-dialog v-model="syncOpen" title="同步设备至上级平台" width="720px" append-to-body destroy-on-close>
+      <p class="gw-muted">
+        将所选 <b>{{ syncTargets.length }}</b> 台设备的档案信息以 <span class="gw-tag">DEVICE_EVENT</span> 统一消息推送至以下平台：
+      </p>
+      <el-table :data="upstreamList" size="small" class="mt12" @selection-change="(s) => (syncUpstreams = s)" ref="upstreamTableRef">
+        <el-table-column type="selection" width="42" />
+        <el-table-column label="平台" prop="name" min-width="140" />
+        <el-table-column label="推送方式" width="110" align="center">
+          <template #default="{ row }"><span class="gw-tag">{{ pushTypeLabel(row.pushType) }}</span></template>
+        </el-table-column>
+        <el-table-column label="连接状态" width="110" align="center">
+          <template #default="{ row }">
+            <span class="gw-badge" :class="upstreamAlive(row) ? 'ok' : 'warn'">{{ upstreamAlive(row) ? '已连接' : '未连接' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="该设备同步状态" min-width="140">
+          <template #default>
+            <span class="gw-badge plain info">将推送 DEVICE_EVENT</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <p class="field-hint mt12">平台不可达时消息将进入待补推队列；同步结果可在「消息日志」中查看。</p>
       <template #footer>
-        <el-button
-          type="primary"
-          @click="confirmSyncDevice"
-          :loading="syncLoading"
-          :disabled="syncDeviceList.length === 0 || syncLoading"
-        >开始同步</el-button>
-        <el-button @click="pushDeviceOpen = false">取 消</el-button>
+        <el-button @click="syncOpen = false">取消</el-button>
+        <el-button type="primary" :loading="syncLoading" :disabled="!syncUpstreams.length" @click="confirmSync">立即同步</el-button>
       </template>
     </el-dialog>
 
-    <ImportTemplate
-      :download-url="'/sys/device/importTemplate'"
-      file-name="facility"
-      title="设备"
-      upload-url="/sys/device/importData"
-      ref="importTemplate"
-      @uploadSuccess="getList"
-    />
+    <!-- 删除确认 -->
+    <el-dialog v-model="delOpen" title="删除设备" width="460px" append-to-body>
+      <p>确认删除设备 <b class="gw-mono">{{ delTarget?.code }}（{{ displayName(delTarget) }}）</b>？</p>
+      <p class="gw-muted gw-small mt8">删除后：① 通知归属插件取消该设备订阅；② 向已同步的上级平台推送 DEVICE_EVENT: deleted；③ 历史消息日志保留。</p>
+      <template #footer>
+        <el-button @click="delOpen = false">取消</el-button>
+        <el-button type="danger" :loading="delLoading" @click="confirmDelete">确认删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Device">
-import JsonPretty from 'vue-json-pretty'
-import { Search } from '@element-plus/icons-vue'
-import { selectPlatform as fetchPlatformList } from '@/api/sys/platform'
-import { listDevice, getDevice, updateDevice, clearDevice, pushDevice, getDeviceOnlineStats, updateDeviceOnline, delDevice } from '@/api/sys/device'
+import { nextTick } from 'vue'
+import { listDevice, updateDevice, delDevice, pushDevice, getDeviceOnlineStats } from '@/api/sys/device'
+import { selectPlatform } from '@/api/sys/platform'
+import { selectUpstream, getUpstreamStatus } from '@/api/sys/upstream'
+import { deviceTypeApi } from '@/api/sys/businessType'
 
 const { proxy } = getCurrentInstance()
-const { sys_boolean } = proxy.useDict('sys_boolean')
 
-// ==================== 状态 ====================
-const loading = ref(true)
-const statsLoading = ref(false)
-const open = ref(false)
-const total = ref(0)
-const title = ref('')
-const importTemplate = ref(null)
-
+const loading = ref(false)
 const deviceList = ref([])
-const platformOptions = ref([])
-const onlineStatsMap = ref({})
-const searchKeyword = ref('')
-const filterOnline = ref(null)
-const exactMatch = ref(false)
+const total = ref(0)
 const selectedRows = ref([])
-const rowSyncMap = reactive({})
-const batchSyncLoading = ref(false)
+const platformOptions = ref([])
+const deviceTypes = ref([])
+const onlineStatsMap = ref({})
+const upstreamList = ref([])
+const upstreamStatusMap = ref({})
+
+const filters = reactive({ keyword: '', type: '', pfCode: '', online: '', sync: '' })
+const queryParams = reactive({ pageNum: 1, pageSize: 15, orderByColumn: 'id', isAsc: 'DESC' })
+
 const editOpen = ref(false)
-const editForm = ref({})
-const editOrigOnline = ref('')
 const editLoading = ref(false)
-const pushDeviceOpen = ref(false)
-const pushDeviceForm = ref({})
-const syncQueryLoading = ref(false)
+const editForm = ref({})
+
+const syncOpen = ref(false)
 const syncLoading = ref(false)
-const syncDeviceList = ref([])
-const syncQueried = ref(false)
-const syncStatusMap = ref({})
-const syncProgress = reactive({ total: 0, done: 0, percent: 0, status: '' })
-const form = ref({})
+const syncTargets = ref([])
+const syncUpstreams = ref([])
+const upstreamTableRef = ref()
 
-const queryParams = reactive({
-  pageNum: 1,
-  pageSize: 15,
-  orderByColumn: 'id',
-  isAsc: 'DESC',
-  params: {},
-  pfCode: null,
-  code: null,
-  name: null,
-  online: null
-})
+const delOpen = ref(false)
+const delLoading = ref(false)
+const delTarget = ref(null)
 
-// ==================== 计算属性 ====================
 const totalStats = computed(() => {
   let t = 0, online = 0
-  Object.values(onlineStatsMap.value).forEach(s => {
+  Object.values(onlineStatsMap.value).forEach((s) => {
     t += Number(s.total || 0)
     online += Number(s.onlineCount || 0)
   })
+  if (!t && total.value) return { total: total.value, onlineCount: deviceList.value.filter(isOnline).length }
   return { total: t, onlineCount: online }
 })
 
-const hasDeviceRemark = computed(() => {
-  const r = form.value?.remark
-  if (r == null) return false
-  if (typeof r === 'string') return r.trim().length > 0
-  if (Array.isArray(r)) return r.length > 0
-  if (typeof r === 'object') return Object.keys(r).length > 0
-  return true
+const filteredList = computed(() => {
+  if (!filters.sync) return deviceList.value
+  return deviceList.value.filter((row) => {
+    const synced = isOnline(row) && Number(row.syncSuccess || 0) > 0
+    return filters.sync === 'synced' ? synced : !synced
+  })
 })
 
-// ==================== 初始化 ====================
-async function init() {
-  const [pfRes] = await Promise.all([fetchPlatformList(), loadOnlineStats()])
-  platformOptions.value = pfRes.data || []
-  getList()
+function isOnline(row) {
+  return row && (row.online === 1 || row.online === '1' || row.online === true)
 }
-
-async function loadOnlineStats() {
-  statsLoading.value = true
+function platformName(code) {
+  return platformOptions.value.find((p) => p.code === code)?.name || code || '-'
+}
+function typeName(code) {
+  return deviceTypes.value.find((t) => t.code === code)?.name || code || '-'
+}
+function displayName(row) {
+  if (!row) return '-'
   try {
-    const res = await getDeviceOnlineStats()
-    const map = {}
-    ;(res.data || []).forEach(s => { map[s.pfCode] = s })
-    onlineStatsMap.value = map
-  } finally {
-    statsLoading.value = false
-  }
+    const remark = typeof row.remark === 'string' ? JSON.parse(row.remark) : row.remark
+    if (remark && remark.displayName) return remark.displayName
+  } catch { /* */ }
+  return row.name || row.code || '-'
+}
+function formatTime(v) {
+  if (!v) return '-'
+  return proxy.parseTime(v) || String(v)
+}
+function syncBadgeClass(row) {
+  if (!row?.syncTotal) return 'off'
+  if (isOnline(row) && row.syncSuccess > 0) return 'info'
+  return 'off'
+}
+function pushTypeLabel(t) {
+  return { url: 'HTTP', redis: 'Redis', mq: 'MQ', kafka: 'Kafka', mqtt: 'MQTT' }[t] || t || '-'
+}
+function upstreamAlive(row) {
+  const st = upstreamStatusMap.value[row.code] || upstreamStatusMap.value[row.id]
+  if (st && typeof st.alive === 'boolean') return st.alive
+  return row.status === '1'
 }
 
-async function refreshAll() {
+async function init() {
+  const [pf, types, ups, st] = await Promise.all([
+    selectPlatform().catch(() => ({ data: [] })),
+    deviceTypeApi.select().catch(() => ({ data: [] })),
+    selectUpstream({ status: '1' }).catch(() => ({ data: [] })),
+    getUpstreamStatus().catch(() => ({ data: [] }))
+  ])
+  platformOptions.value = pf.data || []
+  deviceTypes.value = types.data || []
+  upstreamList.value = ups.data || []
+  const map = {}
+  ;(st.data || []).forEach((s) => {
+    if (s.code) map[s.code] = s
+    if (s.id) map[s.id] = s
+  })
+  upstreamStatusMap.value = map
   await loadOnlineStats()
   getList()
 }
 
-function isOnline(row) {
-  const v = row?.online
-  return v === 1 || v === '1' || v === true
-}
-
-function platformName(pfCode) {
-  if (!pfCode) return '-'
-  return platformOptions.value.find(p => p.code === pfCode)?.name || pfCode
-}
-
-function formatDeviceTime(val) {
-  if (val == null || val === '') return '-'
-  const s = proxy.parseTime(val)
-  return s || String(val)
-}
-
-function stringifyForCopy(val) {
-  if (val == null) return ''
-  if (typeof val === 'string') return val
+async function loadOnlineStats() {
   try {
-    return JSON.stringify(val, null, 2)
-  } catch {
-    return String(val)
-  }
+    const res = await getDeviceOnlineStats()
+    const map = {}
+    ;(res.data || []).forEach((s) => { map[s.pfCode] = s })
+    onlineStatsMap.value = map
+  } catch { /* */ }
 }
 
-async function copyPlainText(text) {
-  if (!text) {
-    proxy.$modal.msgWarning('无可复制内容')
-    return
-  }
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      const el = document.createElement('textarea')
-      el.value = text
-      el.setAttribute('readonly', '')
-      el.style.position = 'fixed'
-      el.style.left = '-9999px'
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    proxy.$modal.msgSuccess('已复制到剪贴板')
-  } catch {
-    proxy.$modal.msgError('复制失败')
-  }
-}
-
-function copyDeviceRemark() {
-  copyPlainText(stringifyForCopy(form.value.remark))
-}
-
-// ==================== 数据加载 ====================
 function getList() {
   loading.value = true
-  listDevice({ ...queryParams }).then(res => {
-    deviceList.value = res.rows
-    total.value = res.total
-    loading.value = false
-  })
+  const params = {
+    ...queryParams,
+    type: filters.type || null,
+    pfCode: filters.pfCode || null,
+    online: filters.online || null,
+    params: {
+      searchValue: filters.keyword || null
+    }
+  }
+  listDevice(params).then((res) => {
+    deviceList.value = res.rows || []
+    total.value = res.total || 0
+  }).finally(() => { loading.value = false })
 }
 
-function handlePfChange() {
+function handleQuery() {
   queryParams.pageNum = 1
   getList()
 }
-
-let searchTimer = null
-function handleSearch() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => {
-    queryParams.pageNum = 1
-    queryParams.params.searchValue = searchKeyword.value || null
-    queryParams.params.exactMatch = exactMatch.value ? '1' : null
-    queryParams.online = filterOnline.value || null
-    getList()
-  }, 300)
+function resetQuery() {
+  Object.assign(filters, { keyword: '', type: '', pfCode: '', online: '', sync: '' })
+  handleQuery()
 }
 
-function handleSelectionChange(selection) {
-  selectedRows.value = selection
+function parseRemark(raw) {
+  if (!raw) return {}
+  if (typeof raw === 'object') return { ...raw }
+  try { return JSON.parse(raw) || {} } catch { return { _raw: String(raw) } }
 }
 
-// ==================== 设备详情 ====================
-function handleView(row) {
-  getDevice(row.id).then(res => {
-    form.value = res.data
-    try { form.value.remark = JSON.parse(res.data.remark) } catch {}
-    open.value = true
-    title.value = `设备详情 — ${row.code}`
-  })
-}
-
-// ==================== 设备编辑 ====================
-function handleEdit(row) {
-  const onlineStr = isOnline(row) ? '1' : '0'
+function openEdit(row) {
+  const remark = parseRemark(row.remark)
   editForm.value = {
-    id: row.id, code: row.code, pfCode: row.pfCode, net: row.net,
-    name: row.name, type: row.type, model: row.model,
-    ip: row.ip, wireless: row.wireless,
-    longitude: row.longitude, latitude: row.latitude,
-    online: onlineStr
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    displayName: remark.displayName || row.name,
+    type: row.type,
+    model: row.model,
+    pfCode: row.pfCode,
+    online: row.online,
+    longitude: row.longitude,
+    latitude: row.latitude,
+    remarkText: JSON.stringify(remark, null, 2)
   }
-  editOrigOnline.value = onlineStr
   editOpen.value = true
 }
 
 async function submitEdit() {
   editLoading.value = true
   try {
+    let remarkObj = parseRemark(editForm.value.remarkText)
+    if (editForm.value.displayName) remarkObj.displayName = editForm.value.displayName
     await updateDevice({
-      id: editForm.value.id, code: editForm.value.code, pfCode: editForm.value.pfCode,
-      net: editForm.value.net, name: editForm.value.name, type: editForm.value.type,
-      model: editForm.value.model, ip: editForm.value.ip, wireless: editForm.value.wireless,
-      longitude: editForm.value.longitude, latitude: editForm.value.latitude,
-      online: editForm.value.online
+      id: editForm.value.id,
+      code: editForm.value.code,
+      name: editForm.value.name,
+      type: editForm.value.type,
+      model: editForm.value.model,
+      pfCode: editForm.value.pfCode,
+      longitude: editForm.value.longitude,
+      latitude: editForm.value.latitude,
+      remark: JSON.stringify(remarkObj)
     })
-    if (editForm.value.online !== editOrigOnline.value) {
-      await updateDeviceOnline({ code: editForm.value.code, pfCode: editForm.value.pfCode, online: editForm.value.online === '1' })
-    }
     proxy.$modal.msgSuccess('保存成功')
     editOpen.value = false
     getList()
-    loadOnlineStats()
-  } catch (e) {
-    proxy.$modal.msgError('保存失败')
   } finally {
     editLoading.value = false
   }
 }
 
-// ==================== 删除 ====================
-function handleDeleteDevice(row) {
-  proxy.$modal.confirm(`是否确认删除设备「${row.code}」？删除后历史消息保留。`)
-    .then(() => delDevice(row.id))
-    .then(() => {
-      proxy.$modal.msgSuccess('删除成功')
-      getList()
-      loadOnlineStats()
-    })
-    .catch(() => {})
+async function openSync(rows) {
+  syncTargets.value = rows || []
+  syncOpen.value = true
+  await nextTick()
+  upstreamTableRef.value?.clearSelection?.()
+  upstreamList.value.forEach((row) => upstreamTableRef.value?.toggleRowSelection?.(row, true))
 }
 
-function handleBatchDelete() {
-  const rows = selectedRows.value
-  if (rows.length === 0) return
-  proxy.$modal.confirm(`是否确认删除选中的 ${rows.length} 台设备？`)
-    .then(() => delDevice(rows.map(r => r.id).join(',')))
-    .then(() => {
-      proxy.$modal.msgSuccess('删除成功')
-      getList()
-      loadOnlineStats()
-    })
-    .catch(() => {})
-}
-
-// ==================== 指定设备同步 ====================
-async function handleRowSync(row) {
-  try {
-    await proxy.$modal.confirm(`将设备「${row.code}」的档案信息同步至上级平台？`)
-  } catch (e) { return }
-  rowSyncMap[row.code] = true
-  try {
-    await pushDevice({ code: row.code, pfCode: row.pfCode })
-    proxy.$modal.msgSuccess('已同步至上级平台')
-  } catch (e) {
-    proxy.$modal.msgError('同步失败，请检查上级平台推送配置')
-  } finally {
-    rowSyncMap[row.code] = false
-  }
-}
-
-async function handleBatchSync() {
-  const rows = selectedRows.value
-  if (rows.length === 0) return
-  try {
-    await proxy.$modal.confirm(`将选中的 ${rows.length} 台设备同步至上级平台？`)
-  } catch (e) { return }
-  batchSyncLoading.value = true
-  let ok = 0, fail = 0
-  for (const row of rows) {
-    try {
-      await pushDevice({ code: row.code, pfCode: row.pfCode })
-      ok++
-    } catch (e) {
-      fail++
-    }
-  }
-  batchSyncLoading.value = false
-  if (fail === 0) {
-    proxy.$modal.msgSuccess(`同步完成，共 ${ok} 台`)
-  } else {
-    proxy.$modal.msgWarning(`同步完成：成功 ${ok} 台，失败 ${fail} 台`)
-  }
-}
-
-// ==================== 批量同步弹窗 ====================
-function handleSyncDevice() {
-  pushDeviceOpen.value = true
-}
-
-function resetSyncState() {
-  syncDeviceList.value = []
-  syncQueried.value = false
-  syncStatusMap.value = {}
-  syncProgress.total = 0
-  syncProgress.done = 0
-  syncProgress.percent = 0
-  syncProgress.status = ''
-  pushDeviceForm.value = {}
-}
-
-async function querySyncDevices() {
-  syncQueryLoading.value = true
-  syncQueried.value = true
-  syncStatusMap.value = {}
-  syncProgress.total = 0
-  try {
-    const res = await listDevice({
-      net: pushDeviceForm.value.net || null,
-      code: pushDeviceForm.value.code || null,
-      model: pushDeviceForm.value.model || null,
-      pageNum: 1,
-      pageSize: 200
-    })
-    syncDeviceList.value = res.rows || []
-  } finally {
-    syncQueryLoading.value = false
-  }
-}
-
-async function confirmSyncDevice() {
-  if (syncDeviceList.value.length === 0) return
+async function confirmSync() {
+  if (!syncTargets.value.length) return
   syncLoading.value = true
-  syncProgress.total = syncDeviceList.value.length
-  syncProgress.done = 0
-  syncProgress.percent = 0
-  syncProgress.status = ''
-  syncDeviceList.value.forEach(d => { syncStatusMap.value[d.code] = '同步中...' })
   try {
-    await pushDevice(pushDeviceForm.value)
-    for (let i = 0; i < syncDeviceList.value.length; i++) {
-      await new Promise(r => setTimeout(r, 40))
-      syncStatusMap.value[syncDeviceList.value[i].code] = '已同步'
-      syncProgress.done = i + 1
-      syncProgress.percent = Math.round((i + 1) / syncProgress.total * 100)
+    for (const d of syncTargets.value) {
+      await pushDevice({ code: d.code, pfCode: d.pfCode })
     }
-    syncProgress.status = 'success'
-    proxy.$modal.msgSuccess(`同步完成，共 ${syncProgress.total} 台`)
-    getList()
-  } catch (e) {
-    syncDeviceList.value.forEach(d => { syncStatusMap.value[d.code] = '失败' })
-    syncProgress.percent = 100
-    syncProgress.status = 'exception'
-    proxy.$modal.msgError('同步失败')
+    proxy.$modal.msgSuccess(`已提交 ${syncTargets.value.length} 台设备同步`)
+    syncOpen.value = false
   } finally {
     syncLoading.value = false
   }
 }
 
-function getSyncStatusType(status) {
-  if (status === '已同步') return 'success'
-  if (status === '失败') return 'danger'
-  if (status === '同步中...') return 'warning'
-  return 'info'
+function handleDelete(row) {
+  delTarget.value = row
+  delOpen.value = true
 }
-
-// ==================== 清空 / 导出 ====================
-function handleClear() {
-  proxy.$modal.confirm('是否确认清空所有设备？此操作不可恢复！')
-    .then(() => clearDevice())
-    .then(() => {
-      proxy.$modal.msgSuccess('清空成功')
-      getList()
-      loadOnlineStats()
-    })
-    .catch(() => {})
+async function confirmDelete() {
+  delLoading.value = true
+  try {
+    await delDevice(delTarget.value.id)
+    proxy.$modal.msgSuccess('已删除')
+    delOpen.value = false
+    getList()
+    loadOnlineStats()
+  } finally {
+    delLoading.value = false
+  }
 }
-
-function handleExport() {
-  proxy.download('sys/device/export', { ...queryParams }, `device_${Date.now()}.xlsx`)
+async function handleBatchDelete() {
+  try {
+    await proxy.$modal.confirm(`确认删除选中的 ${selectedRows.value.length} 台设备？`)
+    await delDevice(selectedRows.value.map((r) => r.id).join(','))
+    proxy.$modal.msgSuccess('已删除')
+    getList()
+    loadOnlineStats()
+  } catch { /* */ }
 }
 
 init()
 </script>
 
 <style scoped>
-.mb12 { margin-bottom: 12px; }
-.detail-inline-sep { margin: 0 6px; color: #cbd5e1; }
-.device-remark-block {
-  margin-top: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
+.page-summary { color: #64748b; font-size: 13px; }
+.page-summary b { color: #0f172a; font-weight: 700; }
+.page-summary b.ok { color: #16a34a; }
+.page-summary b.err { color: #dc2626; }
+.gw-tag {
+  display: inline-block; padding: 1px 8px; border-radius: 5px; font-size: 12px;
+  background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
 }
-.device-remark-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+.table-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-top: 1px solid #e2e8f0; gap: 12px; flex-wrap: wrap;
 }
-.device-remark-title { font-size: 13px; font-weight: 500; color: #475569; }
-.device-remark-body { padding: 10px 12px; max-height: 220px; overflow: auto; }
-.sync-summary { margin-bottom: 8px; font-size: 13px; }
-.sync-progress-bar { margin-top: 12px; }
-.sync-progress-text { display: block; text-align: center; margin-top: 4px; }
+.table-foot :deep(.pagination-container) {
+  margin: 0 !important; padding: 0 !important; border: none !important; height: auto !important;
+  box-shadow: none !important;
+}
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+.edit-grid :deep(.full), .edit-grid .full { grid-column: 1 / -1; }
+.field-hint { margin-top: 4px; font-size: 12px; color: #94a3b8; line-height: 1.4; }
+.mt8 { margin-top: 8px; }
+.mt12 { margin-top: 12px; }
+@media (max-width: 900px) { .edit-grid { grid-template-columns: 1fr; } }
 </style>

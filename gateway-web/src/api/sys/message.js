@@ -88,3 +88,20 @@ export function messagePlatformStats() {
     method: 'get'
   })
 }
+
+/** 今日消息同步摘要 */
+export function messageTodayStats() {
+  return request({
+    url: '/sys/message/today-stats',
+    method: 'get'
+  })
+}
+
+/** 批量重推（传 ids 或空对象表示重推最近失败） */
+export function retryMessageBatch(data) {
+  return request({
+    url: '/sys/message/retry/batch',
+    method: 'post',
+    data: data || {}
+  })
+}

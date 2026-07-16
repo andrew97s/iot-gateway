@@ -90,4 +90,12 @@ public class ZaSysDevice extends BaseEntity
     @Excel(name = "IP")
     @ApiModelProperty("IP")
     private String ip;
+
+    /** 上级同步展示（非表字段） */
+    @ApiModelProperty(hidden = true)
+    private Integer syncSuccess;
+    @ApiModelProperty(hidden = true)
+    private Integer syncTotal;
+    @ApiModelProperty(hidden = true)
+    private String syncLabel;
 }

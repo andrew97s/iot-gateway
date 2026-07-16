@@ -6,7 +6,10 @@ import com.zhian.gateway.common.core.domain.AjaxResult;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
+import com.zhian.gateway.sys.domain.ZaSysUpstream;
+import com.zhian.gateway.sys.mapper.ZaSysUpstreamMapper;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +33,8 @@ public class ZaSysDeviceController extends BaseController
 {
     @Autowired
     private IZaSysDeviceService deviceService;
+    @Autowired
+    private ZaSysUpstreamMapper upstreamMapper;
 
     /**
      * 不分页查询接入设备列表
@@ -39,6 +44,7 @@ public class ZaSysDeviceController extends BaseController
     public AjaxResult select(ZaSysDevice zaSysDevice)
     {
         List<ZaSysDevice> list = deviceService.selectZaSysDeviceList(zaSysDevice);
+        enrichSync(list);
         return success(list);
     }
 
@@ -52,7 +58,34 @@ public class ZaSysDeviceController extends BaseController
     {
         startPage();
         List<ZaSysDevice> list = deviceService.selectZaSysDeviceList(zaSysDevice);
+        enrichSync(list);
         return getDataTable(list);
+    }
+
+    private void enrichSync(List<ZaSysDevice> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        int total = 0;
+        try {
+            Long cnt = upstreamMapper.selectCount(Wrappers.lambdaQuery(ZaSysUpstream.class)
+                    .eq(ZaSysUpstream::getStatus, ZaSysUpstream.STATUS_ENABLED));
+            total = cnt == null ? 0 : cnt.intValue();
+        } catch (Exception ignored) {
+        }
+        for (ZaSysDevice d : list) {
+            d.setSyncTotal(total);
+            if (total <= 0) {
+                d.setSyncSuccess(0);
+                d.setSyncLabel("未配置上级");
+            } else if ("1".equals(d.getOnline())) {
+                d.setSyncSuccess(total);
+                d.setSyncLabel(total + "/" + total + " 已同步");
+            } else {
+                d.setSyncSuccess(0);
+                d.setSyncLabel("未同步");
+            }
+        }
     }
 
     /**
