@@ -164,7 +164,7 @@ const platformOptions = ref([])
 const today = ref({ total: 0, successRate: 100, pendingCount: 0 })
 const filters = reactive({ keyword: '', type: '', pfCode: '', sendStatus: '' })
 const dateRange = ref([])
-const queryParams = reactive({ pageNum: 1, pageSize: 15, orderByColumn: 'id', isAsc: 'DESC' })
+const queryParams = reactive({ pageNum: 1, pageSize: 10, orderByColumn: 'id', isAsc: 'DESC' })
 const pushingMap = reactive({})
 const batchRetryLoading = ref(false)
 

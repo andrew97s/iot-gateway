@@ -121,7 +121,7 @@ const rules = {
 
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 15,
+  pageSize: 10,
   name: null,
   code: null,
   status: null

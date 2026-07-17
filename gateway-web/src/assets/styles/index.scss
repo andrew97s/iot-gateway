@@ -123,9 +123,43 @@ aside {
   }
 }
 
-//main-container全局样式
+//main-container全局样式（系统管理等 RuoYi 页面：白底内容区，对齐网关视觉）
 .app-container {
-  padding: 20px;
+  margin: 16px 20px 20px;
+  padding: 18px 20px 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  box-sizing: border-box;
+  min-height: calc(100vh - 82px);
+
+  .el-table {
+    --el-table-header-bg-color: #f8fafc;
+    --el-table-header-text-color: #64748b;
+    --el-table-border-color: #f1f5f9;
+    --el-table-row-hover-bg-color: #f8fafc;
+
+    th.el-table__cell {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    td.el-table__cell {
+      font-size: 13px;
+    }
+
+    &::before {
+      display: none;
+    }
+  }
+
+  .pagination-container {
+    margin-top: 12px;
+    margin-bottom: 0;
+    padding: 12px 0 0 !important;
+    border-top: 1px solid #e2e8f0;
+  }
 }
 
 .components-container {
@@ -134,7 +168,7 @@ aside {
 }
 
 .pagination-container {
-  margin-top: 30px;
+  margin-top: 16px;
 }
 
 .text-center {

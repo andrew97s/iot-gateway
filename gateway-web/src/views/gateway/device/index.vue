@@ -180,7 +180,7 @@ const upstreamList = ref([])
 const upstreamStatusMap = ref({})
 
 const filters = reactive({ keyword: '', type: '', pfCode: '', online: '', sync: '' })
-const queryParams = reactive({ pageNum: 1, pageSize: 15, orderByColumn: 'id', isAsc: 'DESC' })
+const queryParams = reactive({ pageNum: 1, pageSize: 10, orderByColumn: 'id', isAsc: 'DESC' })
 
 const editOpen = ref(false)
 const editLoading = ref(false)

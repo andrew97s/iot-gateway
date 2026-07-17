@@ -13,7 +13,8 @@ const useSettingsStore = defineStore('settings', {
     sideTheme: storageSetting.sideTheme || sideTheme,
     showSettings: showSettings,
     topNav: storageSetting.topNav === undefined ? topNav : storageSetting.topNav,
-    tagsView: storageSetting.tagsView === undefined ? tagsView : storageSetting.tagsView,
+    // 产品要求隐藏 TagsView，不读取本地缓存覆盖
+    tagsView: false,
     fixedHeader: storageSetting.fixedHeader === undefined ? fixedHeader : storageSetting.fixedHeader,
     sidebarLogo: storageSetting.sidebarLogo === undefined ? sidebarLogo : storageSetting.sidebarLogo,
     dynamicTitle: storageSetting.dynamicTitle === undefined ? dynamicTitle : storageSetting.dynamicTitle

@@ -25,8 +25,8 @@
         <el-select v-model="filters.protocol" clearable placeholder="全部协议" style="width: 150px">
           <el-option v-for="p in protocolOptions" :key="p" :label="p" :value="p" />
         </el-select>
-        <el-button type="primary" icon="Search" @click="loadList">查询</el-button>
-        <el-button icon="Refresh" :loading="loading" @click="loadList">刷新</el-button>
+        <el-button type="primary" icon="Search" @click="handleQuery">查询</el-button>
+        <el-button icon="Refresh" :loading="loading" @click="handleQuery">刷新</el-button>
         <div class="spacer" />
         <span class="gw-muted gw-small">
           插件为厂商接入的最小单元；配置由 plugin.yaml / config-schema 驱动，启停热生效
@@ -34,56 +34,65 @@
       </div>
     </div>
 
-    <div class="gw-plugin-grid" v-loading="loading">
-      <el-empty v-if="!loading && instances.length === 0" description="暂无插件实例，请先创建或安装" style="grid-column: 1 / -1" />
-      <div
-        v-for="row in instances"
-        :key="row.instanceId"
-        class="gw-plugin-card"
-        :class="{ 'is-error': row.state === 'abnormal', 'is-disabled': row.state === 'stopped' || row.state === 'installed' }"
-      >
-        <div class="pc-head">
-          <div class="pc-ico" :style="{ background: pluginColor(row.pluginId) }">{{ pluginInitials(row.pluginId) }}</div>
-          <div class="pc-main">
-            <div class="pc-title-row">
-              <b class="pc-name" :title="row.name">{{ row.name }}</b>
-              <span class="gw-badge" :class="badgeClass(row.state)">{{ stateLabel(row.state) }}</span>
-            </div>
-            <div class="pc-meta gw-muted gw-small">
-              <span class="gw-tag">{{ row.protocol || row.pluginId }}</span>
-              <span class="gw-tag">v{{ row.version || '—' }}</span>
-              <span>· 实例 {{ row.instanceId }}</span>
-              <span v-if="capsText(row)">· 能力：{{ capsText(row) }}</span>
-              <span v-if="row.state === 'abnormal' && row.restartCount">· 已自动重启 {{ row.restartCount }} 次</span>
+    <div class="gw-card plugin-list-card">
+      <div class="gw-plugin-grid" v-loading="loading">
+        <el-empty v-if="!loading && instances.length === 0" description="暂无插件实例，请先创建或安装" style="grid-column: 1 / -1" />
+        <div
+          v-for="row in pagedInstances"
+          :key="row.instanceId"
+          class="gw-plugin-card"
+          :class="{ 'is-error': row.state === 'abnormal', 'is-disabled': row.state === 'stopped' || row.state === 'installed' }"
+        >
+          <div class="pc-head">
+            <div class="pc-ico" :style="{ background: pluginColor(row.pluginId) }">{{ pluginInitials(row.pluginId) }}</div>
+            <div class="pc-main">
+              <div class="pc-title-row">
+                <b class="pc-name" :title="row.name">{{ row.name }}</b>
+                <span class="gw-badge" :class="badgeClass(row.state)">{{ stateLabel(row.state) }}</span>
+              </div>
+              <div class="pc-meta gw-muted gw-small">
+                <span class="gw-tag">{{ row.protocol || row.pluginId }}</span>
+                <span class="gw-tag">v{{ row.version || '—' }}</span>
+                <span>· 实例 {{ row.instanceId }}</span>
+                <span v-if="capsText(row)">· 能力：{{ capsText(row) }}</span>
+                <span v-if="row.state === 'abnormal' && row.restartCount">· 已自动重启 {{ row.restartCount }} 次</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="pc-stats">
-          <div><div class="v">{{ fmt(row.deviceCount) }}</div><div class="k">接入设备</div></div>
-          <div><div class="v">{{ fmt(row.todayMsgCount) }}</div><div class="k">今日消息</div></div>
-          <div>
-            <div class="v" :style="{ color: failColor(row) }">
-              {{ row.state === 'stopped' && !row.todayMsgCount ? '—' : fmt(row.todayFailCount || row.errCount) }}
+          <div class="pc-stats">
+            <div><div class="v">{{ fmt(row.deviceCount) }}</div><div class="k">接入设备</div></div>
+            <div><div class="v">{{ fmt(row.todayMsgCount) }}</div><div class="k">今日消息</div></div>
+            <div>
+              <div class="v" :style="{ color: failColor(row) }">
+                {{ row.state === 'stopped' && !row.todayMsgCount ? '—' : fmt(row.todayFailCount || row.errCount) }}
+              </div>
+              <div class="k">转换失败</div>
             </div>
-            <div class="k">转换失败</div>
           </div>
-        </div>
-        <div class="pc-foot">
-          <el-button size="small" @click="openDrawer(row)">日志 / 统计</el-button>
-          <el-button size="small" @click="openConfig(row)" v-hasPermi="['sys:platform:edit']">配置</el-button>
-          <template v-if="row.state === 'running'">
-            <el-button size="small" type="danger" plain :loading="busy[row.instanceId]" @click="doStop(row)">停止</el-button>
-          </template>
-          <template v-else-if="row.state === 'abnormal'">
-            <el-button size="small" type="primary" :loading="busy[row.instanceId]" @click="doRestart(row)">重启</el-button>
-            <el-button size="small" type="danger" plain :loading="busy[row.instanceId]" @click="doStop(row)">停止</el-button>
-          </template>
-          <template v-else>
-            <el-button size="small" type="primary" :loading="busy[row.instanceId]" @click="doStart(row)">启动</el-button>
-            <el-button size="small" type="danger" plain v-hasPermi="['sys:platform:remove']" @click="doUninstall(row)">卸载</el-button>
-          </template>
+          <div class="pc-foot">
+            <el-button size="small" @click="openDrawer(row)">日志 / 统计</el-button>
+            <el-button size="small" @click="openConfig(row)" v-hasPermi="['sys:platform:edit']">配置</el-button>
+            <template v-if="row.state === 'running'">
+              <el-button size="small" type="danger" plain :loading="busy[row.instanceId]" @click="doStop(row)">停止</el-button>
+            </template>
+            <template v-else-if="row.state === 'abnormal'">
+              <el-button size="small" type="primary" :loading="busy[row.instanceId]" @click="doRestart(row)">重启</el-button>
+              <el-button size="small" type="danger" plain :loading="busy[row.instanceId]" @click="doStop(row)">停止</el-button>
+            </template>
+            <template v-else>
+              <el-button size="small" type="primary" :loading="busy[row.instanceId]" @click="doStart(row)">启动</el-button>
+              <el-button size="small" type="danger" plain v-hasPermi="['sys:platform:remove']" @click="doUninstall(row)">卸载</el-button>
+            </template>
+          </div>
         </div>
       </div>
+      <pagination
+        v-show="instances.length > 0"
+        v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize"
+        :total="instances.length"
+        :page-sizes="[10, 20, 30]"
+      />
     </div>
 
     <!-- 创建实例：从类型目录选择 -->
@@ -212,32 +221,31 @@
           </div>
         </el-tab-pane>
         <el-tab-pane label="运行日志" name="logs">
-          <div class="gw-filter-bar" style="margin-bottom: 12px">
-            <el-input v-model="logKeyword" clearable placeholder="关键字过滤" style="flex: 1" @keyup.enter="loadLogs" />
+          <div class="gw-filter-bar log-filter" style="margin-bottom: 12px">
+            <el-select v-model="logLevel" clearable placeholder="全部级别" style="width: 130px">
+              <el-option label="全部级别" value="" />
+              <el-option label="DEBUG" value="DEBUG" />
+              <el-option label="INFO" value="INFO" />
+              <el-option label="WARN" value="WARN" />
+              <el-option label="ERROR" value="ERROR" />
+            </el-select>
+            <el-input v-model="logKeyword" clearable placeholder="关键字过滤" style="flex: 1" />
             <el-button size="small" icon="Refresh" :loading="logLoading" @click="loadLogs">刷新</el-button>
-            <el-button size="small" type="danger" plain icon="Delete" v-hasPermi="['sys:platform:edit']" @click="clearLogs">清空</el-button>
+            <el-button size="small" icon="Download" :disabled="!displayLogs.length" @click="downloadLogs">下载日志</el-button>
           </div>
           <div v-loading="logLoading" class="gw-log-console">
             <template v-if="displayLogs.length">
-              <div v-for="log in displayLogs" :key="log.id" class="log-line">
-                <span class="t">{{ log.createTime || '' }}</span>
-                <span :class="logLevelClass(log)">[{{ logTypeLabel(log) }}]</span>
-                <span> [{{ currentId }}] {{ log.title }}</span>
-                <el-button v-if="log.content" link type="primary" size="small" @click="showLogDetail(log)">详情</el-button>
+              <div v-for="(log, idx) in displayLogs" :key="log.id || idx" class="log-line">
+                <span class="t">{{ formatLogTime(log.time) }}</span>
+                <span :class="'lv-' + log.level.toLowerCase()">[{{ padLevel(log.level) }}]</span>
+                <span> [{{ currentId }}] {{ log.message }}</span>
               </div>
             </template>
-            <div v-else class="gw-muted">暂无日志</div>
-          </div>
-          <div class="log-pager" v-if="logTotal > 0">
-            <el-pagination v-model:current-page="logPage" :page-size="20" :total="logTotal" layout="total, prev, pager, next" small @current-change="loadLogs" />
+            <div v-else class="empty-log">暂无运行日志</div>
           </div>
         </el-tab-pane>
       </el-tabs>
     </el-drawer>
-
-    <el-dialog v-model="logDetailOpen" :title="logDetailTitle" width="680px" append-to-body destroy-on-close>
-      <pre class="log-detail-pre">{{ logDetailContent }}</pre>
-    </el-dialog>
   </div>
 </template>
 
@@ -257,7 +265,6 @@ import {
   testPluginConnection,
   getPluginInstanceStats,
   getPluginInstanceLogs,
-  clearPluginInstanceLogs,
   getPluginInstance
 } from '@/api/sys/plugin'
 
@@ -285,6 +292,7 @@ const instances = ref([])
 const summary = ref({ running: 0, stopped: 0, abnormal: 0, total: 0 })
 const types = ref([])
 const filters = reactive({ keyword: '', state: '', protocol: '' })
+const queryParams = reactive({ pageNum: 1, pageSize: 10 })
 const busy = ref({})
 
 const installOpen = ref(false)
@@ -318,13 +326,9 @@ const trendChartRef = ref(null)
 let trendChart = null
 const currentId = ref('')
 const logLoading = ref(false)
-const platformLogs = ref([])
-const logTotal = ref(0)
-const logPage = ref(1)
+const consoleLogs = ref([])
 const logKeyword = ref('')
-const logDetailOpen = ref(false)
-const logDetailTitle = ref('')
-const logDetailContent = ref('')
+const logLevel = ref('')
 
 const runnableTypes = computed(() => (types.value || []).filter((t) => t.runnable))
 const protocolOptions = computed(() => {
@@ -333,11 +337,19 @@ const protocolOptions = computed(() => {
   types.value.forEach((t) => t.protocol && set.add(t.protocol))
   return Array.from(set)
 })
+const pagedInstances = computed(() => {
+  const start = (queryParams.pageNum - 1) * queryParams.pageSize
+  return (instances.value || []).slice(start, start + queryParams.pageSize)
+})
+/** 原型控制台：级别 + 关键字过滤 */
 const displayLogs = computed(() => {
-  let list = platformLogs.value || []
+  let list = consoleLogs.value || []
+  if (logLevel.value) {
+    list = list.filter((l) => l.level === logLevel.value)
+  }
   if (logKeyword.value) {
     const kw = logKeyword.value.toLowerCase()
-    list = list.filter((l) => `${l.title || ''} ${l.content || ''}`.toLowerCase().includes(kw))
+    list = list.filter((l) => String(l.message || '').toLowerCase().includes(kw))
   }
   return list
 })
@@ -382,6 +394,11 @@ function setBusy(id, v) {
   busy.value = { ...busy.value, [id]: v }
 }
 
+function handleQuery() {
+  queryParams.pageNum = 1
+  loadList()
+}
+
 async function loadList() {
   loading.value = true
   try {
@@ -393,6 +410,8 @@ async function loadList() {
     summary.value = sumRes.data || {}
     instances.value = listRes.data || []
     types.value = typeRes.data || []
+    const maxPage = Math.max(1, Math.ceil(instances.value.length / queryParams.pageSize) || 1)
+    if (queryParams.pageNum > maxPage) queryParams.pageNum = maxPage
   } finally {
     loading.value = false
   }
@@ -575,8 +594,8 @@ async function openDrawer(row) {
   drawerTitle.value = `${row.name} · 实例 ${row.instanceId}`
   drawerTab.value = 'stats'
   drawerOpen.value = true
-  logPage.value = 1
   logKeyword.value = ''
+  logLevel.value = ''
   await Promise.all([loadDrawerStats(row.instanceId), loadLogs()])
 }
 
@@ -634,48 +653,65 @@ function renderTrend() {
   })
 }
 
+/** 将后台日志行映射为原型控制台条目（忽略原有分类型卡片逻辑） */
+function mapToConsoleLine(row) {
+  const title = String(row.title || '').trim()
+  const content = String(row.content || '').trim()
+  const joined = [title, content].filter(Boolean).join(' · ')
+  const text = joined || '—'
+  let level = 'INFO'
+  const lower = text.toLowerCase()
+  if (String(row.type) === '4' || /失败|error|exception|超时/.test(lower)) level = 'ERROR'
+  else if (/warn|警告|降级|缓慢/.test(lower)) level = 'WARN'
+  else if (String(row.type) === '5' || /debug|心跳|trace/.test(lower)) level = 'DEBUG'
+  return {
+    id: row.id,
+    time: row.createTime || '',
+    level,
+    message: text
+  }
+}
+
 async function loadLogs() {
   if (!currentId.value) return
   logLoading.value = true
   try {
     const res = await getPluginInstanceLogs(currentId.value, {
-      pageNum: logPage.value,
-      pageSize: 20,
+      pageNum: 1,
+      pageSize: 200,
       orderByColumn: 'create_time',
       isAsc: 'desc'
     })
-    platformLogs.value = res.rows || []
-    logTotal.value = res.total || 0
+    consoleLogs.value = (res.rows || []).map(mapToConsoleLine)
   } finally {
     logLoading.value = false
   }
 }
 
-async function clearLogs() {
-  try {
-    await proxy.$modal.confirm('确定清空当前插件运行日志？')
-    await clearPluginInstanceLogs(currentId.value)
-    proxy.$modal.msgSuccess('已清空')
-    logPage.value = 1
-    await loadLogs()
-  } catch (e) { /* */ }
+function padLevel(level) {
+  const s = String(level || 'INFO')
+  return (s + '     ').slice(0, 5)
 }
-
-function logTypeLabel(log) {
-  if (log.content && String(log.content).includes('失败')) return 'ERROR'
-  const map = { 1: 'INFO ', 2: 'INFO ', 3: 'INFO ', 4: 'ERROR', 5: 'DEBUG' }
-  return map[String(log.type)] || 'INFO '
+function formatLogTime(t) {
+  if (!t) return '--:--:--.---'
+  const s = String(t)
+  // 优先展示 HH:mm:ss.SSS / HH:mm:ss
+  const m = s.match(/(\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?)/)
+  return m ? m[1] : s
 }
-function logLevelClass(log) {
-  const label = logTypeLabel(log)
-  if (label.includes('ERROR') || String(log.type) === '4') return 'lv-error'
-  if (String(log.type) === '5') return 'lv-debug'
-  return 'lv-info'
-}
-function showLogDetail(log) {
-  logDetailTitle.value = log.title || '日志详情'
-  logDetailContent.value = log.content != null ? String(log.content) : ''
-  logDetailOpen.value = true
+function downloadLogs() {
+  const lines = displayLogs.value.map((l) => `${formatLogTime(l.time)} [${padLevel(l.level)}] [${currentId.value}] ${l.message}`)
+  if (!lines.length) {
+    proxy.$modal.msgWarning('暂无可下载日志')
+    return
+  }
+  const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `plugin-${currentId.value}-runtime.log`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 watch(drawerTab, (t) => {
@@ -730,17 +766,22 @@ loadList()
 .mini-stat .value { font-size: 24px; font-weight: 700; color: #0f172a; }
 .mt16 { margin-top: 16px; }
 .trend-chart { width: 100%; height: 180px; }
+.plugin-list-card {
+  :deep(.gw-plugin-grid) {
+    padding: 16px;
+  }
+  :deep(.pagination-container) {
+    border-top: 1px solid #e2e8f0;
+  }
+}
+.log-filter { width: 100%; }
 .log-line { word-break: break-all; }
 .log-line .t { color: #64748b; margin-right: 6px; }
 .log-line .lv-info { color: #38bdf8; }
 .log-line .lv-debug { color: #94a3b8; }
+.log-line .lv-warn { color: #facc15; }
 .log-line .lv-error { color: #f87171; }
-.log-pager { margin-top: 12px; display: flex; justify-content: flex-end; }
-.log-detail-pre {
-  margin: 0; white-space: pre-wrap; word-break: break-all;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px; line-height: 1.5; max-height: 65vh; overflow: auto;
-}
+.empty-log { color: #64748b; }
 @media (max-width: 900px) {
   .cfg-grid, .stat-row { grid-template-columns: 1fr; }
 }

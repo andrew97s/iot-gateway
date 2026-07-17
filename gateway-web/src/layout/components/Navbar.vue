@@ -19,21 +19,16 @@
           </template>
         </el-dropdown>
       </div>
-      <!-- <template v-if="appStore.device !== 'mobile'"> -->
-      <!-- <el-link type="primary" style="margin-right: 20px" @click="router.push(defaultSettings.homePath)">返回首页</el-link> -->
-      <header-search id="header-search" class="right-menu-item" />
+
+      <div class="meta-item system-time">{{ systemTime }}</div>
+      <span class="upstream-badge" :class="upstreamBadgeClass">{{ upstreamBadgeText }}</span>
 
       <screenfull id="screenfull" class="right-menu-item hover-effect" />
 
-      <!-- <el-tooltip content="布局大小" effect="dark" placement="bottom">
-          <size-select id="size-select" class="right-menu-item hover-effect" />
-        </el-tooltip> -->
-      <!-- </template> -->
       <div class="avatar-container">
         <el-dropdown class="right-menu-item hover-effect" trigger="click" @command="handleCommand">
           <div class="avatar-wrapper">
             <span class="nickname">{{ userStore.userInfo.nickName }}</span>
-            <!-- <img :src="userStore.avatar" class="user-avatar" /> -->
             <el-icon><caret-bottom /></el-icon>
           </div>
           <template #dropdown>
@@ -60,8 +55,6 @@ import { ElMessageBox } from 'element-plus'
 import TopNav from '@/components/system/TopNav/index.vue'
 import Hamburger from '@/components/system/Hamburger/index.vue'
 import Screenfull from '@/components/system/Screenfull/index.vue'
-import SizeSelect from '@/components/system/SizeSelect/index.vue'
-import HeaderSearch from '@/components/system/HeaderSearch/index.vue'
 import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
@@ -69,6 +62,7 @@ import defaultSettings from '@/settings'
 import Qrcode from 'qrcode.vue'
 import NoticeBar from './NoticeBar.vue'
 import { useRoute } from 'vue-router'
+import { getUpstreamStatus } from '@/api/sys/upstream'
 
 let hostInfo = {}
 try {
@@ -88,6 +82,40 @@ const pageTitle = computed(() => {
   if (!matched.length) return settingsStore.title || ''
   return matched[matched.length - 1].meta.title
 })
+
+const systemTime = ref('')
+const upstreamOnline = ref(0)
+const upstreamTotal = ref(0)
+let clockTimer = null
+let upstreamTimer = null
+
+const upstreamBadgeText = computed(() => {
+  if (!upstreamTotal.value) return '上级平台 —'
+  return `上级平台 ${upstreamOnline.value}/${upstreamTotal.value} 在线`
+})
+const upstreamBadgeClass = computed(() => {
+  if (!upstreamTotal.value) return 'off'
+  return upstreamOnline.value >= upstreamTotal.value ? 'ok' : 'warn'
+})
+
+function pad(n) {
+  return String(n).padStart(2, '0')
+}
+function tickClock() {
+  const d = new Date()
+  systemTime.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
+async function loadUpstreamStatus() {
+  try {
+    const res = await getUpstreamStatus()
+    const list = res.data || []
+    upstreamTotal.value = list.length
+    upstreamOnline.value = list.filter((s) => s.alive).length
+  } catch {
+    /* 忽略状态拉取失败，保留上次结果 */
+  }
+}
 
 function toggleSideBar() {
   appStore.toggleSideBar()
@@ -124,6 +152,17 @@ const emits = defineEmits(['setLayout'])
 function setLayout() {
   emits('setLayout')
 }
+
+onMounted(() => {
+  tickClock()
+  clockTimer = setInterval(tickClock, 1000)
+  loadUpstreamStatus()
+  upstreamTimer = setInterval(loadUpstreamStatus, 30000)
+})
+onBeforeUnmount(() => {
+  if (clockTimer) clearInterval(clockTimer)
+  if (upstreamTimer) clearInterval(upstreamTimer)
+})
 </script>
 <style>
 .drop-menu {
@@ -180,13 +219,57 @@ function setLayout() {
     height: 100%;
     line-height: 50px;
     display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 8px;
 
     &:focus {
       outline: none;
     }
 
+    .meta-item {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .upstream-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      line-height: 1;
+      white-space: nowrap;
+
+      &::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      &.ok {
+        background: #f0fdf4;
+        color: #16a34a;
+      }
+      &.warn {
+        background: #fffbeb;
+        color: #d97706;
+      }
+      &.off {
+        background: #f1f5f9;
+        color: #64748b;
+      }
+    }
+
     .right-menu-item {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
       padding: 0 8px;
       height: 100%;
       font-size: 18px;
@@ -204,13 +287,20 @@ function setLayout() {
     }
 
     .avatar-container {
-      margin-right: 40px;
+      margin-right: 24px;
 
       .avatar-wrapper {
         position: relative;
         height: 100%;
         display: flex;
         align-items: center;
+        gap: 4px;
+
+        .nickname {
+          font-size: 13px;
+          color: #334155;
+        }
+
         .user-avatar {
           cursor: pointer;
           width: 40px;
@@ -220,15 +310,12 @@ function setLayout() {
 
         i {
           cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 20px;
           font-size: 12px;
         }
       }
     }
     .qr-box {
-      margin-right: 10px;
+      margin-right: 4px;
 
       .text-box {
         height: 100%;

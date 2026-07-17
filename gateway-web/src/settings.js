@@ -30,9 +30,9 @@ export default {
   topNav: false,
 
   /**
-   * 是否显示 tagsView
+   * 是否显示 tagsView（菜单导航标签栏）
    */
-  tagsView: true,
+  tagsView: false,
 
   /**
    * 是否固定头部
