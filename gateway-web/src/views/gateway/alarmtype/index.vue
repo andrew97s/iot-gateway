@@ -67,8 +67,8 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="open" :title="form.id ? '修改告警类型' : '新增告警类型'" width="640px" append-to-body>
-      <el-form :model="form" label-width="90px" ref="formRef" :rules="rules">
+    <el-dialog v-model="open" :title="form.id ? '修改告警类型' : '新增告警类型'" width="720px" append-to-body>
+      <el-form :model="form" label-width="90px" ref="formRef" :rules="rules" class="type-form">
         <el-form-item label="类型编码" prop="code">
           <el-input v-model="form.code" placeholder="唯一编码，如 fire、smoke（同步上级平台使用）" :disabled="!!form.id" />
         </el-form-item>
@@ -83,7 +83,7 @@
             <el-option label="4 - 紧急" :value="4" />
           </el-select>
         </el-form-item>
-        <el-form-item label="别名映射">
+        <el-form-item label="别名映射" class="alias-item">
           <AliasEditor v-model="form.aliases" />
         </el-form-item>
         <el-form-item label="状态">
@@ -201,4 +201,6 @@ getList()
 
 <style scoped>
 .alias-tag { margin: 2px 4px 2px 0; }
+.type-form :deep(.el-form-item__content) { min-width: 0; }
+.type-form :deep(.alias-item .el-form-item__content) { display: block; width: 100%; }
 </style>

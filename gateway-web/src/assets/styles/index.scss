@@ -123,7 +123,7 @@ aside {
   }
 }
 
-//main-container全局样式（系统管理等 RuoYi 页面：白底内容区，对齐网关视觉）
+//main-container全局样式（系统管理等 RuoYi 页面：白底内容区按内容撑开，不强制铺满视口）
 .app-container {
   margin: 16px 20px 20px;
   padding: 18px 20px 20px;
@@ -132,7 +132,6 @@ aside {
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   box-sizing: border-box;
-  min-height: calc(100vh - 82px);
 
   .el-table {
     --el-table-header-bg-color: #f8fafc;

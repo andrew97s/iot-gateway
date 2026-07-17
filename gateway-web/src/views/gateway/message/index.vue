@@ -85,44 +85,52 @@
     </div>
 
     <!-- 消息详情 -->
-    <el-dialog v-model="detailOpen" :title="`消息详情 · ${shortId(detail.messageId || detail.id)}`" width="960px" append-to-body destroy-on-close>
+    <el-dialog v-model="detailOpen" :title="`消息详情 · ${shortId(detail.messageId || detail.id)}`" width="960px" append-to-body destroy-on-close class="msg-detail-dialog">
       <div class="detail-grid">
         <div>
-          <div class="detail-label">统一消息格式（推送上级平台）</div>
+          <div class="detail-label">
+            <span>统一消息格式（推送上级平台）</span>
+            <el-button link type="primary" icon="DocumentCopy" @click="copyJson(detail.unifiedContent || detail.content, '统一消息')">复制</el-button>
+          </div>
           <div class="json-view"><JsonPretty :data="detail.unifiedContent || detail.content" show-icon /></div>
         </div>
         <div>
-          <div class="detail-label">厂商原始报文（转换前）</div>
+          <div class="detail-label">
+            <span>厂商原始报文（转换前）</span>
+            <el-button link type="primary" icon="DocumentCopy" @click="copyJson(detail.content, '原始报文')">复制</el-button>
+          </div>
           <div class="json-view"><JsonPretty :data="detail.content" show-icon /></div>
         </div>
       </div>
 
       <div class="detail-label" style="margin-top: 16px">上级平台同步记录</div>
-      <el-table :data="pushLogs" size="small" v-loading="pushLogLoading" border>
-        <el-table-column label="目标平台" min-width="140">
-          <template #default="{ row }">{{ platformFromTarget(row.target) }}</template>
-        </el-table-column>
-        <el-table-column label="推送方式" width="100" align="center">
-          <template #default="{ row }"><span class="gw-tag">{{ pushModeLabel(row.type) }}</span></template>
-        </el-table-column>
-        <el-table-column label="结果" width="90" align="center">
-          <template #default="{ row }">
-            <span class="gw-badge" :class="row.status === 'success' ? 'ok' : 'err'">{{ row.status === 'success' ? '成功' : '失败' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="重试次数" width="90" align="center">
-          <template #default>-</template>
-        </el-table-column>
-        <el-table-column label="耗时" width="90" align="center">
-          <template #default>-</template>
-        </el-table-column>
-        <el-table-column label="时间" width="160" align="center">
-          <template #default="{ row }"><span class="gw-mono gw-small">{{ row.time }}</span></template>
-        </el-table-column>
-        <el-table-column label="失败原因" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }"><span class="gw-muted gw-small">{{ row.failReason || '—' }}</span></template>
-        </el-table-column>
-      </el-table>
+      <div class="sync-table-wrap">
+        <el-table :data="pushLogs" size="small" v-loading="pushLogLoading" border max-height="220">
+          <el-table-column label="目标平台" min-width="140">
+            <template #default="{ row }">{{ platformFromTarget(row.target) }}</template>
+          </el-table-column>
+          <el-table-column label="推送方式" width="100" align="center">
+            <template #default="{ row }"><span class="gw-tag">{{ pushModeLabel(row.type) }}</span></template>
+          </el-table-column>
+          <el-table-column label="结果" width="90" align="center">
+            <template #default="{ row }">
+              <span class="gw-badge" :class="row.status === 'success' ? 'ok' : 'err'">{{ row.status === 'success' ? '成功' : '失败' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="重试次数" width="90" align="center">
+            <template #default>-</template>
+          </el-table-column>
+          <el-table-column label="耗时" width="90" align="center">
+            <template #default>-</template>
+          </el-table-column>
+          <el-table-column label="时间" width="160" align="center">
+            <template #default="{ row }"><span class="gw-mono gw-small">{{ row.time }}</span></template>
+          </el-table-column>
+          <el-table-column label="失败原因" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }"><span class="gw-muted gw-small">{{ row.failReason || '—' }}</span></template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <template #footer>
         <el-button
@@ -175,6 +183,45 @@ const pushLogLoading = ref(false)
 
 function fmt(v) {
   return Number(v || 0).toLocaleString('zh-CN')
+}
+function toCopyText(data) {
+  if (data == null || data === '') return ''
+  if (typeof data === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(data), null, 2)
+    } catch {
+      return data
+    }
+  }
+  try {
+    return JSON.stringify(data, null, 2)
+  } catch {
+    return String(data)
+  }
+}
+async function copyJson(data, label) {
+  const text = toCopyText(data)
+  if (!text) {
+    proxy.$modal.msgWarning(`${label || '内容'}为空，无法复制`)
+    return
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.left = '-9999px'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    proxy.$modal.msgSuccess(`${label || '内容'}已复制`)
+  } catch {
+    proxy.$modal.msgError('复制失败，请手动选择复制')
+  }
 }
 function shortId(id) {
   const s = String(id || '')
@@ -353,10 +400,18 @@ getList()
   box-shadow: none !important;
 }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.detail-label { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+.detail-label {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 13px; color: #64748b; margin-bottom: 8px;
+}
 .json-view {
   background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-  padding: 12px; max-height: 320px; overflow: auto;
+  padding: 12px; max-height: 280px; overflow: auto;
+}
+.sync-table-wrap {
+  max-height: 240px;
+  overflow: hidden;
+  border-radius: 8px;
 }
 @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
 </style>

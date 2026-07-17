@@ -237,9 +237,9 @@
     </div>
 
     <!-- 上级平台编辑对话框 -->
-    <el-dialog v-model="upstreamOpen" :title="upstreamForm.id ? '编辑上级平台' : '新增上级平台'" width="640px" append-to-body>
-      <el-form :model="upstreamForm" label-width="110px" ref="upstreamFormRef">
-        <el-row :gutter="12">
+    <el-dialog v-model="upstreamOpen" :title="upstreamForm.id ? '编辑上级平台' : '新增上级平台'" width="720px" append-to-body>
+      <el-form :model="upstreamForm" label-width="110px" ref="upstreamFormRef" class="dialog-form">
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="平台名称" prop="name" :rules="[{ required: true, message: '请输入平台名称' }]">
               <el-input v-model="upstreamForm.name" placeholder="如：市级物联平台" />
@@ -267,11 +267,19 @@
         </template>
 
         <template v-if="upstreamForm.pushType === 'mq'">
-          <el-form-item label="MQ 地址">
-            <el-input v-model="upstreamCfg.ip" placeholder="RabbitMQ 主机地址" style="width: 58%" />
-            <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" placeholder="5672" style="width: 40%; margin-left: 2%" />
-          </el-form-item>
-          <el-row :gutter="12">
+          <el-row :gutter="16">
+            <el-col :span="14">
+              <el-form-item label="MQ 地址">
+                <el-input v-model="upstreamCfg.ip" placeholder="RabbitMQ 主机地址" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="10">
+              <el-form-item label="端口">
+                <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="用户名">
                 <el-input v-model="upstreamCfg.username" placeholder="用户名" />
@@ -283,7 +291,7 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row :gutter="12">
+          <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="vhost">
                 <el-input v-model="upstreamCfg.vhost" placeholder="默认 /" />
@@ -295,7 +303,7 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row :gutter="12">
+          <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="交换机">
                 <el-input v-model="upstreamCfg.exchange" placeholder="默认 za" />
@@ -310,11 +318,19 @@
         </template>
 
         <template v-if="upstreamForm.pushType === 'redis'">
-          <el-form-item label="Redis 地址">
-            <el-input v-model="upstreamCfg.ip" placeholder="默认 127.0.0.1" style="width: 58%" />
-            <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" placeholder="6379" style="width: 40%; margin-left: 2%" />
-          </el-form-item>
-          <el-row :gutter="12">
+          <el-row :gutter="16">
+            <el-col :span="14">
+              <el-form-item label="Redis 地址">
+                <el-input v-model="upstreamCfg.ip" placeholder="默认 127.0.0.1" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="10">
+              <el-form-item label="端口">
+                <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="密码">
                 <el-input v-model="upstreamCfg.password" type="password" show-password placeholder="密码" />
@@ -687,4 +703,6 @@ loadUpstream()
 .nic-card { margin-bottom: 14px; }
 .mb14 { margin-bottom: 14px; }
 .mt12 { margin-top: 12px; }
+.dialog-form :deep(.el-form-item__content) { min-width: 0; }
+.dialog-form :deep(.el-col .el-form-item) { width: 100%; }
 </style>

@@ -74,6 +74,13 @@ public class ZaOverviewController extends BaseController {
         data.put("trend", messageService.selectHourlyTrend());
 
         // ---------- 插件（平台）运行状态 ----------
+        Map<String, Long> todayMsgByPf = new HashMap<>();
+        for (Map<String, Object> row : messageService.countTodayByPlatform()) {
+            Object pf = row.get("pfCode");
+            if (pf != null) {
+                todayMsgByPf.put(pf.toString(), toLong(row.get("total")));
+            }
+        }
         List<ZaSysPlatform> platforms = platformService.selectZaSysPlatformList(new ZaSysPlatform());
         List<Map<String, Object>> pluginList = new ArrayList<>();
         int runningCount = 0, enabledCount = 0;
@@ -89,6 +96,7 @@ public class ZaOverviewController extends BaseController {
             item.put("alive", Boolean.TRUE.equals(stats.get("alive")));
             item.put("protocol", stats.get("protocol"));
             item.put("msgCount", stats.get("msgCount"));
+            item.put("todayMsgCount", todayMsgByPf.getOrDefault(pf.getCode(), 0L));
             item.put("errCount", stats.get("errCount"));
             item.put("lastStartTime", stats.get("lastStartTime"));
             pluginList.add(item);
@@ -106,8 +114,11 @@ public class ZaOverviewController extends BaseController {
         plugin.put("list", pluginList);
         data.put("plugin", plugin);
 
-        // ---------- 消息累计（按平台） ----------
-        data.put("messageByPlatform", messageService.countByPlatform());
+        // ---------- 消息统计（按来源平台，优先今日） ----------
+        List<Map<String, Object>> todayByPf = messageService.countTodayByPlatform();
+        data.put("messageByPlatform", todayByPf != null && !todayByPf.isEmpty()
+                ? todayByPf
+                : messageService.countByPlatform());
 
         // ---------- 最新告警 ----------
         List<ZaSysMessage> alarms = messageService.selectLatestAlarms(8);

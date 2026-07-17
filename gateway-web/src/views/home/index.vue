@@ -97,74 +97,78 @@
     <!-- 插件状态 + 推送统计/最新告警 -->
     <el-row :gutter="14">
       <el-col :xs="24" :lg="12">
-        <div class="gw-card" style="height: 100%">
+        <div class="gw-card home-side-card">
           <div class="gw-card-head">
             <h2>插件运行状态</h2>
-            <el-button size="small" text type="primary" @click="navTo('platform')">管理插件 →</el-button>
+            <button type="button" class="gw-link-btn" @click="navTo('platform')">管理插件 →</button>
           </div>
           <div class="gw-card-body no-pad">
-            <el-table :data="plugin.list || []" size="small" :show-header="true" max-height="380">
+            <el-table :data="plugin.list || []" size="small" :show-header="true" class="home-table" max-height="380">
               <el-table-column label="插件" prop="name" min-width="130" show-overflow-tooltip />
-              <el-table-column label="协议" width="110" align="center">
+              <el-table-column label="协议" width="120" align="center">
                 <template #default="scope">
-                  <el-tag size="small" type="info" effect="plain">{{ scope.row.protocol || '-' }}</el-tag>
+                  <span class="gw-tag">{{ scope.row.protocol || '—' }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="状态" width="90" align="center">
+              <el-table-column label="状态" width="96" align="center">
                 <template #default="scope">
                   <span class="gw-badge" :class="pluginBadge(scope.row)">{{ pluginLabel(scope.row) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="接入设备" prop="deviceCount" width="80" align="center" />
-              <el-table-column label="累计消息" width="90" align="center">
-                <template #default="scope">{{ fmt(scope.row.msgCount) }}</template>
+              <el-table-column label="接入设备" width="88" align="center">
+                <template #default="scope">{{ fmt(scope.row.deviceCount) }}</template>
               </el-table-column>
-              <el-table-column label="错误" width="70" align="center">
-                <template #default="scope">
-                  <span :style="scope.row.errCount > 0 ? 'color:#dc2626' : 'color:#16a34a'">{{ fmt(scope.row.errCount) }}</span>
-                </template>
+              <el-table-column label="今日消息" width="96" align="center">
+                <template #default="scope">{{ fmt(scope.row.todayMsgCount ?? scope.row.msgCount) }}</template>
               </el-table-column>
             </el-table>
           </div>
         </div>
       </el-col>
       <el-col :xs="24" :lg="12">
-        <div class="gw-card" style="height: 100%">
+        <div class="gw-card home-side-card">
           <div class="gw-card-head">
             <h2>消息推送统计（按来源平台）</h2>
-            <el-button size="small" text type="primary" @click="navTo('message')">消息日志 →</el-button>
+            <button type="button" class="gw-link-btn" @click="navTo('message')">消息日志 →</button>
           </div>
           <div class="gw-card-body no-pad">
-            <el-table :data="messageByPlatform" size="small" max-height="170">
-              <el-table-column label="来源平台" prop="pfCode" min-width="110" />
-              <el-table-column label="累计消息" width="100" align="center">
+            <el-table :data="messageByPlatform" size="small" class="home-table" max-height="200">
+              <el-table-column label="来源平台" min-width="120" show-overflow-tooltip>
+                <template #default="scope">
+                  <span class="pf-name">{{ platformDisplay(scope.row) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="今日消息" width="100" align="center">
                 <template #default="scope">{{ fmt(scope.row.total) }}</template>
               </el-table-column>
-              <el-table-column label="推送成功" width="100" align="center">
+              <el-table-column label="推送成功" width="110" align="center">
                 <template #default="scope">
-                  <span style="color:#16a34a">{{ fmt(scope.row.sentCount) }}</span>
+                  <span class="ok-num">{{ fmt(scope.row.sentCount) }}</span>
+                  <span class="rate-muted" v-if="Number(scope.row.total) > 0">
+                    ({{ pushRate(scope.row) }}%)
+                  </span>
                 </template>
               </el-table-column>
               <el-table-column label="推送失败" width="100" align="center">
                 <template #default="scope">
-                  <span :style="scope.row.failedCount > 0 ? 'color:#dc2626' : ''">{{ fmt(scope.row.failedCount) }}</span>
+                  <span :class="Number(scope.row.failedCount) > 0 ? 'err-num' : 'muted-num'">{{ fmt(scope.row.failedCount) }}</span>
                 </template>
               </el-table-column>
             </el-table>
           </div>
-          <div class="gw-card-head" style="border-top: 1px solid #e2e8f0">
+          <div class="gw-card-head alarm-head">
             <h2>最新告警</h2>
           </div>
-          <div class="gw-card-body">
+          <div class="gw-card-body alarm-body">
             <el-empty v-if="latestAlarms.length === 0" description="暂无告警" :image-size="50" />
             <div v-for="alarm in latestAlarms" :key="alarm.id" class="alarm-row">
-              <span class="gw-mono gw-muted">{{ shortTime(alarm.createTime) }}</span>
-              <el-tag type="danger" size="small">告警</el-tag>
+              <span class="gw-mono gw-muted gw-small">{{ shortTime(alarm.createTime) }}</span>
+              <span class="gw-tag red">告警</span>
               <span class="alarm-text">
                 <span class="gw-mono">{{ alarm.deviceCode || '-' }}</span>
                 <span class="gw-muted"> · {{ alarm.pfCode }}</span>
               </span>
-              <span class="gw-badge gw-small" :class="alarm.sendStatus === 'sent' ? 'ok' : (alarm.sendStatus === 'failed' ? 'err' : 'off')">
+              <span class="gw-badge" :class="alarm.sendStatus === 'sent' ? 'ok' : (alarm.sendStatus === 'failed' ? 'err' : 'off')">
                 {{ alarm.sendStatus === 'sent' ? '已推送' : (alarm.sendStatus === 'failed' ? '推送失败' : '未推送') }}
               </span>
             </div>
@@ -263,6 +267,14 @@ function pluginLabel(row) {
   if (row.status !== '1') return '已停止'
   return row.alive ? '运行中' : '异常'
 }
+function platformDisplay(row) {
+  return row.pfName || row.name || row.pfCode || '—'
+}
+function pushRate(row) {
+  const total = Number(row.total || 0)
+  if (!total) return 100
+  return Math.round((Number(row.sentCount || 0) / total) * 1000) / 10
+}
 
 // ==================== 趋势图 ====================
 function buildHours() {
@@ -360,11 +372,69 @@ async function loadAll() {
   margin: 0 0 12px;
   color: #0f172a;
 }
+.home-side-card { height: 100%; }
+/* 原型 card-head 右侧按钮：边框小按钮 */
+.gw-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.gw-link-btn:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+.gw-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.gw-tag.red {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.home-table :deep(th.el-table__cell) {
+  background: #f8fafc !important;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 13px;
+}
+.home-table :deep(td.el-table__cell) {
+  font-size: 13px;
+  padding: 10px 0;
+}
+.pf-name { color: #0f172a; }
+.ok-num { color: #16a34a; font-weight: 600; }
+.err-num { color: #dc2626; font-weight: 600; }
+.muted-num { color: #64748b; }
+.rate-muted {
+  margin-left: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+.alarm-head {
+  border-top: 1px solid #e2e8f0;
+}
+.alarm-body { padding-top: 8px; }
 .alarm-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 0;
+  padding: 8px 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
 }

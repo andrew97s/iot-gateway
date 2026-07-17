@@ -83,9 +83,9 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="open" :title="form.id ? '修改监测类型' : '新增监测类型'" width="680px" append-to-body>
-      <el-form :model="form" label-width="90px" ref="formRef" :rules="rules">
-        <el-row :gutter="12">
+    <el-dialog v-model="open" :title="form.id ? '修改监测类型' : '新增监测类型'" width="760px" append-to-body>
+      <el-form :model="form" label-width="90px" ref="formRef" :rules="rules" class="type-form">
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="类型编码" prop="code">
               <el-input v-model="form.code" placeholder="如 pressure、signal" :disabled="!!form.id" />
@@ -97,7 +97,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="12">
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="值类型" prop="valueType">
               <el-radio-group v-model="form.valueType">
@@ -114,18 +114,18 @@
         </el-row>
 
         <!-- 枚举值编辑器 -->
-        <el-form-item label="枚举值" v-if="form.valueType === 'enum'">
+        <el-form-item label="枚举值" v-if="form.valueType === 'enum'" class="alias-item">
           <div class="enum-editor">
             <div class="enum-row" v-for="(row, idx) in enumRows" :key="idx">
-              <el-input v-model="row.value" placeholder="值（如 1）" style="width: 140px" />
-              <el-input v-model="row.label" placeholder="含义（如 在线）" style="width: 200px" />
+              <el-input v-model="row.value" placeholder="值（如 1）" class="enum-val" />
+              <el-input v-model="row.label" placeholder="含义（如 在线）" class="enum-label" />
               <el-button link type="danger" icon="Delete" @click="enumRows.splice(idx, 1)" />
             </div>
             <el-button size="small" plain icon="Plus" @click="enumRows.push({ value: '', label: '' })">添加枚举值</el-button>
           </div>
         </el-form-item>
 
-        <el-form-item label="别名映射">
+        <el-form-item label="别名映射" class="alias-item">
           <AliasEditor v-model="form.aliases" />
         </el-form-item>
         <el-form-item label="状态">
@@ -251,11 +251,17 @@ getList()
 
 <style scoped>
 .alias-tag { margin: 2px 4px 2px 0; }
-.enum-editor { width: 100%; }
+.type-form :deep(.el-form-item__content) { min-width: 0; }
+.type-form :deep(.alias-item .el-form-item__content) { display: block; width: 100%; }
+.enum-editor { width: 100%; min-width: 0; }
 .enum-row {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  width: 100%;
+  min-width: 0;
 }
+.enum-val { width: 140px; flex: 0 0 140px; }
+.enum-label { flex: 1 1 auto; min-width: 0; }
 </style>

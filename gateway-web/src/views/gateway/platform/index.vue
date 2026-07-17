@@ -755,7 +755,17 @@ loadList()
   background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
 }
 .cfg-hint { margin: 0 0 14px; color: #64748b; font-size: 13px; line-height: 1.5; }
-.cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+.cfg-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px 20px;
+}
+.cfg-grid :deep(.el-form-item) { margin-bottom: 14px; min-width: 0; }
+.cfg-grid :deep(.el-form-item__content) { min-width: 0; }
+.cfg-grid :deep(.el-input),
+.cfg-grid :deep(.el-select),
+.cfg-grid :deep(.el-input-number),
+.cfg-grid :deep(.el-textarea) { width: 100%; }
 .cfg-grid :deep(.el-form-item.full), .cfg-grid .full { grid-column: 1 / -1; }
 .field-hint { margin-top: 4px; font-size: 12px; color: #94a3b8; }
 .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }

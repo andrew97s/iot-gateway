@@ -420,7 +420,16 @@ init()
   margin: 0 !important; padding: 0 !important; border: none !important; height: auto !important;
   box-shadow: none !important;
 }
-.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+.edit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px 20px;
+}
+.edit-grid :deep(.el-form-item) { margin-bottom: 14px; min-width: 0; }
+.edit-grid :deep(.el-form-item__content) { min-width: 0; }
+.edit-grid :deep(.el-input),
+.edit-grid :deep(.el-select),
+.edit-grid :deep(.el-textarea) { width: 100%; }
 .edit-grid :deep(.full), .edit-grid .full { grid-column: 1 / -1; }
 .field-hint { margin-top: 4px; font-size: 12px; color: #94a3b8; line-height: 1.4; }
 .mt8 { margin-top: 8px; }

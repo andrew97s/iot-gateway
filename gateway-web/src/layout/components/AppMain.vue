@@ -20,12 +20,13 @@ const tagsViewStore = useTagsViewStore()
 
 <style lang="scss" scoped>
 .app-main {
-  /* 50= navbar  50  */
-  min-height: calc(100vh - 50px);
+  /* 铺满视口灰底；固定顶栏用 padding-top 让出空间 */
+  min-height: 100vh;
   width: 100%;
   position: relative;
   overflow: auto;
   background: #f1f5f9;
+  box-sizing: border-box;
 }
 
 .fixed-header + .app-main {
@@ -33,11 +34,6 @@ const tagsViewStore = useTagsViewStore()
 }
 
 .hasTagsView {
-  .app-main {
-    /* 84 = navbar + tags-view = 50 + 34 */
-    min-height: calc(100vh - 84px);
-  }
-
   .fixed-header + .app-main {
     padding-top: 84px;
   }
