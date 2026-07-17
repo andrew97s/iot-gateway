@@ -34,7 +34,8 @@
       </div>
     </div>
 
-    <div class="gw-card plugin-list-card">
+    <!-- 卡片栅格直接铺在灰底上，与原型一致（不加白色容器） -->
+    <div class="plugin-list">
       <div class="gw-plugin-grid" v-loading="loading">
         <el-empty v-if="!loading && instances.length === 0" description="暂无插件实例，请先创建或安装" style="grid-column: 1 / -1" />
         <div
@@ -86,13 +87,14 @@
           </div>
         </div>
       </div>
-      <pagination
-        v-show="instances.length > 0"
-        v-model:page="queryParams.pageNum"
-        v-model:limit="queryParams.pageSize"
-        :total="instances.length"
-        :page-sizes="[10, 20, 30]"
-      />
+      <div class="plugin-pager" v-show="instances.length > 0">
+        <pagination
+          v-model:page="queryParams.pageNum"
+          v-model:limit="queryParams.pageSize"
+          :total="instances.length"
+          :page-sizes="[10, 20, 30]"
+        />
+      </div>
     </div>
 
     <!-- 创建实例：从类型目录选择 -->
@@ -214,8 +216,8 @@
             <div class="gw-card mt16">
               <div class="gw-card-head"><h2>近 24 小时消息量</h2></div>
               <div class="gw-card-body">
-                <div ref="trendChartRef" class="trend-chart" />
-                <el-empty v-if="!drawerStatsLoading && hourlyTrend.length === 0" description="暂无趋势数据" :image-size="50" />
+                <div v-show="hourlyTrend.length > 0" ref="trendChartRef" class="trend-chart" />
+                <div v-if="!drawerStatsLoading && hourlyTrend.length === 0" class="trend-empty gw-muted gw-small">暂无趋势数据</div>
               </div>
             </div>
           </div>
@@ -776,13 +778,26 @@ loadList()
 .mini-stat .value { font-size: 24px; font-weight: 700; color: #0f172a; }
 .mt16 { margin-top: 16px; }
 .trend-chart { width: 100%; height: 180px; }
-.plugin-list-card {
-  :deep(.gw-plugin-grid) {
-    padding: 16px;
-  }
-  :deep(.pagination-container) {
-    border-top: 1px solid #e2e8f0;
-  }
+.trend-empty {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.plugin-pager {
+  margin-top: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  display: flex;
+  justify-content: flex-end;
+}
+.plugin-pager :deep(.pagination-container) {
+  margin: 0 !important;
+  padding: 10px 16px !important;
+  border: none;
+  background: transparent;
 }
 .log-filter { width: 100%; }
 .log-line { word-break: break-all; }

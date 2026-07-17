@@ -88,10 +88,13 @@ function removeRow(idx) {
 .alias-row {
   display: flex;
   align-items: center;
-  gap: 12px;
   margin-bottom: 10px;
   width: 100%;
   min-width: 0;
+}
+/* 用 margin 保证列间距（不依赖 flex gap） */
+.alias-row > * + * {
+  margin-left: 12px;
 }
 .alias-head {
   margin-bottom: 4px;
@@ -128,9 +131,12 @@ function removeRow(idx) {
   .col-pf {
     width: 100%;
     flex: 1 1 100%;
+    margin-left: 0 !important;
+    margin-bottom: 8px;
   }
   .col-alias {
     flex: 1 1 calc(100% - 44px);
+    margin-left: 0 !important;
   }
 }
 </style>

@@ -256,12 +256,12 @@ getList()
 .enum-editor { width: 100%; min-width: 0; }
 .enum-row {
   display: flex;
-  gap: 12px;
   align-items: center;
   margin-bottom: 10px;
   width: 100%;
   min-width: 0;
 }
+.enum-row > * + * { margin-left: 12px; }
 .enum-val { width: 140px; flex: 0 0 140px; }
 .enum-label { flex: 1 1 auto; min-width: 0; }
 </style>
