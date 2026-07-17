@@ -45,7 +45,7 @@ public class ZaNetworkController extends BaseController {
         List<Map<String, Object>> result = new ArrayList<>();
         try {
             for (NetworkInterface nic : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                if (nic.isLoopback() || nic.isVirtual()) {
+                if (nic.isLoopback() || nic.isVirtual() || !nic.isUp()) {
                     continue;
                 }
                 Map<String, Object> item = new LinkedHashMap<>();
