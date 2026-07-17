@@ -1,0 +1,10 @@
+[
+  {"code": "ip", "name": "MQ IP", "type": "string", "required": true,"defaultValue":"127.0.0.1"},
+  {"code": "port", "name": "MQ端口", "type": "int", "required": true,"defaultValue":5672},
+  {"code": "username", "name": "MQ账号", "type": "string", "required": false,"defaultValue":"admin"},
+  {"code": "password", "name": "MQ密码", "type": "password", "required": false,"defaultValue":"Pa33w0rd"},
+  {"code": "vhost", "name": "vhost", "type": "string", "required": false,"defaultValue":"/"},
+  {"code": "exchange", "name": "exchange", "type": "string", "required": false,"defaultValue":"monitor.src.upload"},
+  {"code": "queue", "name": "queue", "type": "string", "defaultValue": "test"},
+  {"code": "key", "name": "key", "type": "string", "defaultValue": ""}
+]

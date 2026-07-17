@@ -217,7 +217,7 @@
               <div class="gw-card-head"><h2>近 24 小时消息量</h2></div>
               <div class="gw-card-body">
                 <div v-show="hourlyTrend.length > 0" ref="trendChartRef" class="trend-chart" />
-                <div v-if="!drawerStatsLoading && hourlyTrend.length === 0" class="trend-empty gw-muted gw-small">暂无趋势数据</div>
+                <el-empty v-if="!drawerStatsLoading && hourlyTrend.length === 0" description="暂无趋势数据" :image-size="50" />
               </div>
             </div>
           </div>

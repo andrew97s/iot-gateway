@@ -158,37 +158,6 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
      * @return
      */
     public boolean isAlive() {
-        /*
-        ZaSysDevice dc = new ZaSysDevice();
-        dc.setOnline(DictValue.DEVICE_ONLINE);
-        dc.setType(DeviceType.UITD);
-        List<ZaSysDevice> list1 = deviceService.selectZaSysDeviceList(dc);
-
-        dc.setType(DeviceType.HRPWLG);
-        List<ZaSysDevice> list2 = deviceService.selectZaSysDeviceList(dc);
-
-        List<ZaSysDevice> list = new ArrayList<>();
-        if (StringUtils.isNotEmpty(list1)) {
-            list.addAll(list1);
-        }
-        if (StringUtils.isNotEmpty(list2)) {
-            list.addAll(list2);
-        }
-
-        for (ZaSysDevice zaSysDevice : list) {
-            Long last = cache.getCacheMapValue(CACHE_MAP, "heart_" + zaSysDevice.getId());
-            //判断是否离线
-            if (last == null || last + OFFLINE_HOURS * 3600 * 1000 < System.currentTimeMillis()) {
-                log.info("网关{}-{}已离线，将推送离线告警，并将设备标识为离线状态", zaSysDevice.getCode(), zaSysDevice.getType());
-                //离线消息
-                pushState(zaSysDevice, AlarmType.JB_OFFLINE.getCode());
-
-                //更新状态
-                zaSysDevice.setOnline(DictValue.DEVICE_OFFLINE);
-                deviceService.updateZaSysDevice(zaSysDevice);
-            }
-        }
-        */
         return running;
     }
 
@@ -595,7 +564,7 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
                 .pfCode(zaSysPlatform.getCode())
                 .wireless(typeCode.equals(DeviceType.HRPWLG) ? "1" : "0")
                 .build();
-        return DeviceUtil.syncDevice(syncDevice , this);
+        return DeviceUtil.syncDevice(syncDevice, this);
     }
 
     /**
@@ -627,7 +596,7 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
                         .pfCode(zaSysPlatform.getCode())
                         .wireless("0")
                         .build();
-                ctlDevice = DeviceUtil.syncDevice(syncDevice , this);
+                ctlDevice = DeviceUtil.syncDevice(syncDevice, this);
             }
             //当前是主机设备
             if (mf.getFacilitiesTypeCode() == 1) {
@@ -655,7 +624,7 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
                     .pfCode(zaSysPlatform.getCode())
                     .wireless(mf.isWireless() ? "1" : "0")
                     .build();
-            componentDevice = DeviceUtil.syncDevice(syncDevice , this);
+            componentDevice = DeviceUtil.syncDevice(syncDevice, this);
         }
 
         return componentDevice;

@@ -110,6 +110,7 @@ function removeRow(idx) {
 .col-alias {
   flex: 1 1 auto;
   min-width: 0;
+  padding-left: 3%;
 }
 .col-op {
   width: 32px;

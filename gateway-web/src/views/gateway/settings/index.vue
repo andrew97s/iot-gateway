@@ -268,12 +268,12 @@
 
         <template v-if="upstreamForm.pushType === 'mq'">
           <el-row :gutter="16">
-            <el-col :span="14">
+            <el-col :span="12">
               <el-form-item label="MQ 地址">
                 <el-input v-model="upstreamCfg.ip" placeholder="RabbitMQ 主机地址" />
               </el-form-item>
             </el-col>
-            <el-col :span="10">
+            <el-col :span="12">
               <el-form-item label="端口">
                 <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
               </el-form-item>
@@ -319,12 +319,12 @@
 
         <template v-if="upstreamForm.pushType === 'redis'">
           <el-row :gutter="16">
-            <el-col :span="14">
+            <el-col :span="12">
               <el-form-item label="Redis 地址">
                 <el-input v-model="upstreamCfg.ip" placeholder="默认 127.0.0.1" />
               </el-form-item>
             </el-col>
-            <el-col :span="10">
+            <el-col :span="12">
               <el-form-item label="端口">
                 <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
               </el-form-item>
