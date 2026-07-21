@@ -2,7 +2,7 @@ package com.zhian.gateway.third.others.cr;
 
 import cn.hutool.core.net.NetUtil;
 import cn.hutool.core.util.StrUtil;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.BasePlatformHandler;
@@ -55,13 +55,13 @@ public class CrHandler extends BasePlatformHandler<Object> {
     }
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         // 读取卡片ID
         if (ControlVo.CMD_QRY.equals(controlVo.getCommand())) {
             SerialPortUtil.powerOnNoDelay();
             String code = connector.readCardCode();
             return StrUtil.isNotBlank(code) ?
-                    AjaxResult.success("OK",code) : AjaxResult.error("识别为空");
+                    R.success("OK",code) : R.error("识别为空");
         }
         // 电源相关操作
         else if (ControlVo.CMD_POWER.equals(controlVo.getCommand())) {
@@ -70,7 +70,7 @@ public class CrHandler extends BasePlatformHandler<Object> {
                 FmConnector.closeStream();
                 log.info("电源关闭指令执行成功!");
             }
-            return AjaxResult.success();
+            return R.success();
         } else {
             throw new UnsupportedOperationException("操作失败,反控指令: " + controlVo.getCommand() + " 不支持!");
         }

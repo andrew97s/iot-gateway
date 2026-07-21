@@ -1,7 +1,7 @@
 package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.system.domain.SysConfig;
 import com.zhian.gateway.system.service.ISysConfigService;
@@ -41,7 +41,7 @@ public class ZaNetworkController extends BaseController {
 
     @ApiOperation("枚举本机网卡")
     @GetMapping("/interfaces")
-    public AjaxResult interfaces() {
+    public R interfaces() {
         List<Map<String, Object>> result = new ArrayList<>();
         try {
             for (NetworkInterface nic : Collections.list(NetworkInterface.getNetworkInterfaces())) {
@@ -77,7 +77,7 @@ public class ZaNetworkController extends BaseController {
 
     @ApiOperation("查询网络配置意图")
     @GetMapping("/config")
-    public AjaxResult getConfig() {
+    public R getConfig() {
         String value = configService.selectConfigByKey(CONFIG_KEY);
         return success(StringUtils.isEmpty(value) ? "{}" : value);
     }
@@ -85,7 +85,7 @@ public class ZaNetworkController extends BaseController {
     @ApiOperation("保存网络配置意图")
     @PreAuthorize("@ss.hasPermi('system:config:edit')")
     @PutMapping("/config")
-    public AjaxResult saveConfig(@RequestBody String configJson) {
+    public R saveConfig(@RequestBody String configJson) {
         SysConfig query = new SysConfig();
         query.setConfigKey(CONFIG_KEY);
         List<SysConfig> exists = configService.selectConfigList(query);

@@ -1,7 +1,7 @@
 package com.zhian.gateway.web.controller.common;
 
 import cn.hutool.core.io.IoUtil;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.file.FileUtils;
 import com.zhian.gateway.framework.license.CustomLicenseService;
@@ -21,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 
-import static com.zhian.gateway.common.core.domain.AjaxResult.success;
+import static com.zhian.gateway.common.core.domain.R.success;
 
 /**
  * 证书相关controller
@@ -38,7 +38,7 @@ public class LicenseController {
 
     @RequestMapping("/getInfo")
     @ApiOperation("获取证书信息")
-    public R<Object> getLicenseInfo() {
+    public R getLicenseInfo() {
         try {
             LicenseManager licenseManager = LicenseManagerHolder.getInstance(null);
             LicenseContent licenseContent = licenseManager.verify();
@@ -83,7 +83,7 @@ public class LicenseController {
 
     @PostMapping("/importLicense")
     @ApiOperation("导入授权证书")
-    public AjaxResult importData(@RequestParam MultipartFile file) throws Exception {
+    public R importData(@RequestParam MultipartFile file) throws Exception {
         // 重新安装证书
         customLicenseService.reInstall(file);
         return success("导入成功");

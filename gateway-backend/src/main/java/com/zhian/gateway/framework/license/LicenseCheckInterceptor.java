@@ -2,7 +2,7 @@ package com.zhian.gateway.framework.license;
 
 import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.HttpStatus;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -33,8 +33,8 @@ public class LicenseCheckInterceptor implements HandlerInterceptor {
         }else{
             response.setCharacterEncoding("utf-8");
             Map<String, String> result = new HashMap<>(2);
-            result.put(AjaxResult.CODE_TAG, String.valueOf(HttpStatus.ERROR));
-            result.put(AjaxResult.MSG_TAG, "您的授权无效，请核查服务器是否取得授权或重新申请证书！");
+            result.put(R.CODE_TAG, String.valueOf(HttpStatus.ERROR));
+            result.put(R.MSG_TAG, "您的授权无效，请核查服务器是否取得授权或重新申请证书！");
 
             response.getWriter().write(JSON.toJSONString(result));
 

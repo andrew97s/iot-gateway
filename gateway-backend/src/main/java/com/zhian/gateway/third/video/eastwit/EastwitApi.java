@@ -1,6 +1,6 @@
 package com.zhian.gateway.third.video.eastwit;
 
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.framework.manager.AsyncManager;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ public class EastwitApi {
 
     @ApiOperation("接收视频网关摄像头信息")
     @PostMapping("/receive")
-    public AjaxResult receive(@RequestBody String msg) {
+    public R receive(@RequestBody String msg) {
         log.info("接收到东智视频网关摄像头信息, msg: {}", msg);
         // 处理接收事件消息后的业务流程
         AsyncManager.me().execute(new TimerTask() {
@@ -30,6 +30,6 @@ public class EastwitApi {
                 ewVideoGatewayHandler.processMsg(msg);
             }
         });
-        return AjaxResult.success();
+        return R.success();
     }
 }

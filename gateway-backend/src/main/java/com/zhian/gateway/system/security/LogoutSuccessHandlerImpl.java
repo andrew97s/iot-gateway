@@ -2,7 +2,7 @@ package com.zhian.gateway.system.security;
 
 import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.domain.model.LoginUser;
 import com.zhian.gateway.common.utils.ServletUtils;
 import com.zhian.gateway.common.utils.StringUtils;
@@ -48,6 +48,6 @@ public class LogoutSuccessHandlerImpl implements LogoutSuccessHandler
             // 记录用户退出日志
             AsyncManager.me().execute(AsyncFactory.recordLogininfor(userName, Constants.LOGOUT, "退出成功"));
         }
-        ServletUtils.renderString(response, JSON.toJSONString(AjaxResult.success("退出成功")));
+        ServletUtils.renderString(response, JSON.toJSONString(R.success("退出成功")));
     }
 }

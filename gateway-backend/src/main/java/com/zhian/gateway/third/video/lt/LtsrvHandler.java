@@ -2,7 +2,7 @@ package com.zhian.gateway.third.video.lt;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
@@ -152,26 +152,26 @@ public class LtsrvHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         ZaSysDevice camera = controlVo.getDevice();
         if (camera == null) {
-            return AjaxResult.error("设备信息不存在");
+            return R.error("设备信息不存在");
         }
 
         ZaSysDevice netDevice = deviceService.selectZaSysDeviceByCode(camera.getNet(), null);
         if (netDevice == null) {
-            return AjaxResult.error("未找到视频网关");
+            return R.error("未找到视频网关");
         }
 
         JSONObject rs = JSONObject.parseObject(netDevice.getRemark());
         //流地址自动拼接
         if (ControlVo.CMD_STREAM.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.success("wss://" + rs.getString("ip") + "/wstream/" + camera.getCode());
+            return R.success("wss://" + rs.getString("ip") + "/wstream/" + camera.getCode());
         }
 
         // 只支持截图和PTZ
         if (!ControlVo.CMD_SNAP.equals(controlVo.getCommand()) && !ControlVo.CMD_PTZ.equals(controlVo.getCommand())) {
-            return AjaxResult.error("不支持的反控操作");
+            return R.error("不支持的反控操作");
         }
 
         String api = "http://" + rs.getString("ip") + ":" + rs.getString("port");
@@ -183,25 +183,25 @@ public class LtsrvHandler extends BasePlatformHandler {
                 String json = DigestRequest.post(api + "/snap/" + camera.getCode(), rs.getString("username"), rs.getString("password"), "{}", token);
                 if (StringUtils.isEmpty(json)) {
                     log.debug("视频网关拍照失败: {}", api);
-                    return AjaxResult.error("视频网关拍照失败");
+                    return R.error("视频网关拍照失败");
                 }
                 JSONObject ret = JSONObject.parseObject(json);
                 if (!ret.containsKey("uri")) {
                     log.error("错误的视频网关返回信息: {}", ret.toJSONString());
-                    return AjaxResult.error("视频网关拍照失败");
+                    return R.error("视频网关拍照失败");
                 }
 
-                return AjaxResult.success(ret.getString("uri"));
+                return R.success(ret.getString("uri"));
             } else if (ControlVo.CMD_PTZ.equals(controlVo.getCommand())) {
                 //云台控制
                 String json = DigestRequest.post(api + "/SysDeviceManage/ptz", rs.getString("username"), rs.getString("password"), "DevAcct=" + camera.getCode() + "&action=" + controlVo.getValue(), token);
                 log.debug("视频网关 {}/SysDeviceManage/ptz, response: {}", api, json);
             }
-            return AjaxResult.success();
+            return R.success();
         } catch (Exception e) {
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "视频网关反控失败", e.getMessage(), api);
-            return AjaxResult.error("视频网关调用失败");
+            return R.error("视频网关调用失败");
         }
     }
 

@@ -1,7 +1,7 @@
 package com.zhian.gateway.third.cascade;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.consts.CascadeConst;
@@ -45,11 +45,11 @@ public class CascadeServerHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         ZaSysDevice zaSysDevice = deviceService.selectZaSysDeviceById(controlVo.getDeviceId());
         ZaSysCascade zaSysCascade = zaSysCascadeService.selectZaSysCascadeById(zaSysDevice.getCascadeId());
         CascadeServerSocket.sendTo(zaSysCascade.getCode(), JSONObject.toJSONString(controlVo));
-        return AjaxResult.success();
+        return R.success();
     }
 
     /**

@@ -2,7 +2,7 @@ package com.zhian.gateway.framework.interceptor;
 
 import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.annotation.RepeatSubmit;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.ServletUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -32,7 +32,7 @@ public abstract class RepeatSubmitInterceptor implements HandlerInterceptor
             {
                 if (this.isRepeatSubmit(request, annotation))
                 {
-                    AjaxResult ajaxResult = AjaxResult.error(annotation.message());
+                    R ajaxResult = R.error(annotation.message());
                     ServletUtils.renderString(response, JSON.toJSONString(ajaxResult));
                     return false;
                 }

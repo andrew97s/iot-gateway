@@ -2,7 +2,7 @@ package com.zhian.gateway.plugin;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.sys.domain.ZaPlatformLog;
@@ -43,21 +43,21 @@ public class ZaPluginController extends BaseController {
     @ApiOperation("插件运行摘要")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping("/summary")
-    public AjaxResult summary() {
+    public R summary() {
         return success(pluginManager.summary());
     }
 
     @ApiOperation("插件类型目录")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping("/types")
-    public AjaxResult types() {
+    public R types() {
         return success(pluginManager.listTypes());
     }
 
     @ApiOperation("插件类型详情")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping("/types/{pluginId}")
-    public AjaxResult typeDetail(@PathVariable String pluginId) {
+    public R typeDetail(@PathVariable String pluginId) {
         return success(pluginManager.getType(pluginId));
     }
 
@@ -65,21 +65,21 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:add')")
     @Log(title = "安装插件包", businessType = BusinessType.INSERT)
     @PostMapping("/packages")
-    public AjaxResult installPackage(@RequestParam("file") MultipartFile file) {
+    public R installPackage(@RequestParam("file") MultipartFile file) {
         return success(packageService.installPackage(file));
     }
 
     @ApiOperation("插件实例列表")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping("/instances")
-    public AjaxResult instances(String keyword, String state, String protocol) {
+    public R instances(String keyword, String state, String protocol) {
         return success(pluginManager.listInstances(keyword, state, protocol));
     }
 
     @ApiOperation("插件实例详情")
     @PreAuthorize("@ss.hasPermi('sys:platform:query')")
     @GetMapping("/instances/{instanceId}")
-    public AjaxResult instanceDetail(@PathVariable String instanceId) {
+    public R instanceDetail(@PathVariable String instanceId) {
         return success(pluginManager.getInstance(instanceId));
     }
 
@@ -87,7 +87,7 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:add')")
     @Log(title = "安装插件实例", businessType = BusinessType.INSERT)
     @PostMapping("/instances")
-    public AjaxResult createInstance(@RequestBody Map<String, Object> body) {
+    public R createInstance(@RequestBody Map<String, Object> body) {
         String pluginId = str(body.get("pluginId"));
         String instanceId = str(body.get("instanceId"));
         String name = str(body.get("name"));
@@ -101,7 +101,7 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:edit')")
     @Log(title = "插件配置", businessType = BusinessType.UPDATE)
     @PutMapping("/instances/{instanceId}/config")
-    public AjaxResult updateConfig(@PathVariable String instanceId, @RequestBody Map<String, Object> body) {
+    public R updateConfig(@PathVariable String instanceId, @RequestBody Map<String, Object> body) {
         return success(pluginManager.updateConfig(instanceId, body));
     }
 
@@ -109,7 +109,7 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:edit')")
     @Log(title = "启动插件", businessType = BusinessType.UPDATE)
     @PostMapping("/instances/{instanceId}/start")
-    public AjaxResult start(@PathVariable String instanceId) {
+    public R start(@PathVariable String instanceId) {
         return success(pluginManager.start(instanceId));
     }
 
@@ -117,7 +117,7 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:edit')")
     @Log(title = "停止插件", businessType = BusinessType.UPDATE)
     @PostMapping("/instances/{instanceId}/stop")
-    public AjaxResult stop(@PathVariable String instanceId) {
+    public R stop(@PathVariable String instanceId) {
         return success(pluginManager.stop(instanceId));
     }
 
@@ -125,7 +125,7 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:edit')")
     @Log(title = "重启插件", businessType = BusinessType.UPDATE)
     @PostMapping("/instances/{instanceId}/restart")
-    public AjaxResult restart(@PathVariable String instanceId) {
+    public R restart(@PathVariable String instanceId) {
         return success(pluginManager.restart(instanceId));
     }
 
@@ -133,7 +133,7 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:remove')")
     @Log(title = "卸载插件", businessType = BusinessType.DELETE)
     @DeleteMapping("/instances/{instanceId}")
-    public AjaxResult uninstall(@PathVariable String instanceId) {
+    public R uninstall(@PathVariable String instanceId) {
         pluginManager.uninstall(instanceId);
         return success();
     }
@@ -141,14 +141,14 @@ public class ZaPluginController extends BaseController {
     @ApiOperation("测试连接")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @PostMapping("/instances/{instanceId}/test")
-    public AjaxResult test(@PathVariable String instanceId) {
+    public R test(@PathVariable String instanceId) {
         return success(pluginManager.testConnection(instanceId));
     }
 
     @ApiOperation("实例消息统计")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping("/instances/{instanceId}/stats")
-    public AjaxResult stats(@PathVariable String instanceId) {
+    public R stats(@PathVariable String instanceId) {
         pluginManager.getInstance(instanceId); // 校验存在
         Map<String, Object> data = new LinkedHashMap<>();
         long total = 0L, failed = 0L, todayTotal = 0L, todayFailed = 0L;
@@ -201,7 +201,7 @@ public class ZaPluginController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:platform:edit')")
     @Log(title = "清空插件日志", businessType = BusinessType.DELETE)
     @DeleteMapping("/instances/{instanceId}/logs")
-    public AjaxResult clearLogs(@PathVariable String instanceId) {
+    public R clearLogs(@PathVariable String instanceId) {
         ZaSysPlatform p = platformService.selectZaSysPlatformByCode(instanceId);
         if (p == null) {
             return error("实例不存在");
@@ -212,7 +212,7 @@ public class ZaPluginController extends BaseController {
     @ApiOperation("刷新插件目录")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @PostMapping("/catalog/refresh")
-    public AjaxResult refreshCatalog() {
+    public R refreshCatalog() {
         catalog.refresh();
         return success(catalog.listTypes());
     }

@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -37,7 +37,7 @@ public class ZaSysEventController extends BaseController
      */
     @ApiOperation("不分页查询告警事件列表")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysEvent zaSysEvent)
+    public R select(ZaSysEvent zaSysEvent)
     {
         List<ZaSysEvent> list = zaSysEventService.selectZaSysEventList(zaSysEvent);
         return success(list);
@@ -77,7 +77,7 @@ public class ZaSysEventController extends BaseController
     @ApiImplicitParam(name = "id", value = "告警事件主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:event:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         return success(zaSysEventService.selectZaSysEventById(id));
     }
@@ -89,7 +89,7 @@ public class ZaSysEventController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:event:add')")
     @Log(title = "告警事件", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysEvent zaSysEvent)
+    public R add(@RequestBody ZaSysEvent zaSysEvent)
     {
         zaSysEvent.setCreateBy(getUsername());
         return toAjax(zaSysEventService.insertZaSysEvent(zaSysEvent));
@@ -102,7 +102,7 @@ public class ZaSysEventController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:event:edit')")
     @Log(title = "告警事件", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysEvent zaSysEvent)
+    public R edit(@RequestBody ZaSysEvent zaSysEvent)
     {
         zaSysEvent.setUpdateBy(getUsername());
         return toAjax(zaSysEventService.updateZaSysEvent(zaSysEvent));
@@ -116,7 +116,7 @@ public class ZaSysEventController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:event:remove')")
     @Log(title = "告警事件", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(zaSysEventService.deleteZaSysEventByIds(ids));
     }
@@ -125,7 +125,7 @@ public class ZaSysEventController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:remove')")
     @Log(title = "清除数据", businessType = BusinessType.DELETE)
     @DeleteMapping("/purge")
-    public AjaxResult purge()
+    public R purge()
     {
         zaSysEventService.purge();
         return toAjax(true);

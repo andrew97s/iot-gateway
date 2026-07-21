@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -44,7 +44,7 @@ public class ZaSysMessageController extends BaseController
      */
     @ApiOperation("不分页查询接入消息列表")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysMessage zaSysMessage)
+    public R select(ZaSysMessage zaSysMessage)
     {
         List<ZaSysMessage> list = zaSysMessageService.selectZaSysMessageList(zaSysMessage);
         enrichMessages(list);
@@ -86,7 +86,7 @@ public class ZaSysMessageController extends BaseController
     @ApiImplicitParam(name = "id", value = "接入消息主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:message:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         ZaSysMessage msg = zaSysMessageService.selectZaSysMessageById(id);
         if (msg != null) {
@@ -102,7 +102,7 @@ public class ZaSysMessageController extends BaseController
     @ApiOperation("消息推送记录")
     @PreAuthorize("@ss.hasPermi('sys:message:list')")
     @GetMapping("/{messageId}/push-logs")
-    public AjaxResult pushLogs(@PathVariable Long messageId)
+    public R pushLogs(@PathVariable Long messageId)
     {
         return success(zaSysMessageService.selectPushLogsByMessageId(messageId));
     }
@@ -114,7 +114,7 @@ public class ZaSysMessageController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:add')")
     @Log(title = "接入消息", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysMessage zaSysMessage)
+    public R add(@RequestBody ZaSysMessage zaSysMessage)
     {
         zaSysMessage.setCreateBy(getUsername());
         return toAjax(zaSysMessageService.insertZaSysMessage(zaSysMessage));
@@ -127,7 +127,7 @@ public class ZaSysMessageController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:edit')")
     @Log(title = "接入消息", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysMessage zaSysMessage)
+    public R edit(@RequestBody ZaSysMessage zaSysMessage)
     {
         zaSysMessage.setUpdateBy(getUsername());
         return toAjax(zaSysMessageService.updateZaSysMessage(zaSysMessage));
@@ -141,7 +141,7 @@ public class ZaSysMessageController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:remove')")
     @Log(title = "接入消息", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(zaSysMessageService.deleteZaSysMessageByIds(ids));
     }
@@ -150,7 +150,7 @@ public class ZaSysMessageController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:remove')")
     @Log(title = "清除数据", businessType = BusinessType.DELETE)
     @DeleteMapping("/purge")
-    public AjaxResult purge()
+    public R purge()
     {
         zaSysMessageService.purge();
         return toAjax(true);
@@ -162,7 +162,7 @@ public class ZaSysMessageController extends BaseController
     @ApiOperation("重试发送消息")
     @PreAuthorize("@ss.hasPermi('sys:message:edit')")
     @PostMapping("/retry/{id}")
-    public AjaxResult retry(@PathVariable("id") Long id)
+    public R retry(@PathVariable("id") Long id)
     {
         boolean ok = zaSysMessageService.retryMessage(id);
         return ok ? success("推送成功") : error("推送失败，请检查网关推送配置");
@@ -174,7 +174,7 @@ public class ZaSysMessageController extends BaseController
     @ApiOperation("按平台统计消息数量")
     @PreAuthorize("@ss.hasPermi('sys:message:list')")
     @GetMapping("/platform-stats")
-    public AjaxResult platformStats()
+    public R platformStats()
     {
         return success(zaSysMessageService.countByPlatform());
     }
@@ -182,7 +182,7 @@ public class ZaSysMessageController extends BaseController
     @ApiOperation("今日消息同步摘要")
     @PreAuthorize("@ss.hasPermi('sys:message:list')")
     @GetMapping("/today-stats")
-    public AjaxResult todayStats()
+    public R todayStats()
     {
         Map<String, Object> stats = zaSysMessageService.selectTodaySendStats();
         if (stats == null) {
@@ -201,7 +201,7 @@ public class ZaSysMessageController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:edit')")
     @Log(title = "批量重推消息", businessType = BusinessType.UPDATE)
     @PostMapping("/retry/batch")
-    public AjaxResult retryBatch(@RequestBody Map<String, Object> body)
+    public R retryBatch(@RequestBody Map<String, Object> body)
     {
         Object idsObj = body != null ? body.get("ids") : null;
         int ok = 0, fail = 0;

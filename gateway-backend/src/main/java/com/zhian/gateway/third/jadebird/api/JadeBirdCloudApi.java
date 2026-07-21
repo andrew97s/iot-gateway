@@ -1,7 +1,7 @@
 package com.zhian.gateway.third.jadebird.api;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.service.IZaSysErrorService;
@@ -42,7 +42,7 @@ public class JadeBirdCloudApi
      * @return
      */
     @PostMapping("push")
-    public AjaxResult receiveMsg(@RequestHeader(value = "timestamp", required = false) String timestamp, @RequestHeader(value = "signature", required = false)String signature, @RequestBody String msg) {
+    public R receiveMsg(@RequestHeader(value = "timestamp", required = false) String timestamp, @RequestHeader(value = "signature", required = false)String signature, @RequestBody String msg) {
         log.info("~~~~~~接收到[青鸟云]告警信息 msg: {}", msg);
         // 校验签名
 //        if (!SignatureUtils.checkSignature(msg, timestamp, ticket, signature)) {
@@ -71,6 +71,6 @@ public class JadeBirdCloudApi
         }else if(!monitorMsg.getEvent().equalsIgnoreCase(MonitorMsg.Event.HEARTBEAT.name()) && log == 0){
             zaSysErrorService.log(ZaSysError.TYPE_MQ, jadebirdCloudHandler.getPlatform(), "消息被忽略", msg);
         }
-        return AjaxResult.success();
+        return R.success();
     }
 }

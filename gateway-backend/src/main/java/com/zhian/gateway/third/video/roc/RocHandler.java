@@ -4,7 +4,7 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
@@ -141,17 +141,17 @@ public class RocHandler extends BasePlatformHandler {
     }
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         //流地址自动拼接
         if (ControlVo.CMD_STREAM.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.success(TARGET_WS_URL);
+            return R.success(TARGET_WS_URL);
         } else if (ControlVo.CMD_SET.equalsIgnoreCase(controlVo.getCommand())) {
             //配置，主要是人脸
             RocFaceEvent faceEvent = JSONObject.parseObject(controlVo.getValue(), RocFaceEvent.class);
             addFace(faceEvent);
-            return AjaxResult.success();
+            return R.success();
         } else {
-            return AjaxResult.error("不支持的操作");
+            return R.error("不支持的操作");
         }
     }
 

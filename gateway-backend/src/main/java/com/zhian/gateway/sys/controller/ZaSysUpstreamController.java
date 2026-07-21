@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.StringUtils;
@@ -56,20 +56,20 @@ public class ZaSysUpstreamController extends BaseController {
 
     @ApiOperation("不分页查询上级平台")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysUpstream query) {
+    public R select(ZaSysUpstream query) {
         return success(mapper.selectList(buildQuery(query)));
     }
 
     @ApiOperation("上级平台运行时状态")
     @GetMapping("/status")
-    public AjaxResult runtimeStatus() {
+    public R runtimeStatus() {
         return success(messageSyncHandler.upstreamRuntimeStatus());
     }
 
     @ApiOperation("上级平台详情")
     @PreAuthorize("@ss.hasPermi('sys:upstream:query')")
     @GetMapping("/{id}")
-    public AjaxResult getInfo(@PathVariable Long id) {
+    public R getInfo(@PathVariable Long id) {
         return success(mapper.selectById(id));
     }
 
@@ -77,7 +77,7 @@ public class ZaSysUpstreamController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:upstream:add')")
     @Log(title = "上级平台", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysUpstream entity) {
+    public R add(@RequestBody ZaSysUpstream entity) {
         if (checkCodeExists(entity.getCode(), null)) {
             return error("平台代码已存在：" + entity.getCode());
         }
@@ -94,7 +94,7 @@ public class ZaSysUpstreamController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:upstream:edit')")
     @Log(title = "上级平台", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysUpstream entity) {
+    public R edit(@RequestBody ZaSysUpstream entity) {
         if (checkCodeExists(entity.getCode(), entity.getId())) {
             return error("平台代码已存在：" + entity.getCode());
         }
@@ -108,7 +108,7 @@ public class ZaSysUpstreamController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:upstream:remove')")
     @Log(title = "上级平台", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids) {
+    public R remove(@PathVariable Long[] ids) {
         int rows = mapper.deleteBatchIds(Arrays.asList(ids));
         messageSyncHandler.reloadUpstreams();
         return toAjax(rows);
@@ -117,7 +117,7 @@ public class ZaSysUpstreamController extends BaseController {
     @ApiOperation("测试上级平台连通性")
     @PreAuthorize("@ss.hasPermi('sys:upstream:edit')")
     @PostMapping("/test")
-    public AjaxResult test(@RequestBody ZaSysUpstream entity) {
+    public R test(@RequestBody ZaSysUpstream entity) {
         MessageSyncHandler.UpstreamPushResult result = messageSyncHandler.testUpstream(entity);
         return result.isSuccess()
                 ? success("连接成功：" + result.getTarget())

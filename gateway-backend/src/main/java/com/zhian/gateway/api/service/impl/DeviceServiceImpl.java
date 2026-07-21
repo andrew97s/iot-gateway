@@ -4,7 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.zhian.gateway.api.domain.VideoRequest;
 import com.zhian.gateway.api.service.IDeviceService;
 import com.zhian.gateway.common.core.cache.Cache;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
@@ -42,7 +42,7 @@ public class DeviceServiceImpl implements IDeviceService {
     private Cache cache;
 
     @Override
-    public AjaxResult playUrl(VideoRequest videoRequest) {
+    public R playUrl(VideoRequest videoRequest) {
         ControlVo controlVo = new ControlVo();
         controlVo.setEventId(SnowflakeIdWorker.getInstance().nextStringId());
         controlVo.setDeviceId(videoRequest.getDeviceId());
@@ -58,7 +58,7 @@ public class DeviceServiceImpl implements IDeviceService {
      * @param controlVo
      * @return
      */
-    public AjaxResult control(ControlVo controlVo){
+    public R control(ControlVo controlVo){
         ZaSysDevice zaSysDevice = null;
         if(controlVo.getDeviceId() != null){
             zaSysDevice = deviceService.selectZaSysDeviceById(controlVo.getDeviceId());
@@ -77,7 +77,7 @@ public class DeviceServiceImpl implements IDeviceService {
             //非级联设备
             ZaSysPlatform zaSysPlatform = zaSysPlatformService.selectZaSysPlatformByCode(zaSysDevice.getPfCode());
             if(zaSysPlatform == null){
-                return AjaxResult.error("未找到网关信息");
+                return R.error("未找到网关信息");
             }
             return ThirdApplicationRunner.getHandler(zaSysPlatform.getCode()).control(controlVo);
         }else{
@@ -89,16 +89,16 @@ public class DeviceServiceImpl implements IDeviceService {
             try {
                 for (int i = 0; i < 10; i++) {
                     Thread.sleep(300);
-                    AjaxResult result = cache.getCacheMapValue(CascadeConst.CACHE_MAP_KEY, controlVo.getEventId());
+                    R result = cache.getCacheMapValue(CascadeConst.CACHE_MAP_KEY, controlVo.getEventId());
                     if(result != null){
                         return result;
                     }
                 }
             }catch (Exception e){
                 e.printStackTrace();
-                return AjaxResult.error("接口无响应");
+                return R.error("接口无响应");
             }
-            return AjaxResult.error("接口超时");
+            return R.error("接口超时");
         }
     }
 
@@ -109,7 +109,7 @@ public class DeviceServiceImpl implements IDeviceService {
      * @return
      */
     @Override
-    public AjaxResult push(ZaSysDevice zaSysDevice){
+    public R push(ZaSysDevice zaSysDevice){
         new Thread(()->{
             int page = 1;
             int limit = 3;
@@ -154,7 +154,7 @@ public class DeviceServiceImpl implements IDeviceService {
                 e.printStackTrace();
             }
         }).start();
-        return AjaxResult.success("设备信息开始推送中");
+        return R.success("设备信息开始推送中");
     }
 
 }

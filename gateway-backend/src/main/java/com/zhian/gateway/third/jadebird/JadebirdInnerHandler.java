@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.*;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.http.HttpUtils;
@@ -178,15 +178,15 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         log.info("control : {}", controlVo);
         if (!running) {
             log.error("青鸟网关插件暂时停止");
-            return AjaxResult.error("插件暂时停止");
+            return R.error("插件暂时停止");
         }
         ZaSysDevice device = controlVo.getDevice();
         if (StringUtils.isEmpty(device.getNet())) {
-            return AjaxResult.error("找不到网关");
+            return R.error("找不到网关");
         }
 
         JbResponse res = null;
@@ -208,9 +208,9 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
         }
 
         if (res != null && res.isSuccess()) {
-            return AjaxResult.success();
+            return R.success();
         } else {
-            return AjaxResult.error("发送指令失败");
+            return R.error("发送指令失败");
         }
     }
 

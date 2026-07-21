@@ -4,7 +4,7 @@ import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.sign.Md5Utils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -233,24 +233,24 @@ public class LiveQingHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         ZaSysDevice camera = controlVo.getDevice();
         if (camera == null) {
-            return AjaxResult.error("设备信息不存在");
+            return R.error("设备信息不存在");
         }
 
         ZaSysDevice netDevice = deviceService.selectZaSysDeviceByCode(camera.getNet(), null);
         if (netDevice == null) {
-            return AjaxResult.error("未找到视频网关");
+            return R.error("未找到视频网关");
         }
 
         JSONObject ns = JSONObject.parseObject(netDevice.getRemark());
         JSONObject cs = JSONObject.parseObject(camera.getRemark());
         //流地址自动拼接
         if (ControlVo.CMD_STREAM.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.success("http://" + ns.getString("ip") + ":10800/flv/hls/stream_" + cs.getString("Channel") + ".flv");
+            return R.success("http://" + ns.getString("ip") + ":10800/flv/hls/stream_" + cs.getString("Channel") + ".flv");
         } else if (ControlVo.CMD_PLAY_BACK.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.error("暂不支持回放");
+            return R.error("暂不支持回放");
         }
 
         //截图和云台控制
@@ -264,7 +264,7 @@ public class LiveQingHandler extends BasePlatformHandler {
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("token", token);
                 byte[] result = restTemplate.exchange(api, HttpMethod.GET, new HttpEntity(headers), byte[].class).getBody();
-                return AjaxResult.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(result));
+                return R.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(result));
             } else if (ControlVo.CMD_PTZ.equalsIgnoreCase(controlVo.getCommand())) {
                 String token = getToken(netDevice);
                 api += "/api/v1/ptzcontrol?channel=" + cs.getString("Channel") + "&command=" + controlVo.getValue() + "&speed=5&_=" + System.currentTimeMillis();
@@ -273,14 +273,14 @@ public class LiveQingHandler extends BasePlatformHandler {
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("token", token);
                 LiveQingResult result = restTemplate.exchange(api, HttpMethod.GET, new HttpEntity(headers), LiveQingResult.class).getBody();
-                return AjaxResult.success();
+                return R.success();
             } else {
-                return AjaxResult.error("不支持操作");
+                return R.error("不支持操作");
             }
         } catch (Exception e) {
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "视频网关反控失败", e.getMessage(), api);
-            return AjaxResult.error("视频网关调用失败");
+            return R.error("视频网关调用失败");
         }
     }
 

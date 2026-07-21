@@ -1,6 +1,6 @@
 package com.zhian.gateway.third;
 
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.vo.ControlVo;
 
@@ -53,7 +53,7 @@ public interface ThirdHandler {
      * @param controlVo the control vo
      * @return ajax result
      */
-    AjaxResult control(ControlVo controlVo);
+    R control(ControlVo controlVo);
 
     /**
      * 处理接收到的消息

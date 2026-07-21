@@ -1,7 +1,7 @@
 package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysMessage;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
@@ -43,7 +43,7 @@ public class ZaOverviewController extends BaseController {
 
     @ApiOperation("首页概览聚合数据")
     @GetMapping
-    public AjaxResult overview() {
+    public R overview() {
         Map<String, Object> data = new LinkedHashMap<>();
 
         // ---------- 设备统计（按平台 + 汇总） ----------

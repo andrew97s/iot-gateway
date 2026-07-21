@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -64,7 +64,7 @@ public class ZaSysErrorController extends BaseController
     @ApiImplicitParam(name = "id", value = "错误日志主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:error:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         return success(zaSysErrorService.selectZaSysErrorById(id));
     }
@@ -76,7 +76,7 @@ public class ZaSysErrorController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:error:add')")
     @Log(title = "错误日志", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysError zaSysError)
+    public R add(@RequestBody ZaSysError zaSysError)
     {
         zaSysError.setCreateBy(getUsername());
         return toAjax(zaSysErrorService.insertZaSysError(zaSysError));
@@ -89,7 +89,7 @@ public class ZaSysErrorController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:error:edit')")
     @Log(title = "错误日志", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysError zaSysError)
+    public R edit(@RequestBody ZaSysError zaSysError)
     {
         zaSysError.setUpdateBy(getUsername());
         return toAjax(zaSysErrorService.updateZaSysError(zaSysError));
@@ -103,7 +103,7 @@ public class ZaSysErrorController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:error:remove')")
     @Log(title = "错误日志", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(zaSysErrorService.deleteZaSysErrorByIds(ids));
     }
@@ -112,7 +112,7 @@ public class ZaSysErrorController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:remove')")
     @Log(title = "清除数据", businessType = BusinessType.DELETE)
     @DeleteMapping("/purge")
-    public AjaxResult purge()
+    public R purge()
     {
         zaSysErrorService.purge();
         return toAjax(true);

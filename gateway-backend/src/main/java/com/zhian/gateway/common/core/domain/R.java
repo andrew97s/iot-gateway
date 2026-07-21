@@ -1,116 +1,192 @@
 package com.zhian.gateway.common.core.domain;
 
 import com.zhian.gateway.common.constant.HttpStatus;
+import com.zhian.gateway.common.utils.StringUtils;
 
-import java.io.Serializable;
+import java.util.HashMap;
 
 /**
- * 响应信息主体
+ * 操作消息提醒
  *
  * @author zhian
  */
-public class R<T> implements Serializable
+public class  R extends HashMap<String, Object>
 {
     private static final long serialVersionUID = 1L;
 
-    /** 成功 */
-    public static final int SUCCESS = HttpStatus.SUCCESS;
+    /** 状态码 */
+    public static final String CODE_TAG = "code";
 
-    /** 失败 */
-    public static final int FAIL = HttpStatus.ERROR;
+    /** 返回内容 */
+    public static final String MSG_TAG = "msg";
 
-    private int code;
+    /** 数据对象 */
+    public static final String DATA_TAG = "data";
 
-    private String msg;
-
-    private T data;
-
-    public static <T> R<T> ok()
+    /**
+     * 初始化一个新创建的 AjaxResult 对象，使其表示一个空消息。
+     */
+    public R()
     {
-        return restResult(null, SUCCESS, "操作成功");
     }
 
-    public static <T> R<T> ok(T data)
+    /**
+     * 初始化一个新创建的 AjaxResult 对象
+     *
+     * @param code 状态码
+     * @param msg 返回内容
+     */
+    public R(int code, String msg)
     {
-        return restResult(data, SUCCESS, "操作成功");
+        super.put(CODE_TAG, code);
+        super.put(MSG_TAG, msg);
     }
 
-    public static <T> R<T> ok(T data, String msg)
+    /**
+     * 初始化一个新创建的 AjaxResult 对象
+     *
+     * @param code 状态码
+     * @param msg 返回内容
+     * @param data 数据对象
+     */
+    public R(int code, String msg, Object data)
     {
-        return restResult(data, SUCCESS, msg);
+        super.put(CODE_TAG, code);
+        super.put(MSG_TAG, msg);
+        if (StringUtils.isNotNull(data))
+        {
+            super.put(DATA_TAG, data);
+        }
     }
 
-    public static <T> R<T> fail()
+    /**
+     * 返回成功消息
+     *
+     * @return 成功消息
+     */
+    public static R success()
     {
-        return restResult(null, FAIL, "操作失败");
+        return R.success("操作成功");
     }
 
-    public static <T> R<T> fail(String msg)
+    public static R ok(Object data)
     {
-        return restResult(null, FAIL, msg);
+        return R.success(data);
     }
 
-    public static <T> R<T> fail(T data)
+
+    /**
+     * 返回成功数据
+     *
+     * @return 成功消息
+     */
+    public static R success(Object data)
     {
-        return restResult(data, FAIL, "操作失败");
+        return R.success("操作成功", data);
     }
 
-    public static <T> R<T> fail(T data, String msg)
+    /**
+     * 返回成功消息
+     *
+     * @param msg 返回内容
+     * @return 成功消息
+     */
+    public static R success(String msg)
     {
-        return restResult(data, FAIL, msg);
+        return R.success(msg, null);
     }
 
-    public static <T> R<T> fail(int code, String msg)
+    /**
+     * 返回成功消息
+     *
+     * @param msg 返回内容
+     * @param data 数据对象
+     * @return 成功消息
+     */
+    public static R success(String msg, Object data)
     {
-        return restResult(null, code, msg);
+        return new R(HttpStatus.SUCCESS, msg, data);
     }
 
-    private static <T> R<T> restResult(T data, int code, String msg)
+    /**
+     * 返回警告消息
+     *
+     * @param msg 返回内容
+     * @return 警告消息
+     */
+    public static R warn(String msg)
     {
-        R<T> apiResult = new R<>();
-        apiResult.setCode(code);
-        apiResult.setData(data);
-        apiResult.setMsg(msg);
-        return apiResult;
+        return R.warn(msg, null);
     }
 
-    public int getCode()
+    /**
+     * 返回警告消息
+     *
+     * @param msg 返回内容
+     * @param data 数据对象
+     * @return 警告消息
+     */
+    public static R warn(String msg, Object data)
     {
-        return code;
+        return new R(HttpStatus.WARN, msg, data);
     }
 
-    public void setCode(int code)
+    /**
+     * 返回错误消息
+     *
+     * @return 错误消息
+     */
+    public static R error()
     {
-        this.code = code;
+        return R.error("操作失败");
     }
 
-    public String getMsg()
+    /**
+     * 返回错误消息
+     *
+     * @param msg 返回内容
+     * @return 错误消息
+     */
+    public static R error(String msg)
     {
-        return msg;
+        return R.error(msg, null);
     }
 
-    public void setMsg(String msg)
+    /**
+     * 返回错误消息
+     *
+     * @param msg 返回内容
+     * @param data 数据对象
+     * @return 错误消息
+     */
+    public static R error(String msg, Object data)
     {
-        this.msg = msg;
+        return new R(HttpStatus.ERROR, msg, data);
     }
 
-    public T getData()
+    /**
+     * 返回错误消息
+     *
+     * @param code 状态码
+     * @param msg 返回内容
+     * @return 错误消息
+     */
+    public static R error(int code, String msg)
     {
-        return data;
+        return new R(code, msg, null);
     }
 
-    public void setData(T data)
+    /**
+     * 方便链式调用
+     *
+     * @param key 键
+     * @param value 值
+     * @return 数据对象
+     */
+    @Override
+    public R put(String key, Object value)
     {
-        this.data = data;
-    }
-
-    public static <T> Boolean isError(R<T> ret)
-    {
-        return !isSuccess(ret);
-    }
-
-    public static <T> Boolean isSuccess(R<T> ret)
-    {
-        return R.SUCCESS == ret.getCode();
+        super.put(key, value);
+        return this;
     }
 }

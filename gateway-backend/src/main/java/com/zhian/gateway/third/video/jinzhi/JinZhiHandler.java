@@ -1,7 +1,7 @@
 package com.zhian.gateway.third.video.jinzhi;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.DateUtils;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -199,15 +199,15 @@ public class JinZhiHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo){
+    public R doControl(ControlVo controlVo){
         ZaSysDevice camera = controlVo.getDevice();
         if(camera == null){
-            return AjaxResult.error("设备信息不存在");
+            return R.error("设备信息不存在");
         }
 
         ZaSysDevice netDevice = deviceService.selectZaSysDeviceByCode(camera.getNet(), null);
         if(netDevice == null){
-            return AjaxResult.error("未找到视频网关");
+            return R.error("未找到视频网关");
         }
 
         JSONObject ns = JSONObject.parseObject(netDevice.getRemark());
@@ -216,24 +216,24 @@ public class JinZhiHandler extends BasePlatformHandler {
         if(ControlVo.CMD_STREAM.equalsIgnoreCase(controlVo.getCommand())){
             String protocol = StringUtils.isEmpty(controlVo.getValue()) ? "ws" : controlVo.getValue();
             if(cs.containsKey("channelCount") && cs.getInteger("channelCount") > 1){
-                return AjaxResult.success(protocol + "://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-0.live.flv"+","+protocol + "://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-1.live.flv");
+                return R.success(protocol + "://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-0.live.flv"+","+protocol + "://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-1.live.flv");
             }else {
-                return AjaxResult.success(protocol + "://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + ".live.flv");
+                return R.success(protocol + "://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + ".live.flv");
             }
         }else if(ControlVo.CMD_PLAY_BACK.equalsIgnoreCase(controlVo.getCommand())){
             if(cs.containsKey("type") && JinzhiConst.TYPE_GB.equalsIgnoreCase(cs.getString("type"))){
                 //国标，回放参数是起止时间段
-                return AjaxResult.success("http://" + netDevice.getIp()+":8083/rtp/"+camera.getCode()+"_"+controlVo.getValue()+".live.flv");
+                return R.success("http://" + netDevice.getIp()+":8083/rtp/"+camera.getCode()+"_"+controlVo.getValue()+".live.flv");
             }else if(cs.containsKey("type") && JinzhiConst.TYPE_DHSDKS.equalsIgnoreCase(cs.getString("type"))){
                 //回放参数是起止时间段
                 if(cs.containsKey("channelCount") && cs.getInteger("channelCount") > 1) {
-                    return AjaxResult.success("http://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-0_" + controlVo.getValue() + ".live.flv," + "http://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-1_" + controlVo.getValue() + ".live.flv");
+                    return R.success("http://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-0_" + controlVo.getValue() + ".live.flv," + "http://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "-1_" + controlVo.getValue() + ".live.flv");
                 }else{
-                    return AjaxResult.success("http://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "_" + controlVo.getValue() + ".live.flv");
+                    return R.success("http://" + netDevice.getIp() + ":8083/rtp/" + camera.getCode() + "_" + controlVo.getValue() + ".live.flv");
                 }
             }else{
                 //直连不支持回放
-                return AjaxResult.error("直连摄像机不支持回放");
+                return R.error("直连摄像机不支持回放");
             }
         }else if(ControlVo.CMD_RECORDS.equalsIgnoreCase(controlVo.getCommand())){
             if(cs.containsKey("type") && JinzhiConst.TYPE_GB.equalsIgnoreCase(cs.getString("type"))){
@@ -245,12 +245,12 @@ public class JinZhiHandler extends BasePlatformHandler {
                 headers.set("Cookie", "LX_TOKEN=123456789");
                 JinzhiRecord result = restTemplate.exchange(api, HttpMethod.GET, new HttpEntity(headers), JinzhiRecord.class).getBody();
                 if(!result.success() || result.getList() == null || result.getList().length == 0){
-                    return AjaxResult.error("未查询到录像");
+                    return R.error("未查询到录像");
                 }
                 for(VideoRecord videoRecord: result.getList()){
                     recordName(videoRecord);
                 }
-                return AjaxResult.success(result.getList());
+                return R.success(result.getList());
             }else if(cs.containsKey("type") && JinzhiConst.TYPE_DHSDKS.equalsIgnoreCase(cs.getString("type"))){
                 //大华SDK，参数是日期 2024-08-13
                 String api = "http://" + netDevice.getIp() + ":8080/agapi/device/recordfind?deviceID="+camera.getCode()+"&findTimeDay="+controlVo.getValue();
@@ -259,16 +259,16 @@ public class JinZhiHandler extends BasePlatformHandler {
                 headers.set("Cookie", "LX_TOKEN=123456789");
                 JinzhiRecord result = restTemplate.exchange(api, HttpMethod.GET, new HttpEntity(headers), JinzhiRecord.class).getBody();
                 if(!result.success() || result.getList() == null || result.getList().length == 0){
-                    return AjaxResult.error("未查询到录像");
+                    return R.error("未查询到录像");
                 }
                 for(VideoRecord videoRecord: result.getList()){
                     recordName(videoRecord);
                 }
                 log.info("records for {} @{}: {}", camera.getCode(), controlVo.getValue(), JSONObject.toJSONString(result));
-                return AjaxResult.success(result.getList());
+                return R.success(result.getList());
             }else{
                 //直连不支持回放
-                return AjaxResult.error("直连摄像机不支持回放");
+                return R.error("直连摄像机不支持回放");
             }
         }
 
@@ -279,30 +279,30 @@ public class JinZhiHandler extends BasePlatformHandler {
                 String rtsp  = cs.getString("streamUrl");
                 if(StringUtils.isEmpty(rtsp)){
                     log.error("截图 {} - {} 时未找到视频流", camera.getNet(), camera.getCode());
-                    return AjaxResult.error("未找到视频流");
+                    return R.error("未找到视频流");
                 }
 
                 String path = VideoUtil.ffmpeg(rtsp);
                 if(StringUtils.isEmpty(path)){
                     log.error("FFMPEG截图 {} - {} 失败", camera.getNet(), camera.getCode());
-                    return AjaxResult.error("截图失败");
+                    return R.error("截图失败");
                 }
 
                 File imgFile = new File(ZhianConfig.getUploadPath()+path);
                 if(!imgFile.exists()){
                     log.error("未找到FFMPEG截图文件 {} - {} : {}", camera.getNet(), camera.getCode(), path);
-                    return AjaxResult.error("截图文件不存在");
+                    return R.error("截图文件不存在");
                 }
                 byte[] result = FileUtils.readFileToByteArray(imgFile);
                 imgFile.delete();
                 */
                 byte[] result = snap(netDevice, camera);
-                return AjaxResult.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(result));
+                return R.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(result));
             }else if (ControlVo.CMD_PTZ.equalsIgnoreCase(controlVo.getCommand())) {
                 //云台控制
                 Session session = sessionMap.get(netDevice.getCode());
                 if(session == null){
-                    return AjaxResult.error("网关不线");
+                    return R.error("网关不线");
                 }
                 JSONObject msg = new JSONObject();
                 msg.put("msgID", "01");
@@ -373,14 +373,14 @@ public class JinZhiHandler extends BasePlatformHandler {
                         e.printStackTrace();
                     }
                 },Integer.parseInt(ptzDelay), TimeUnit.SECONDS);
-                return AjaxResult.success();
+                return R.success();
             } else {
-                return AjaxResult.error("不支持操作");
+                return R.error("不支持操作");
             }
         }catch (Exception e){
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "视频网关反控失败", e.getMessage(), JSONObject.toJSONString(controlVo));
-            return AjaxResult.error("视频网关调用失败");
+            return R.error("视频网关调用失败");
         }
     }
 

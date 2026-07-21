@@ -2,7 +2,7 @@ package com.zhian.gateway.web.controller.common;
 
 import com.zhian.gateway.common.config.ZhianConfig;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.file.FileUploadUtils;
 import com.zhian.gateway.common.utils.file.FileUtils;
@@ -74,7 +74,7 @@ public class CommonController
      * 通用上传请求（单个）
      */
     @PostMapping("/upload")
-    public AjaxResult uploadFile(MultipartFile file) throws Exception
+    public R uploadFile(MultipartFile file) throws Exception
     {
         try
         {
@@ -83,7 +83,7 @@ public class CommonController
             // 上传并返回新文件名称
             String fileName = FileUploadUtils.upload(filePath, file);
             String url = serverConfig.getUrl() + fileName;
-            AjaxResult ajax = AjaxResult.success();
+            R ajax = R.success();
             ajax.put("url", url);
             ajax.put("fileName", fileName);
             ajax.put("newFileName", FileUtils.getName(fileName));
@@ -92,7 +92,7 @@ public class CommonController
         }
         catch (Exception e)
         {
-            return AjaxResult.error(e.getMessage());
+            return R.error(e.getMessage());
         }
     }
 
@@ -100,7 +100,7 @@ public class CommonController
      * 通用上传请求（多个）
      */
     @PostMapping("/uploads")
-    public AjaxResult uploadFiles(List<MultipartFile> files) throws Exception
+    public R uploadFiles(List<MultipartFile> files) throws Exception
     {
         try
         {
@@ -120,7 +120,7 @@ public class CommonController
                 newFileNames.add(FileUtils.getName(fileName));
                 originalFilenames.add(file.getOriginalFilename());
             }
-            AjaxResult ajax = AjaxResult.success();
+            R ajax = R.success();
             ajax.put("urls", StringUtils.join(urls, FILE_DELIMETER));
             ajax.put("fileNames", StringUtils.join(fileNames, FILE_DELIMETER));
             ajax.put("newFileNames", StringUtils.join(newFileNames, FILE_DELIMETER));
@@ -129,7 +129,7 @@ public class CommonController
         }
         catch (Exception e)
         {
-            return AjaxResult.error(e.getMessage());
+            return R.error(e.getMessage());
         }
     }
 

@@ -3,7 +3,7 @@ package com.zhian.gateway.api.controller;
 import com.github.pagehelper.PageHelper;
 import com.zhian.gateway.api.domain.MockData;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -32,13 +32,13 @@ public class MockController extends BaseController {
     private ThirdHandler jadebirdInnerHandler;
 
     @PostMapping("jb")
-    public AjaxResult alarm(@RequestBody MockData data){
+    public R alarm(@RequestBody MockData data){
         if(!data.isAuth()){
-            return AjaxResult.error("非法请求");
+            return R.error("非法请求");
         }
         ZaSysDevice sysDevice = getDevice(data);
         if(sysDevice == null){
-            return AjaxResult.error("没有找到设备");
+            return R.error("没有找到设备");
         }
 
         StringBuilder sb = new StringBuilder();
@@ -69,7 +69,7 @@ public class MockController extends BaseController {
                 .append("\",\"net\":\"").append(sysDevice.getNet()).append("\"}")
                 .append("}");
         jadebirdInnerHandler.processMsg(sb.toString());
-        return AjaxResult.success();
+        return R.success();
     }
 
     private ZaSysDevice getDevice(MockData data){

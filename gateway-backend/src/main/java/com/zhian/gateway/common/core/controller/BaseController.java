@@ -3,7 +3,7 @@ package com.zhian.gateway.common.core.controller;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.zhian.gateway.common.constant.HttpStatus;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.domain.model.LoginUser;
 import com.zhian.gateway.common.core.page.PageDomain;
 import com.zhian.gateway.common.core.page.TableDataInfo;
@@ -94,49 +94,49 @@ public class BaseController
     /**
      * 返回成功
      */
-    public AjaxResult success()
+    public R success()
     {
-        return AjaxResult.success();
+        return R.success();
     }
 
     /**
      * 返回失败消息
      */
-    public AjaxResult error()
+    public R error()
     {
-        return AjaxResult.error();
+        return R.error();
     }
 
     /**
      * 返回成功消息
      */
-    public AjaxResult success(String message)
+    public R success(String message)
     {
-        return AjaxResult.success(message);
+        return R.success(message);
     }
     
     /**
      * 返回成功消息
      */
-    public AjaxResult success(Object data)
+    public R success(Object data)
     {
-        return AjaxResult.success(data);
+        return R.success(data);
     }
 
     /**
      * 返回失败消息
      */
-    public AjaxResult error(String message)
+    public R error(String message)
     {
-        return AjaxResult.error(message);
+        return R.error(message);
     }
 
     /**
      * 返回警告消息
      */
-    public AjaxResult warn(String message)
+    public R warn(String message)
     {
-        return AjaxResult.warn(message);
+        return R.warn(message);
     }
 
     /**
@@ -145,9 +145,9 @@ public class BaseController
      * @param rows 影响行数
      * @return 操作结果
      */
-    protected AjaxResult toAjax(int rows)
+    protected R toAjax(int rows)
     {
-        return rows > 0 ? AjaxResult.success() : AjaxResult.error();
+        return rows > 0 ? R.success() : R.error();
     }
 
     /**
@@ -156,7 +156,7 @@ public class BaseController
      * @param result 结果
      * @return 操作结果
      */
-    protected AjaxResult toAjax(boolean result)
+    protected R toAjax(boolean result)
     {
         return result ? success() : error();
     }

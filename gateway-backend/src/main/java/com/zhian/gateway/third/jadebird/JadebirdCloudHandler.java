@@ -6,7 +6,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.http.HttpUtils;
@@ -111,16 +111,16 @@ public class JadebirdCloudHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         // 校验
         if (!isAlive()) {
             log.error("青鸟云插件暂时停止");
-            return AjaxResult.error("插件暂时停止");
+            return R.error("插件暂时停止");
         }
         ZaSysDevice device = controlVo.getDevice();
         device = deviceService.selectZaSysDeviceByCode(device.getCode(), device.getNet());
         if (device == null) {
-            return AjaxResult.error("反控操作失败,device 不能为空!");
+            return R.error("反控操作失败,device 不能为空!");
         }
 
         String[] cmds = controlVo.getCommand().split(",");
@@ -134,7 +134,7 @@ public class JadebirdCloudHandler extends BasePlatformHandler {
                 log.warn("反控操作暂未实现复位操作!");
             }
         }
-        return AjaxResult.success();
+        return R.success();
     }
 
     /**

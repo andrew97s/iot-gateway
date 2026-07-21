@@ -2,7 +2,7 @@ package com.zhian.gateway.third.dahua;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.file.FileUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -95,11 +95,11 @@ public class DhSdkHandler extends BasePlatformHandler {
      * 反向控制
      *
      * @param controlVo 控制对象
-     * @return AjaxResult
+     * @return R
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
-        return AjaxResult.error("暂时不支持控制");
+    public R doControl(ControlVo controlVo) {
+        return R.error("暂时不支持控制");
     }
 
     /**
@@ -109,10 +109,10 @@ public class DhSdkHandler extends BasePlatformHandler {
      * @return
      * @throws IOException
      */
-    private AjaxResult responseImage(File imageFile) throws IOException {
+    private R responseImage(File imageFile) throws IOException {
         byte[] imgBuff = FileUtils.readFileToByteArray(imageFile);
         imageFile.delete();
-        return AjaxResult.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(imgBuff));
+        return R.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(imgBuff));
     }
 
     /**

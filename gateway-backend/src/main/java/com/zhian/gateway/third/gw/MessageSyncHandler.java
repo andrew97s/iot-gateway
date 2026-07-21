@@ -2,7 +2,7 @@ package com.zhian.gateway.third.gw;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
@@ -94,8 +94,8 @@ public class MessageSyncHandler implements ThirdHandler {
     }
 
     @Override
-    public AjaxResult control(ControlVo controlVo) {
-        return AjaxResult.error(400, "不支持反控");
+    public R control(ControlVo controlVo) {
+        return R.error(400, "不支持反控");
     }
 
     /**

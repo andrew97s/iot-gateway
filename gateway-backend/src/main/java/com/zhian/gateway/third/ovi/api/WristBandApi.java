@@ -28,7 +28,7 @@ public class WristBandApi {
     private OviPlatformHandler handler;
 
     @RequestMapping("/receive")
-    public R<String> receive(@RequestParam Map<String , String> request) throws IOException {
+    public R receive(@RequestParam Map<String , String> request) throws IOException {
         log.info("接收自欧孚推送数据:{}", JSON.toJSONString(request));
         // 解析推送数据
         OviData ovidData = OviData.newInstance(request);

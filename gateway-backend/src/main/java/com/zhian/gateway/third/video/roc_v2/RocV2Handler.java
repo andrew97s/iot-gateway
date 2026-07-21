@@ -2,7 +2,7 @@ package com.zhian.gateway.third.video.roc_v2;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.exception.base.BaseException;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
@@ -138,17 +138,17 @@ public class RocV2Handler extends BasePlatformHandler<Object> {
 
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         // 拉流
         if (ControlVo.CMD_STREAM.equalsIgnoreCase(controlVo.getCommand())) {
             SerialPortUtil.powerOn();
-            return AjaxResult.success(FmConnector.fetchStream());
+            return R.success(FmConnector.fetchStream());
         }
         // 处理人脸相关业务
         else if (ControlVo.CMD_SET.equalsIgnoreCase(controlVo.getCommand())) {
             SerialPortUtil.powerOn();
             RocFaceEvent event = JSONObject.parseObject(controlVo.getValue(), RocFaceEvent.class);
-            AjaxResult result = handleFaceEvent(event);
+            R result = handleFaceEvent(event);
             if (!result.get("msg").toString().contains("模块执行中") && !event.getAction().equals("delete")) {
                 // 延迟一秒断电
                 SerialPortUtil.powerOff(1000L);
@@ -162,13 +162,13 @@ public class RocV2Handler extends BasePlatformHandler<Object> {
                 FmConnector.closeStream();
                 log.info("电源关闭指令执行成功!");
             }
-            return AjaxResult.success();
+            return R.success();
         } else {
-            return AjaxResult.error("不支持的操作");
+            return R.error("不支持的操作");
         }
     }
 
-    private AjaxResult handleFaceEvent(RocFaceEvent faceEvent) {
+    private R handleFaceEvent(RocFaceEvent faceEvent) {
         // 处理人脸事件
         switch (faceEvent.getAction()) {
             // 执行人脸识别
@@ -192,13 +192,13 @@ public class RocV2Handler extends BasePlatformHandler<Object> {
                     }
                 }
 
-                return StrUtil.isBlank(faceId) ? AjaxResult.error(msg) : AjaxResult.success("OK", faceId);
+                return StrUtil.isBlank(faceId) ? R.error(msg) : R.success("OK", faceId);
             }
             // 清空人脸数据
             case RocFaceEvent.CLEAR: {
                 FmConnector.delAllUser();
                 SerialPortUtil.powerOff();
-                AjaxResult.success("OK");
+                R.success("OK");
                 break;
             }
             // 删除指定人脸数据
@@ -219,7 +219,7 @@ public class RocV2Handler extends BasePlatformHandler<Object> {
                         e.printStackTrace();
                     }
                 }
-                return StrUtil.equals(msg, "OK") ? AjaxResult.success(msg) : AjaxResult.error(msg);
+                return StrUtil.equals(msg, "OK") ? R.success(msg) : R.error(msg);
             }
             // 录入人脸数据
             case RocFaceEvent.ADD: {
@@ -250,10 +250,10 @@ public class RocV2Handler extends BasePlatformHandler<Object> {
                     faceId = FmConnector.enrollPic(faceImg, userName);
                 }
 
-                return faceId != null ? AjaxResult.success("OK", faceId) : AjaxResult.error("操作失败:" + msg);
+                return faceId != null ? R.success("OK", faceId) : R.error("操作失败:" + msg);
             }
         }
 
-        return AjaxResult.success("OK");
+        return R.success("OK");
     }
 }

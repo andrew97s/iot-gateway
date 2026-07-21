@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -35,7 +35,7 @@ public class ZaSysDatasetController extends BaseController
      */
     @ApiOperation("不分页查询数据集列表")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysDataset zaSysDataset)
+    public R select(ZaSysDataset zaSysDataset)
     {
         List<ZaSysDataset> list = zaSysDatasetService.selectZaSysDatasetList(zaSysDataset);
         return success(list);
@@ -75,7 +75,7 @@ public class ZaSysDatasetController extends BaseController
     @ApiImplicitParam(name = "id", value = "数据集主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:dataset:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         return success(zaSysDatasetService.selectZaSysDatasetById(id));
     }
@@ -87,7 +87,7 @@ public class ZaSysDatasetController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:dataset:add')")
     @Log(title = "数据集", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysDataset zaSysDataset)
+    public R add(@RequestBody ZaSysDataset zaSysDataset)
     {
         zaSysDataset.setCreateBy(getUsername());
         return toAjax(zaSysDatasetService.insertZaSysDataset(zaSysDataset));
@@ -100,7 +100,7 @@ public class ZaSysDatasetController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:dataset:edit')")
     @Log(title = "数据集", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysDataset zaSysDataset)
+    public R edit(@RequestBody ZaSysDataset zaSysDataset)
     {
         zaSysDataset.setUpdateBy(getUsername());
         return toAjax(zaSysDatasetService.updateZaSysDataset(zaSysDataset));
@@ -114,7 +114,7 @@ public class ZaSysDatasetController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:dataset:remove')")
     @Log(title = "数据集", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(zaSysDatasetService.deleteZaSysDatasetByIds(ids));
     }

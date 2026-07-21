@@ -2,7 +2,7 @@ package com.zhian.gateway.framework.security.handle;
 
 import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.HttpStatus;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.ServletUtils;
 import com.zhian.gateway.common.utils.StringUtils;
 import org.springframework.security.core.AuthenticationException;
@@ -30,6 +30,6 @@ public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint, S
     {
         int code = HttpStatus.UNAUTHORIZED;
         String msg = StringUtils.format("请求访问：{}，认证失败，无法访问系统资源", request.getRequestURI());
-        ServletUtils.renderString(response, JSON.toJSONString(AjaxResult.error(code, msg)));
+        ServletUtils.renderString(response, JSON.toJSONString(R.error(code, msg)));
     }
 }

@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -35,7 +35,7 @@ public class ZaSysTypeController extends BaseController
      */
     @ApiOperation("不分页查询设备类型列表")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysType zaSysType)
+    public R select(ZaSysType zaSysType)
     {
         List<ZaSysType> list = ZaSysTypeService.selectZaSysTypeList(zaSysType);
         return success(list);
@@ -74,7 +74,7 @@ public class ZaSysTypeController extends BaseController
     @ApiImplicitParam(name = "id", value = "设备类型主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:type:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         return success(ZaSysTypeService.selectZaSysTypeById(id));
     }
@@ -86,7 +86,7 @@ public class ZaSysTypeController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:type:add')")
     @Log(title = "设备类型", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysType zaSysType)
+    public R add(@RequestBody ZaSysType zaSysType)
     {
         zaSysType.setCreateBy(getUsername());
         return toAjax(ZaSysTypeService.insertZaSysType(zaSysType));
@@ -99,7 +99,7 @@ public class ZaSysTypeController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:type:edit')")
     @Log(title = "设备类型", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysType zaSysType)
+    public R edit(@RequestBody ZaSysType zaSysType)
     {
         zaSysType.setUpdateBy(getUsername());
         return toAjax(ZaSysTypeService.updateZaSysType(zaSysType));
@@ -113,7 +113,7 @@ public class ZaSysTypeController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:type:remove')")
     @Log(title = "设备类型", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(ZaSysTypeService.deleteZaSysTypeByIds(ids));
     }

@@ -1,7 +1,7 @@
 package com.zhian.gateway.third.cascade;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
@@ -119,14 +119,14 @@ public class CascadeHandler implements ThirdHandler {
     }
 
     @Override
-    public AjaxResult control(ControlVo controlVo) {
+    public R control(ControlVo controlVo) {
         if(!isAlive()){
             log.error("级联插件暂时停止");
-            return AjaxResult.error("级联插件暂时停止");
+            return R.error("级联插件暂时停止");
         }
         ZaSysDevice zaSysDevice = controlVo.getDevice();
         if(session == null){
-            return AjaxResult.error("设备不存在");
+            return R.error("设备不存在");
         }
         ZaSysPlatform devicePlatform = SpringUtils.getBean(IZaSysPlatformService.class)
                 .selectZaSysPlatformByCode(zaSysDevice.getPfCode());
@@ -156,7 +156,7 @@ public class CascadeHandler implements ThirdHandler {
         }
 
         //通过其它插件进行反控
-        AjaxResult result = control(controlVo);
+        R result = control(controlVo);
         MqMessage mqMessage = new MqMessage();
         mqMessage.setProtocol(PLATFORM_NAME);
         mqMessage.setUuid(controlVo.getEventId());

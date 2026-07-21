@@ -4,7 +4,7 @@ import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.constant.CacheConstants;
 import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.domain.model.LoginUser;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
@@ -72,7 +72,7 @@ public class SysUserOnlineController extends BaseController
     @PreAuthorize("@ss.hasPermi('monitor:online:forceLogout')")
     @Log(title = "在线用户", businessType = BusinessType.FORCE)
     @DeleteMapping("/{tokenId}")
-    public AjaxResult forceLogout(@PathVariable String tokenId)
+    public R forceLogout(@PathVariable String tokenId)
     {
         cache.deleteObject(CacheConstants.LOGIN_TOKEN_KEY + tokenId);
         return success();

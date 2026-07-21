@@ -91,6 +91,8 @@ public class ZaSysDevice extends BaseEntity
     @ApiModelProperty("IP")
     private String ip;
 
+    private String location;
+
     /** 上级同步展示（非表字段） */
     @ApiModelProperty(hidden = true)
     private Integer syncSuccess;

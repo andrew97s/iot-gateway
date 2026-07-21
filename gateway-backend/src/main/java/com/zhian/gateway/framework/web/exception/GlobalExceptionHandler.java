@@ -1,7 +1,7 @@
 package com.zhian.gateway.framework.web.exception;
 
 import com.zhian.gateway.common.constant.HttpStatus;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.exception.DemoModeException;
 import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.utils.StringUtils;
@@ -30,67 +30,67 @@ public class GlobalExceptionHandler
      * 权限校验异常
      */
     @ExceptionHandler(AccessDeniedException.class)
-    public AjaxResult handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request)
+    public R handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request)
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',权限校验失败'{}'", requestURI, e.getMessage());
-        return AjaxResult.error(HttpStatus.FORBIDDEN, "没有权限，请联系管理员授权");
+        return R.error(HttpStatus.FORBIDDEN, "没有权限，请联系管理员授权");
     }
 
     /**
      * 请求方式不支持
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public AjaxResult handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException e,
+    public R handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException e,
             HttpServletRequest request)
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',不支持'{}'请求", requestURI, e.getMethod());
-        return AjaxResult.error(e.getMessage());
+        return R.error(e.getMessage());
     }
 
     /**
      * 业务异常
      */
     @ExceptionHandler(ServiceException.class)
-    public AjaxResult handleServiceException(ServiceException e, HttpServletRequest request)
+    public R handleServiceException(ServiceException e, HttpServletRequest request)
     {
         log.error(e.getMessage(), e);
         Integer code = e.getCode();
-        return StringUtils.isNotNull(code) ? AjaxResult.error(code, e.getMessage()) : AjaxResult.error(e.getMessage());
+        return StringUtils.isNotNull(code) ? R.error(code, e.getMessage()) : R.error(e.getMessage());
     }
 
     /**
      * 拦截未知的运行时异常
      */
     @ExceptionHandler(RuntimeException.class)
-    public AjaxResult handleRuntimeException(RuntimeException e, HttpServletRequest request)
+    public R handleRuntimeException(RuntimeException e, HttpServletRequest request)
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',发生未知异常.", requestURI, e);
-        return AjaxResult.error(e.getMessage());
+        return R.error(e.getMessage());
     }
 
     /**
      * 系统异常
      */
     @ExceptionHandler(Exception.class)
-    public AjaxResult handleException(Exception e, HttpServletRequest request)
+    public R handleException(Exception e, HttpServletRequest request)
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',发生系统异常.", requestURI, e);
-        return AjaxResult.error(e.getMessage());
+        return R.error(e.getMessage());
     }
 
     /**
      * 自定义验证异常
      */
     @ExceptionHandler(BindException.class)
-    public AjaxResult handleBindException(BindException e)
+    public R handleBindException(BindException e)
     {
         log.error(e.getMessage(), e);
         String message = e.getAllErrors().get(0).getDefaultMessage();
-        return AjaxResult.error(message);
+        return R.error(message);
     }
 
     /**
@@ -101,15 +101,15 @@ public class GlobalExceptionHandler
     {
         log.error(e.getMessage(), e);
         String message = e.getBindingResult().getFieldError().getDefaultMessage();
-        return AjaxResult.error(message);
+        return R.error(message);
     }
 
     /**
      * 演示模式异常
      */
     @ExceptionHandler(DemoModeException.class)
-    public AjaxResult handleDemoModeException(DemoModeException e)
+    public R handleDemoModeException(DemoModeException e)
     {
-        return AjaxResult.error("演示模式，不允许操作");
+        return R.error("演示模式，不允许操作");
     }
 }

@@ -57,7 +57,7 @@ public class JadeBirdBoxV2Api {
      * @return the r
      */
     @RequestMapping("/alarm")
-    public R<Object> alarmInfo(@RequestBody BoxV2AlarmInfo alarmInfo) {
+    public R alarmInfo(@RequestBody BoxV2AlarmInfo alarmInfo) {
         String alarmPicData = alarmInfo.getAlarmPicData();
         alarmInfo.setAlarmPicData(saveBase64(alarmPicData));
         alarmInfo.setSrcPicData("");
@@ -79,7 +79,7 @@ public class JadeBirdBoxV2Api {
      * @return the ajax result
      */
     @RequestMapping("/heartbeat")
-    public R<Object> heartbeat(@RequestBody String msgStr) {
+    public R heartbeat(@RequestBody String msgStr) {
         log.debug("box-heartbeat-v2 msg: {}", msgStr);
 
         BoxMsg boxMsg = new BoxMsg();

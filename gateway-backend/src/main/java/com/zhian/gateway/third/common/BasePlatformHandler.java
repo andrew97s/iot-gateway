@@ -4,7 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.cache.Cache;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
@@ -158,18 +158,18 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
      * @param controlVo the control vo
      * @return the ajax result
      */
-    protected AjaxResult doControl(ControlVo controlVo) {
-        return AjaxResult.error("当前暂不支持反控操作!");
+    protected R doControl(ControlVo controlVo) {
+        return R.error("当前暂不支持反控操作!");
     }
 
     @Override
-    public AjaxResult control(ControlVo controlVo) {
-        AjaxResult result = null;
+    public R control(ControlVo controlVo) {
+        R result = null;
         try {
             result = doControl(controlVo);
         } catch (Exception e) {
             log.error("反控失败:{}", e.getMessage());
-            result = AjaxResult.error(e.getMessage());
+            result = R.error(e.getMessage());
         } finally {
             ZaSysDevice device = MessageUtil.getDevice();
             if (device == null) {

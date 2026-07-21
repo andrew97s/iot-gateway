@@ -10,7 +10,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.hikvision.artemis.sdk.ArtemisHttpUtil;
 import com.hikvision.artemis.sdk.config.ArtemisConfig;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.DateUtils;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -273,10 +273,10 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
     }
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         ZaSysDevice camera = controlVo.getDevice();
         if (camera == null) {
-            return AjaxResult.error("设备信息不存在");
+            return R.error("设备信息不存在");
         }
         switch (controlVo.getCommand()) {
             // 拉流
@@ -304,7 +304,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
                 return qryFaceRecords(controlVo.getValue());
             }
             default:
-                return AjaxResult.error("不支持操作");
+                return R.error("不支持操作");
         }
     }
 
@@ -343,16 +343,16 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
         }
     }
 
-    private AjaxResult qryFaceRecords(String params) {
+    private R qryFaceRecords(String params) {
         HashMap queryMap = JSONObject.parseObject(params, HashMap.class);
         try {
 
-            return AjaxResult.success(
+            return R.success(
                     request("/api/frs/v1/application/captureSearch", queryMap, HikFaceResp.class).getData()
             );
         } catch (Exception e) {
             log.error("查询海康人脸数据失败，msg:{}", e.getMessage());
-            return AjaxResult.error("操作失败,调用海康人脸查询接口失败!");
+            return R.error("操作失败,调用海康人脸查询接口失败!");
         }
     }
 
@@ -362,7 +362,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
      * @param device the device
      * @return the ajax result
      */
-    private AjaxResult fetchStream(ZaSysDevice device) {
+    private R fetchStream(ZaSysDevice device) {
         Map<String, Object> params = new HashMap<>();
         params.put("cameraIndexCode", device.getCode());
         // 码流类型0:主码流 1:子码流 2:第三码流 ， 默认为主码流
@@ -373,7 +373,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             HikUrlResult result = request("/api/video/v2/cameras/previewURLs", params, HikUrlResult.class);
             if (result.isSuccess()) {
                 String stream = result.getData().getUrl();
-                return AjaxResult.success(stream, "hk");
+                return R.success(stream, "hk");
             } else {
                 zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "海康平台拉流失败", result.getCode(), result.getMsg());
             }
@@ -381,7 +381,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "海康平台拉流异常", e.getMessage(), null);
         }
-        return AjaxResult.error("获取视频流失败");
+        return R.error("获取视频流失败");
     }
 
     /**
@@ -391,7 +391,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
      * @param controlVo the control vo
      * @return the ajax result
      */
-    private AjaxResult fetchPlayback(ZaSysDevice device, ControlVo controlVo) {
+    private R fetchPlayback(ZaSysDevice device, ControlVo controlVo) {
         Map<String, Object> params = new HashMap<>();//post 请求的查询参数
         params.put("cameraIndexCode", device.getCode());
         params.put("protocol", HikvisionHandler.zaSysPlatform.getConfigStr("protocol", "ws"));
@@ -402,7 +402,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
         try {
             HikUrlResult result = request("/api/video/v2/cameras/playbackURLs", params, HikUrlResult.class);
             if (result.isSuccess()) {
-                AjaxResult ajaxResult = AjaxResult.success(result.getData().getUrl());
+                R ajaxResult = R.success(result.getData().getUrl());
                 HashMap<String, Object> data = new HashMap<>();
                 data.put("playUrl", result.getData().getUrl());
                 data.put("playType", "hk");
@@ -416,7 +416,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "海康平台拉回放流异常", e.getMessage(), null);
         }
-        return AjaxResult.error("获取视频回放流失败");
+        return R.error("获取视频回放流失败");
     }
 
     /**
@@ -425,7 +425,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
      * @param controlVo the control vo
      * @return the ajax result
      */
-    private AjaxResult fetchPlayRecords(ControlVo controlVo) {
+    private R fetchPlayRecords(ControlVo controlVo) {
         List<VideoRecord> list = new ArrayList<>();
         Date today = new Date();
         Date queryDay = DateUtils.dateTime(DateUtils.YYYY_MM_DD, controlVo.getValue());
@@ -437,7 +437,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             videoRecord.setName(DateUtils.parseDateToStr(IOS8601_DATE, videoRecord.getStartTime()) + "_" + DateUtils.parseDateToStr(IOS8601_DATE, videoRecord.getEndTime()));
             list.add(videoRecord);
         }
-        return AjaxResult.success(list);
+        return R.success(list);
     }
 
     /**
@@ -446,7 +446,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
      * @param device the device
      * @return the ajax result
      */
-    private AjaxResult fetchSnapshot(ZaSysDevice device) {
+    private R fetchSnapshot(ZaSysDevice device) {
         //截图
         Map<String, Object> params = new HashMap<>();//post 请求的查询参数
         params.put("cameraIndexCode", device.getCode());
@@ -455,7 +455,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             if (result.isSuccess()) {
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
                 HttpUtil.download(result.getData().getPicUrl(), os, true);
-                return AjaxResult.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
+                return R.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
             } else {
                 zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "海康平台摄像机 " + device.getName() + " 截图失败", result.getCode(), result.getMsg());
             }
@@ -463,7 +463,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "海康平台摄像机 " + device.getName() + "截图失败异常", e.getMessage(), null);
         }
-        return AjaxResult.error();
+        return R.error();
     }
 
     /**
@@ -482,7 +482,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
      * @param cmdValue 指令
      * @return the ajax result
      */
-    private AjaxResult ptz(ZaSysDevice device, String cmdValue) {
+    private R ptz(ZaSysDevice device, String cmdValue) {
         String[] vs = cmdValue.split(":");
         int speed = (vs.length > 1) ? Integer.parseInt(vs[1]) * 10 : 50;
 
@@ -504,7 +504,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
                         e.printStackTrace();
                     }
                 }, Integer.parseInt(ptzDelay), TimeUnit.SECONDS);
-                return AjaxResult.success();
+                return R.success();
             } else {
                 zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "海康平台摄像机 " + device.getName() + " 云台控制失败", result.getCode(), result.getMsg());
             }
@@ -512,7 +512,7 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "海康平台摄像机 " + device.getName() + " 云台控制失败", e.getMessage(), null);
         }
-        return AjaxResult.error();
+        return R.error();
     }
 
     /**

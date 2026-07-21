@@ -1,7 +1,7 @@
 package com.zhian.gateway.web.controller.system;
 
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.domain.model.RegisterBody;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.system.service.ISysConfigService;
@@ -26,7 +26,7 @@ public class SysRegisterController extends BaseController
     private ISysConfigService configService;
 
     @PostMapping("/register")
-    public AjaxResult register(@RequestBody RegisterBody user)
+    public R register(@RequestBody RegisterBody user)
     {
         if (!("true".equals(configService.selectConfigByKey("sys.account.registerUser"))))
         {

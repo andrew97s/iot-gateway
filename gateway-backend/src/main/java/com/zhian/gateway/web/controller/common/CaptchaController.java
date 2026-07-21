@@ -5,7 +5,7 @@ import com.zhian.gateway.common.config.ZhianConfig;
 import com.zhian.gateway.common.constant.CacheConstants;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.cache.Cache;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.sign.Base64;
 import com.zhian.gateway.common.utils.uuid.IdUtils;
 import com.zhian.gateway.system.service.ISysConfigService;
@@ -44,9 +44,9 @@ public class CaptchaController
      * 生成验证码
      */
     @GetMapping("/captchaImage")
-    public AjaxResult getCode(HttpServletResponse response) throws IOException
+    public R getCode(HttpServletResponse response) throws IOException
     {
-        AjaxResult ajax = AjaxResult.success();
+        R ajax = R.success();
         boolean captchaEnabled = configService.selectCaptchaEnabled();
         ajax.put("captchaEnabled", captchaEnabled);
         if (!captchaEnabled)
@@ -85,7 +85,7 @@ public class CaptchaController
         }
         catch (IOException e)
         {
-            return AjaxResult.error(e.getMessage());
+            return R.error(e.getMessage());
         }
 
         ajax.put("uuid", uuid);

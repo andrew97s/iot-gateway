@@ -1,6 +1,6 @@
 package com.zhian.gateway.api.controller;
 
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,7 +14,7 @@ public class HeartController {
      * @return
      */
     @GetMapping("keepalive")
-    public AjaxResult heart(){
-        return AjaxResult.success("网关在线");
+    public R heart(){
+        return R.success("网关在线");
     }
 }

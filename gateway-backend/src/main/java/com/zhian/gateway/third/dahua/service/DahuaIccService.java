@@ -10,7 +10,7 @@ import com.dahuatech.icc.oauth.model.v202010.OauthConfigUserPwdInfo;
 import com.dahuatech.icc.oauth.utils.HttpUtils;
 import com.zhian.gateway.common.config.ZhianConfig;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.DateUtils;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.framework.cache.RedisCache;
@@ -288,7 +288,7 @@ public class DahuaIccService {
      * @param day
      * @return
      */
-    public AjaxResult queryRecords(ZaSysDevice camera, String day){
+    public R queryRecords(ZaSysDevice camera, String day){
         String chns[] = camera.getRemark().split(",");
         IccDataParam param = IccDataParam.create("channelId", chns[0]);
         param.set("recordSource", "1").set("streamType", "0").set("recordType", "0");
@@ -298,11 +298,11 @@ public class DahuaIccService {
             IccCommonResponse response = HttpUtils.executeJson(URL_QueryRecords, param, getHeader(), Method.POST, oauthConfig, IccCommonResponse.class);
 
             if(response == null || !response.isSuccess()){
-                return AjaxResult.error("没有找到录像");
+                return R.error("没有找到录像");
             }
             JSONArray records = response.getData().getJSONArray("records");
             if(records == null || records.size() == 0){
-                return AjaxResult.error("没有找到录像");
+                return R.error("没有找到录像");
             }
             List<VideoRecord> list = new ArrayList<>();
             for (int i = 0; i < records.size(); i++) {
@@ -317,10 +317,10 @@ public class DahuaIccService {
                 list.add(videoRecord);
             }
 
-            return AjaxResult.success(list);
+            return R.success(list);
         }catch (Exception e){
             e.printStackTrace();
-            return AjaxResult.error("调用接口失败");
+            return R.error("调用接口失败");
         }
     }
 
@@ -330,7 +330,7 @@ public class DahuaIccService {
      * @param name
      * @return
      */
-    public AjaxResult queryRecordStream(ZaSysDevice camera, String name){
+    public R queryRecordStream(ZaSysDevice camera, String name){
         String chns[] = camera.getRemark().split(",");
         String[] ps = name.split("_");
         IccDataParam param = IccDataParam.create("channelId", chns[0]).set("type", "hls");
@@ -350,13 +350,13 @@ public class DahuaIccService {
                 urls += "," +response.getData().getString("url")+"?token="+getToken(oauthConfig);
             }
             if(StringUtils.isEmpty(urls)){
-                return AjaxResult.error("未找到回放流");
+                return R.error("未找到回放流");
             }else {
-                return AjaxResult.success(urls.substring(1), "dh");
+                return R.success(urls.substring(1), "dh");
             }
         }catch (Exception e){
             e.printStackTrace();
-            return AjaxResult.error("调用接口失败");
+            return R.error("调用接口失败");
         }
     }
 
@@ -398,15 +398,15 @@ public class DahuaIccService {
      * @return
      * @throws IOException
      */
-    public AjaxResult responseImage(String picUrl) {
-        AjaxResult ret = AjaxResult.error();
+    public R responseImage(String picUrl) {
+        R ret = R.error();
         try {
             picUrl += "?token="+getToken(oauthConfig);
             log.info("下载图片："+picUrl);
 
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             HttpUtil.download(picUrl, os, true);
-            ret = AjaxResult.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
+            ret = R.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
             // 完毕，关闭所有链接
             os.close();
             //is.close();
@@ -479,7 +479,7 @@ public class DahuaIccService {
      * @param camera
      * @return
      */
-    public AjaxResult realPlay(ZaSysDevice camera){
+    public R realPlay(ZaSysDevice camera){
         IccDataParam param = IccDataParam.create("channelId", camera.getCode());
         param.set("streamType", "1").set("type", "ws_flv");
         try{
@@ -498,11 +498,11 @@ public class DahuaIccService {
                 }
                 urls += "," +response.getData().getString("url")+"?token="+getToken(oauthConfig);
             }
-            return urls.length() == 0 ? AjaxResult.error("拉流失败") : AjaxResult.success(urls.substring(1), "dh");
+            return urls.length() == 0 ? R.error("拉流失败") : R.success(urls.substring(1), "dh");
         }catch (Exception e){
             e.printStackTrace();
             zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "拉取视频流失败", e.getMessage(), JSONObject.toJSONString(param));
-            return AjaxResult.error("拉取视频流失败");
+            return R.error("拉取视频流失败");
         }
     }
 

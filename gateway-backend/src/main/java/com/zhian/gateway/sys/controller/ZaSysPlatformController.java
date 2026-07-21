@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -52,7 +52,7 @@ public class ZaSysPlatformController extends BaseController
      */
     @ApiOperation("不分页查询平台信息列表")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysPlatform platform)
+    public R select(ZaSysPlatform platform)
     {
         List<ZaSysPlatform> list = platformService.selectZaSysPlatformList(platform);
         return success(list);
@@ -92,7 +92,7 @@ public class ZaSysPlatformController extends BaseController
     @ApiImplicitParam(name = "id", value = "平台信息主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:platform:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         return success(platformService.selectZaSysPlatformById(id));
     }
@@ -104,7 +104,7 @@ public class ZaSysPlatformController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:platform:add')")
     @Log(title = "平台信息", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysPlatform platform)
+    public R add(@RequestBody ZaSysPlatform platform)
     {
         platform.setCreateBy(getUsername());
         return toAjax(platformService.insertZaSysPlatform(platform));
@@ -117,10 +117,10 @@ public class ZaSysPlatformController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:platform:edit')")
     @Log(title = "平台信息", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysPlatform platform)
+    public R edit(@RequestBody ZaSysPlatform platform)
     {
         platform.setUpdateBy(getUsername());
-        AjaxResult result = toAjax(platformService.updateZaSysPlatform(platform));
+        R result = toAjax(platformService.updateZaSysPlatform(platform));
         // 启用状态下 - 重启
         if(platform.getStatus().equalsIgnoreCase(DictValue.STATUS_ENABLE)) {
             platformService.triggerPlatform(platform.getCode(), false);
@@ -148,7 +148,7 @@ public class ZaSysPlatformController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:platform:remove')")
     @Log(title = "平台信息", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(platformService.deleteZaSysPlatformByIds(ids));
     }
@@ -160,7 +160,7 @@ public class ZaSysPlatformController extends BaseController
     @ApiImplicitParam(name = "code", value = "平台代码", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:platform:add')")
     @GetMapping(value = "/start/{code}")
-    public AjaxResult start(@PathVariable("code") String code)
+    public R start(@PathVariable("code") String code)
     {
         return success(platformService.triggerPlatform(code, true));
     }
@@ -172,7 +172,7 @@ public class ZaSysPlatformController extends BaseController
     @ApiImplicitParam(name = "code", value = "平台代码", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:platform:add')")
     @GetMapping(value = "/stop/{code}")
-    public AjaxResult stop(@PathVariable("code") String code)
+    public R stop(@PathVariable("code") String code)
     {
         return success(platformService.triggerPlatform(code, false));
     }
@@ -183,7 +183,7 @@ public class ZaSysPlatformController extends BaseController
     @ApiOperation("获取平台运行时统计")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping(value = "/stats/{code}")
-    public AjaxResult stats(@PathVariable("code") String code)
+    public R stats(@PathVariable("code") String code)
     {
         return success(ThirdApplicationRunner.getPlatformStats(code));
     }
@@ -194,7 +194,7 @@ public class ZaSysPlatformController extends BaseController
     @ApiOperation("获取所有平台运行时统计")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping(value = "/stats")
-    public AjaxResult statsAll()
+    public R statsAll()
     {
         return success(ThirdApplicationRunner.getAllPlatformStats());
     }
@@ -205,7 +205,7 @@ public class ZaSysPlatformController extends BaseController
     @ApiOperation("今日按平台消息统计")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping(value = "/today-msg-stats")
-    public AjaxResult todayMsgStats()
+    public R todayMsgStats()
     {
         return success(messageService.countTodayByPlatform());
     }
@@ -216,7 +216,7 @@ public class ZaSysPlatformController extends BaseController
     @ApiOperation("插件消息统计详情")
     @PreAuthorize("@ss.hasPermi('sys:platform:list')")
     @GetMapping(value = "/msg-stats/{code}")
-    public AjaxResult msgStats(@PathVariable("code") String code)
+    public R msgStats(@PathVariable("code") String code)
     {
         Map<String, Object> data = new LinkedHashMap<>();
         long total = 0L;
@@ -290,7 +290,7 @@ public class ZaSysPlatformController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:platform:edit')")
     @Log(title = "平台运行日志", businessType = BusinessType.DELETE)
     @DeleteMapping(value = "/logs/{code}")
-    public AjaxResult clearLogs(@PathVariable("code") String code)
+    public R clearLogs(@PathVariable("code") String code)
     {
         ZaSysPlatform p = platformService.selectZaSysPlatformByCode(code);
         if (p == null) {

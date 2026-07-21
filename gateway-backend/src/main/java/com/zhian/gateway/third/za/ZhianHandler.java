@@ -1,7 +1,7 @@
 package com.zhian.gateway.third.za;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.http.HttpUtils;
 import com.zhian.gateway.sys.domain.ZaSysError;
@@ -108,7 +108,7 @@ public class ZhianHandler extends BasePlatformHandler implements MqttCallback {
      */
     public boolean isAlive() {
 //        ZaObject object = ZaObject.get(zaSysPlatform.getConfigStr("clientId"));
-//        AjaxResult ret =  sendRequest("/api/proxy/heart", object.toJSON());
+//        R ret =  sendRequest("/api/proxy/heart", object.toJSON());
 
         return client != null && client.isConnected();
     }
@@ -131,7 +131,7 @@ public class ZhianHandler extends BasePlatformHandler implements MqttCallback {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         log.info("control : {}", controlVo);
         return sendRequest("/api/proxy/control", JSONObject.toJSONString(controlVo));
     }
@@ -142,13 +142,13 @@ public class ZhianHandler extends BasePlatformHandler implements MqttCallback {
      * @param body
      * @return
      */
-    private AjaxResult sendRequest(String uri, String body){
+    private R sendRequest(String uri, String body){
         uri = "http://" + zaSysPlatform.getIp() + ":" + zaSysPlatform.getPort() + uri;
         Map<String, String> headMap = new HashMap<>();
         headMap.put("Content-Type", "application/json");
         String resStr = HttpUtils.postJSON(uri, body, headMap);
         log.info("za server post{}: {}\r\nresponse: {}", uri, body, resStr);
-        return JSONObject.parseObject(resStr, AjaxResult.class);
+        return JSONObject.parseObject(resStr, R.class);
     }
 
     /**

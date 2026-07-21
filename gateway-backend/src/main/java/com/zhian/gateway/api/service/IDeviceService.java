@@ -1,7 +1,7 @@
 package com.zhian.gateway.api.service;
 
 import com.zhian.gateway.api.domain.VideoRequest;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.third.vo.ControlVo;
 
@@ -15,7 +15,7 @@ public interface IDeviceService {
      * @param videoRequest
      * @return
      */
-    public AjaxResult playUrl(VideoRequest videoRequest);
+    public R playUrl(VideoRequest videoRequest);
 
 
     /**
@@ -23,7 +23,7 @@ public interface IDeviceService {
      * @param controlVo
      * @return
      */
-    public AjaxResult control(ControlVo controlVo);
+    public R control(ControlVo controlVo);
 
 
     /**
@@ -31,5 +31,5 @@ public interface IDeviceService {
      * @param zaSysDevice
      * @return
      */
-    public AjaxResult push(ZaSysDevice zaSysDevice);
+    public R push(ZaSysDevice zaSysDevice);
 }

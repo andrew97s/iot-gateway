@@ -3,7 +3,7 @@ package com.zhian.gateway.third.jadebird;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.ip.IpUtils;
 import com.zhian.gateway.consts.DeviceTypeEnum;
@@ -103,9 +103,9 @@ public class JadebirdBoxHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         log.info("青鸟云盒暂不支持反控");
-        return AjaxResult.error(400, "青鸟云盒暂不支持反控");
+        return R.error(400, "青鸟云盒暂不支持反控");
     }
 
     /**

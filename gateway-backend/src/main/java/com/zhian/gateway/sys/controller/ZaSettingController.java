@@ -1,7 +1,7 @@
 package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.system.domain.SysConfig;
 import com.zhian.gateway.system.service.ISysConfigService;
@@ -44,7 +44,7 @@ public class ZaSettingController extends BaseController {
 
     @ApiOperation("查询核心参数")
     @GetMapping("/params")
-    public AjaxResult getParams() {
+    public R getParams() {
         Map<String, String> result = new LinkedHashMap<>();
         for (Map.Entry<String, String[]> e : DEFAULTS.entrySet()) {
             String value = configService.selectConfigByKey(e.getKey());
@@ -56,7 +56,7 @@ public class ZaSettingController extends BaseController {
     @ApiOperation("保存核心参数")
     @PreAuthorize("@ss.hasPermi('system:config:edit')")
     @PutMapping("/params")
-    public AjaxResult saveParams(@RequestBody Map<String, String> params) {
+    public R saveParams(@RequestBody Map<String, String> params) {
         for (Map.Entry<String, String> e : params.entrySet()) {
             if (!DEFAULTS.containsKey(e.getKey()) || e.getValue() == null) {
                 continue;

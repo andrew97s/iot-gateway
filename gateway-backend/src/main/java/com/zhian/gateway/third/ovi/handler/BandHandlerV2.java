@@ -3,7 +3,8 @@ package com.zhian.gateway.third.ovi.handler;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.consts.DeviceTypeEnum;
 import com.zhian.gateway.consts.DictValue;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -46,8 +47,8 @@ public class BandHandlerV2 extends BasePlatformHandler<BandDataV2> {
     }
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
-        return AjaxResult.error("暂未实现反控功能!");
+    public R doControl(ControlVo controlVo) {
+        return R.error("暂未实现反控功能!");
     }
 
     @Override

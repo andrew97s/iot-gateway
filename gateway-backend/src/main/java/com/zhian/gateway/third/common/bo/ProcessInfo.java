@@ -2,7 +2,7 @@ package com.zhian.gateway.third.common.bo;
 
 import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.constants.MsgConstants;
@@ -122,7 +122,7 @@ public class ProcessInfo {
         return info;
     }
 
-    public static ProcessInfo newControl(ZaSysDevice device, ControlVo controlVo, AjaxResult result) {
+    public static ProcessInfo newControl(ZaSysDevice device, ControlVo controlVo, R result) {
         if (device == null) {
             return null;
         }

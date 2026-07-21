@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.StringUtils;
@@ -56,14 +56,14 @@ public class ZaMonitorTypeController extends BaseController {
 
     @ApiOperation("不分页查询监测类型")
     @GetMapping("/select")
-    public AjaxResult select(ZaMonitorType query) {
+    public R select(ZaMonitorType query) {
         return success(mapper.selectList(buildQuery(query)));
     }
 
     @ApiOperation("监测类型详情")
     @PreAuthorize("@ss.hasPermi('sys:monitortype:query')")
     @GetMapping("/{id}")
-    public AjaxResult getInfo(@PathVariable Long id) {
+    public R getInfo(@PathVariable Long id) {
         return success(mapper.selectById(id));
     }
 
@@ -71,7 +71,7 @@ public class ZaMonitorTypeController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:monitortype:add')")
     @Log(title = "监测类型", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaMonitorType entity) {
+    public R add(@RequestBody ZaMonitorType entity) {
         if (checkCodeExists(entity.getCode(), null)) {
             return error("类型编码已存在：" + entity.getCode());
         }
@@ -91,7 +91,7 @@ public class ZaMonitorTypeController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:monitortype:edit')")
     @Log(title = "监测类型", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaMonitorType entity) {
+    public R edit(@RequestBody ZaMonitorType entity) {
         if (checkCodeExists(entity.getCode(), entity.getId())) {
             return error("类型编码已存在：" + entity.getCode());
         }
@@ -105,7 +105,7 @@ public class ZaMonitorTypeController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:monitortype:remove')")
     @Log(title = "监测类型", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids) {
+    public R remove(@PathVariable Long[] ids) {
         int rows = mapper.deleteBatchIds(Arrays.asList(ids));
         typeMappingService.reload();
         return toAjax(rows);

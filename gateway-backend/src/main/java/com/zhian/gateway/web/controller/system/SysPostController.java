@@ -2,7 +2,7 @@ package com.zhian.gateway.web.controller.system;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -55,7 +55,7 @@ public class SysPostController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('system:post:query')")
     @GetMapping(value = "/{postId}")
-    public AjaxResult getInfo(@PathVariable Long postId)
+    public R getInfo(@PathVariable Long postId)
     {
         return success(postService.selectPostById(postId));
     }
@@ -66,7 +66,7 @@ public class SysPostController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:post:add')")
     @Log(title = "岗位管理", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@Validated @RequestBody SysPost post)
+    public R add(@Validated @RequestBody SysPost post)
     {
         if (!postService.checkPostNameUnique(post))
         {
@@ -86,7 +86,7 @@ public class SysPostController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:post:edit')")
     @Log(title = "岗位管理", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@Validated @RequestBody SysPost post)
+    public R edit(@Validated @RequestBody SysPost post)
     {
         if (!postService.checkPostNameUnique(post))
         {
@@ -106,7 +106,7 @@ public class SysPostController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:post:remove')")
     @Log(title = "岗位管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{postIds}")
-    public AjaxResult remove(@PathVariable Long[] postIds)
+    public R remove(@PathVariable Long[] postIds)
     {
         return toAjax(postService.deletePostByIds(postIds));
     }
@@ -115,7 +115,7 @@ public class SysPostController extends BaseController
      * 获取岗位选择框列表
      */
     @GetMapping("/optionselect")
-    public AjaxResult optionselect()
+    public R optionselect()
     {
         List<SysPost> posts = postService.selectPostAll();
         return success(posts);

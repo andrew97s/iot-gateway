@@ -5,7 +5,7 @@ import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.BasePlatformHandler;
@@ -111,8 +111,8 @@ public class MkHandler extends BasePlatformHandler<MkCanMsg> {
     }
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
-        return AjaxResult.error("操作失败,铭控暂不支持反控操作!");
+    public R doControl(ControlVo controlVo) {
+        return R.error("操作失败,铭控暂不支持反控操作!");
     }
 
     @Override

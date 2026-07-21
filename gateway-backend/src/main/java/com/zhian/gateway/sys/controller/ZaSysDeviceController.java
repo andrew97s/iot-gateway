@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -41,7 +41,7 @@ public class ZaSysDeviceController extends BaseController
      */
     @ApiOperation("不分页查询接入设备列表")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysDevice zaSysDevice)
+    public R select(ZaSysDevice zaSysDevice)
     {
         List<ZaSysDevice> list = deviceService.selectZaSysDeviceList(zaSysDevice);
         enrichSync(list);
@@ -105,7 +105,7 @@ public class ZaSysDeviceController extends BaseController
     @Log(title = "建筑物管理", businessType = BusinessType.IMPORT)
     @PreAuthorize("@ss.hasPermi('sys:device:import')")
     @PostMapping("/importData")
-    public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception
+    public R importData(MultipartFile file, boolean updateSupport) throws Exception
     {
         ExcelUtil<ZaSysDevice> util = new ExcelUtil<ZaSysDevice>(ZaSysDevice.class);
         List<ZaSysDevice> dataList = util.importExcel(file.getInputStream());
@@ -128,7 +128,7 @@ public class ZaSysDeviceController extends BaseController
     @ApiImplicitParam(name = "id", value = "接入设备主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:device:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         return success(deviceService.selectZaSysDeviceById(id));
     }
@@ -140,7 +140,7 @@ public class ZaSysDeviceController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:device:add')")
     @Log(title = "接入设备", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysDevice zaSysDevice)
+    public R add(@RequestBody ZaSysDevice zaSysDevice)
     {
         zaSysDevice.setCreateBy(getUsername());
         return toAjax(deviceService.insertZaSysDevice(zaSysDevice));
@@ -153,7 +153,7 @@ public class ZaSysDeviceController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:device:edit')")
     @Log(title = "接入设备", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysDevice zaSysDevice)
+    public R edit(@RequestBody ZaSysDevice zaSysDevice)
     {
         zaSysDevice.setUpdateBy(getUsername());
         return toAjax(deviceService.updateZaSysDevice(zaSysDevice));
@@ -167,7 +167,7 @@ public class ZaSysDeviceController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:device:remove')")
     @Log(title = "接入设备", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(deviceService.deleteZaSysDeviceByIds(ids));
     }
@@ -178,7 +178,7 @@ public class ZaSysDeviceController extends BaseController
      */
     @ApiOperation("同步设备信息，向外部应用推送")
     @GetMapping(value = "/sync")
-    public AjaxResult sync()
+    public R sync()
     {
         deviceService.pushDevice();
         return success();
@@ -188,7 +188,7 @@ public class ZaSysDeviceController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:message:remove')")
     @Log(title = "清除数据", businessType = BusinessType.DELETE)
     @DeleteMapping("/purge")
-    public AjaxResult purge()
+    public R purge()
     {
         deviceService.purge();
         return toAjax(true);
@@ -199,7 +199,7 @@ public class ZaSysDeviceController extends BaseController
      */
     @ApiOperation("按平台统计设备在线情况")
     @GetMapping("/online-stats")
-    public AjaxResult onlineStats()
+    public R onlineStats()
     {
         return success(deviceService.selectOnlineStats());
     }
@@ -210,7 +210,7 @@ public class ZaSysDeviceController extends BaseController
     @ApiOperation("更新设备在线状态")
     @PreAuthorize("@ss.hasPermi('sys:device:edit')")
     @PutMapping("/online")
-    public AjaxResult updateOnline(@RequestBody java.util.Map<String, Object> params)
+    public R updateOnline(@RequestBody java.util.Map<String, Object> params)
     {
         String code   = (String)  params.get("code");
         String pfCode = (String)  params.get("pfCode");

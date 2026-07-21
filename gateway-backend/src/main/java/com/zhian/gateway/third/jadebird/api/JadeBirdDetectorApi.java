@@ -1,7 +1,7 @@
 package com.zhian.gateway.third.jadebird.api;
 
 import cn.hutool.extra.servlet.ServletUtil;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.service.IZaSysErrorService;
@@ -44,7 +44,7 @@ public class JadeBirdDetectorApi
      * @param msgStr
      */
     @RequestMapping("/alarm")
-    public AjaxResult alarmInfo(@RequestHeader("x-timestamp") String timestamp,
+    public R alarmInfo(@RequestHeader("x-timestamp") String timestamp,
                                 @RequestHeader("x-signature") String signature,
                                 @RequestHeader("x-id") String id,
                                 @RequestBody String msgStr) {
@@ -55,7 +55,7 @@ public class JadeBirdDetectorApi
         msg.setMsg(msgStr);
         processMsg(msg);
 
-        return AjaxResult.error(0, "成功");
+        return R.error(0, "成功");
     }
 
     /**
@@ -66,7 +66,7 @@ public class JadeBirdDetectorApi
      * @param msgStr
      */
     @RequestMapping("/cancel-alarm")
-    public AjaxResult cancelAlarmInfo(@RequestHeader("x-timestamp" )String timestamp,
+    public R cancelAlarmInfo(@RequestHeader("x-timestamp" )String timestamp,
                           @RequestHeader("x-signature") String signature,
                           @RequestHeader("x-id") String id,
                           @RequestBody String msgStr) {
@@ -77,7 +77,7 @@ public class JadeBirdDetectorApi
         msg.setType(DetectorMsg.TYPE_CANCEL_ALARM);
         msg.setMsg(msgStr);
         processMsg(msg);
-        return AjaxResult.error(0, "成功");
+        return R.error(0, "成功");
     }
 
     /**
@@ -92,7 +92,7 @@ public class JadeBirdDetectorApi
      * @param msgStr
      */
     @PostMapping("/register-device")
-    public AjaxResult registerDevice(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature,
+    public R registerDevice(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature,
                                @RequestHeader("x-id") String id, @RequestBody String msgStr){
         log.info("detector register msg: {}", msgStr);
 
@@ -100,7 +100,7 @@ public class JadeBirdDetectorApi
         msg.setType(DetectorMsg.TYPE_REGISTER_DEVICE);
         msg.setMsg(msgStr);
         processMsg(msg);
-        return AjaxResult.error(0, "成功");
+        return R.error(0, "成功");
     }
 
 
@@ -116,7 +116,7 @@ public class JadeBirdDetectorApi
      * @param msgStr
      */
     @PostMapping("/register-detector-list")
-    public AjaxResult registerDetectorList(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature,
+    public R registerDetectorList(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature,
                                @RequestHeader("x-id") String id, @RequestBody String msgStr){
         log.info("detector list register  msg: {}", msgStr);
 
@@ -124,7 +124,7 @@ public class JadeBirdDetectorApi
         msg.setType(DetectorMsg.TYPE_REGISTER_DETECTOR_LIST);
         msg.setMsg(msgStr);
         processMsg(msg);
-        return AjaxResult.error(0, "成功");
+        return R.error(0, "成功");
     }
 
     /**
@@ -135,7 +135,7 @@ public class JadeBirdDetectorApi
      * @param msgStr
      */
     @RequestMapping("/heartbeat")
-    public AjaxResult heartbeat(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msgStr){
+    public R heartbeat(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msgStr){
         log.debug("detector heartbeat msg: {}", msgStr);
 
         DetectorMsg msg = new DetectorMsg();
@@ -145,7 +145,7 @@ public class JadeBirdDetectorApi
         //心跳
         processMsg(msg);
 
-        return AjaxResult.error(0, "成功");
+        return R.error(0, "成功");
     }
 
     /**

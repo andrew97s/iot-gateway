@@ -1,7 +1,7 @@
 package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDataset;
 import com.zhian.gateway.sys.service.IZaSysDatasetService;
 import io.swagger.annotations.Api;
@@ -31,7 +31,7 @@ public class ZaStaticsController extends BaseController
      */
     @ApiOperation("不分页查询数据集列表")
     @GetMapping("/ds/{dsCode}")
-    public AjaxResult ds(@PathVariable("dsCode") String dsCode, HttpServletRequest request, ZaSysDataset zaSysDataset)
+    public R ds(@PathVariable("dsCode") String dsCode, HttpServletRequest request, ZaSysDataset zaSysDataset)
     {
         zaSysDataset.setCode(dsCode);
         Enumeration<String> ps = request.getParameterNames();
@@ -39,7 +39,7 @@ public class ZaStaticsController extends BaseController
             String p = ps.nextElement();
             zaSysDataset.getParams().put(p, request.getParameter(p));
         }
-        return AjaxResult.success(zaSysDatasetService.query(zaSysDataset));
+        return R.success(zaSysDatasetService.query(zaSysDataset));
     }
 
 }

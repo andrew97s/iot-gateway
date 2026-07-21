@@ -3,7 +3,7 @@ package com.zhian.gateway.third.jadebird;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
 import com.zhian.gateway.consts.DeviceTypeEnum;
@@ -84,9 +84,9 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
      * @return
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         log.info("青瞳反控:{}", controlVo);
-        return AjaxResult.error(400, "青瞳暂不支持反控");
+        return R.error(400, "青瞳暂不支持反控");
     }
 
     /**

@@ -34,7 +34,7 @@ public class WristBandApiV2 {
     private BandHandlerV2 bandHandler;
 
     @RequestMapping("/receive")
-    public R<String> receive(HttpServletRequest request) throws Exception {
+    public R receive(HttpServletRequest request) throws Exception {
         // 使用 BufferedReader 读取请求体
         String requestBody = new BufferedReader(
                 new InputStreamReader(request.getInputStream(), StandardCharsets.UTF_8)
@@ -65,6 +65,6 @@ public class WristBandApiV2 {
             }
         });
 
-        return R.ok("OK");
+        return R.success("OK");
     }
 }

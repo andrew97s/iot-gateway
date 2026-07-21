@@ -2,7 +2,7 @@ package com.zhian.gateway.web.controller.monitor;
 
 import com.zhian.gateway.common.constant.CacheConstants;
 import com.zhian.gateway.common.core.cache.Cache;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.system.domain.SysCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,57 +40,57 @@ public class CacheController
 
     @PreAuthorize("@ss.hasPermi('monitor:cache:list')")
     @GetMapping()
-    public AjaxResult getInfo() throws Exception
+    public R getInfo() throws Exception
     {
-        return AjaxResult.success(cache.getInfo());
+        return R.success(cache.getInfo());
     }
 
     @PreAuthorize("@ss.hasPermi('monitor:cache:list')")
     @GetMapping("/getNames")
-    public AjaxResult cache()
+    public R cache()
     {
-        return AjaxResult.success(caches);
+        return R.success(caches);
     }
 
     @PreAuthorize("@ss.hasPermi('monitor:cache:list')")
     @GetMapping("/getKeys/{cacheName}")
-    public AjaxResult getCacheKeys(@PathVariable String cacheName)
+    public R getCacheKeys(@PathVariable String cacheName)
     {
         Collection<String> keys = cache.keys(cacheName + "*");
-        return AjaxResult.success(keys);
+        return R.success(keys);
     }
 
     @PreAuthorize("@ss.hasPermi('monitor:cache:list')")
     @GetMapping("/getValue/{cacheName}/{cacheKey}")
-    public AjaxResult getCacheValue(@PathVariable String cacheName, @PathVariable String cacheKey)
+    public R getCacheValue(@PathVariable String cacheName, @PathVariable String cacheKey)
     {
         Object cacheValue = cache.getCacheObject(cacheKey);
         SysCache sysCache = new SysCache(cacheName, cacheKey, cacheValue.toString());
-        return AjaxResult.success(sysCache);
+        return R.success(sysCache);
     }
 
     @PreAuthorize("@ss.hasPermi('monitor:cache:list')")
     @DeleteMapping("/clearCacheName/{cacheName}")
-    public AjaxResult clearCacheName(@PathVariable String cacheName)
+    public R clearCacheName(@PathVariable String cacheName)
     {
         Collection<String> keys = cache.keys(cacheName + "*");
         cache.deleteObject(keys);
-        return AjaxResult.success();
+        return R.success();
     }
 
     @PreAuthorize("@ss.hasPermi('monitor:cache:list')")
     @DeleteMapping("/clearCacheKey/{cacheKey}")
-    public AjaxResult clearCacheKey(@PathVariable String cacheKey)
+    public R clearCacheKey(@PathVariable String cacheKey)
     {
         cache.deleteObject(cacheKey);
-        return AjaxResult.success();
+        return R.success();
     }
 
     @PreAuthorize("@ss.hasPermi('monitor:cache:list')")
     @DeleteMapping("/clearCacheAll")
-    public AjaxResult clearCacheAll()
+    public R clearCacheAll()
     {
         cache.deleteObject(cache.keys("*"));
-        return AjaxResult.success();
+        return R.success();
     }
 }

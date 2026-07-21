@@ -3,7 +3,7 @@ package com.zhian.gateway.api.controller;
 import com.zhian.gateway.api.domain.VideoRequest;
 import com.zhian.gateway.api.service.IDeviceService;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -27,13 +27,13 @@ public class DeviceController extends BaseController {
     private IDeviceService deviceService;
 
     @PostMapping("playUrl")
-    public AjaxResult playUrl(@RequestBody VideoRequest video) {
+    public R playUrl(@RequestBody VideoRequest video) {
         return deviceService.playUrl(video);
     }
 
 
     @PostMapping("control")
-    public AjaxResult control(@RequestBody ControlVo controlVo) {
+    public R control(@RequestBody ControlVo controlVo) {
         return deviceService.control(controlVo);
     }
 
@@ -54,7 +54,7 @@ public class DeviceController extends BaseController {
 
     @ApiOperation("强制网关向上推送设备列表")
     @GetMapping("push")
-    public AjaxResult push(ZaSysDevice zaSysDevice) {
+    public R push(ZaSysDevice zaSysDevice) {
         return deviceService.push(zaSysDevice);
     }
 

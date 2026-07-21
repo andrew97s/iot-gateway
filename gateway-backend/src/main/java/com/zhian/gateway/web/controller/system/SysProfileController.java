@@ -3,7 +3,7 @@ package com.zhian.gateway.web.controller.system;
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.config.ZhianConfig;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.domain.entity.SysUser;
 import com.zhian.gateway.common.core.domain.model.LoginUser;
 import com.zhian.gateway.common.enums.BusinessType;
@@ -36,11 +36,11 @@ public class SysProfileController extends BaseController
      * 个人信息
      */
     @GetMapping
-    public AjaxResult profile()
+    public R profile()
     {
         LoginUser loginUser = getLoginUser();
         SysUser user = loginUser.getUser();
-        AjaxResult ajax = AjaxResult.success(user);
+        R ajax = R.success(user);
         ajax.put("roleGroup", userService.selectUserRoleGroup(loginUser.getUsername()));
         ajax.put("postGroup", userService.selectUserPostGroup(loginUser.getUsername()));
         return ajax;
@@ -51,7 +51,7 @@ public class SysProfileController extends BaseController
      */
     @Log(title = "个人信息", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult updateProfile(@RequestBody SysUser user)
+    public R updateProfile(@RequestBody SysUser user)
     {
         LoginUser loginUser = getLoginUser();
         SysUser sysUser = loginUser.getUser();
@@ -86,7 +86,7 @@ public class SysProfileController extends BaseController
      */
     @Log(title = "个人信息", businessType = BusinessType.UPDATE)
     @PutMapping("/updatePwd")
-    public AjaxResult updatePwd(String oldPassword, String newPassword)
+    public R updatePwd(String oldPassword, String newPassword)
     {
         LoginUser loginUser = getLoginUser();
         String userName = loginUser.getUsername();
@@ -114,7 +114,7 @@ public class SysProfileController extends BaseController
      */
     @Log(title = "用户头像", businessType = BusinessType.UPDATE)
     @PostMapping("/avatar")
-    public AjaxResult avatar(@RequestParam("avatarfile") MultipartFile file) throws Exception
+    public R avatar(@RequestParam("avatarfile") MultipartFile file) throws Exception
     {
         if (!file.isEmpty())
         {
@@ -122,7 +122,7 @@ public class SysProfileController extends BaseController
             String avatar = FileUploadUtils.upload(ZhianConfig.getAvatarPath(), file, MimeTypeUtils.IMAGE_EXTENSION);
             if (userService.updateUserAvatar(loginUser.getUsername(), avatar))
             {
-                AjaxResult ajax = AjaxResult.success();
+                R ajax = R.success();
                 ajax.put("imgUrl", avatar);
                 // 更新缓存用户头像
                 loginUser.getUser().setAvatar(avatar);

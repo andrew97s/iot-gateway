@@ -2,7 +2,7 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
@@ -35,7 +35,7 @@ public class ZaSysCascadeController extends BaseController
      */
     @ApiOperation("不分页查询级联平台列表")
     @GetMapping("/select")
-    public AjaxResult select(ZaSysCascade zaSysCascade)
+    public R select(ZaSysCascade zaSysCascade)
     {
         List<ZaSysCascade> list = zaSysCascadeService.selectZaSysCascadeList(zaSysCascade);
         return success(list);
@@ -75,7 +75,7 @@ public class ZaSysCascadeController extends BaseController
     @ApiImplicitParam(name = "id", value = "级联平台主键", required = true, dataType = "long", paramType = "path", dataTypeClass = Long.class)
     @PreAuthorize("@ss.hasPermi('sys:cascade:query')")
     @GetMapping(value = "/{id}")
-    public AjaxResult getInfo(@PathVariable("id") Long id)
+    public R getInfo(@PathVariable("id") Long id)
     {
         return success(zaSysCascadeService.selectZaSysCascadeById(id));
     }
@@ -87,7 +87,7 @@ public class ZaSysCascadeController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:cascade:add')")
     @Log(title = "级联平台", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaSysCascade zaSysCascade)
+    public R add(@RequestBody ZaSysCascade zaSysCascade)
     {
         zaSysCascade.setCreateBy(getUsername());
         return toAjax(zaSysCascadeService.insertZaSysCascade(zaSysCascade));
@@ -100,7 +100,7 @@ public class ZaSysCascadeController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:cascade:edit')")
     @Log(title = "级联平台", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaSysCascade zaSysCascade)
+    public R edit(@RequestBody ZaSysCascade zaSysCascade)
     {
         zaSysCascade.setUpdateBy(getUsername());
         return toAjax(zaSysCascadeService.updateZaSysCascade(zaSysCascade));
@@ -114,7 +114,7 @@ public class ZaSysCascadeController extends BaseController
     @PreAuthorize("@ss.hasPermi('sys:cascade:remove')")
     @Log(title = "级联平台", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids)
+    public R remove(@PathVariable Long[] ids)
     {
         return toAjax(zaSysCascadeService.deleteZaSysCascadeByIds(ids));
     }

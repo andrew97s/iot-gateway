@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.dahuatech.icc.oauth.model.v202010.OauthConfigUserPwdInfo;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.ip.IpUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -123,13 +123,13 @@ public class DhIccHandler extends BasePlatformHandler {
      * 反向控制
      *
      * @param controlVo 控制对象
-     * @return AjaxResult
+     * @return R
      */
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         ZaSysDevice camera = controlVo.getDevice();
         if (camera == null) {
-            return AjaxResult.error("设备信息不存在");
+            return R.error("设备信息不存在");
         }
 
         //流地址自动拼接，默认ws协议,支持参数请求http协议
@@ -144,14 +144,14 @@ public class DhIccHandler extends BasePlatformHandler {
             if (url != null) {
                 return iccService.responseImage(url);
             } else {
-                return AjaxResult.error("读取图片失败");
+                return R.error("读取图片失败");
             }
         } else if (ControlVo.CMD_PTZ.equalsIgnoreCase(controlVo.getCommand())) {
             //云台控制
             iccService.ptz(camera, controlVo.getValue());
-            return AjaxResult.success();
+            return R.success();
         }
-        return AjaxResult.error("暂不支持的控制");
+        return R.error("暂不支持的控制");
     }
 
     /**

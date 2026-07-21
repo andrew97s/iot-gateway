@@ -6,7 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.consts.DeviceTypeEnum;
 import com.zhian.gateway.framework.disruptor.DisruptorUtil;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -99,7 +99,7 @@ public class EzvizHandler extends BasePlatformHandler<WebhookReq> {
     }
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         // 获取流播放地址
         if (ControlVo.CMD_STREAM.equals(controlVo.getCommand())) {
             // 创建&执行拉流请求
@@ -115,17 +115,17 @@ public class EzvizHandler extends BasePlatformHandler<WebhookReq> {
             FetchDeviceStreamResp resp = JSON.parseObject(streamResp, FetchDeviceStreamResp.class);
             if (resp.isSuccess() && StrUtil.isNotBlank(resp.getData().getUrl())) {
                 // 此处从萤石云返回的流地址有效期默认为24h,过期需重新拉取
-                return AjaxResult.success(resp.getData().getUrl());
+                return R.success(resp.getData().getUrl());
             }
             else {
                 log.error("萤石云获取流失败,msg:{}" , resp.getMsg());
-                AjaxResult.error("获取流失败!");
+                R.error("获取流失败!");
             }
         } else {
-            return AjaxResult.error("萤石云暂未实现反控(code: " + controlVo.getCommand() + " )功能!");
+            return R.error("萤石云暂未实现反控(code: " + controlVo.getCommand() + " )功能!");
         }
 
-        return AjaxResult.error("萤石云暂未实现反控功能!");
+        return R.error("萤石云暂未实现反控功能!");
     }
 
     @Override

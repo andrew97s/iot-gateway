@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.core.page.TableDataInfo;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.StringUtils;
@@ -55,14 +55,14 @@ public class ZaDeviceTypeController extends BaseController {
 
     @ApiOperation("不分页查询设备类型")
     @GetMapping("/select")
-    public AjaxResult select(ZaDeviceType query) {
+    public R select(ZaDeviceType query) {
         return success(mapper.selectList(buildQuery(query)));
     }
 
     @ApiOperation("设备类型详情")
     @PreAuthorize("@ss.hasPermi('sys:devicetype:query')")
     @GetMapping("/{id}")
-    public AjaxResult getInfo(@PathVariable Long id) {
+    public R getInfo(@PathVariable Long id) {
         return success(mapper.selectById(id));
     }
 
@@ -70,7 +70,7 @@ public class ZaDeviceTypeController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:devicetype:add')")
     @Log(title = "设备类型", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody ZaDeviceType entity) {
+    public R add(@RequestBody ZaDeviceType entity) {
         if (checkCodeExists(entity.getCode(), null)) {
             return error("类型编码已存在：" + entity.getCode());
         }
@@ -87,7 +87,7 @@ public class ZaDeviceTypeController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:devicetype:edit')")
     @Log(title = "设备类型", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody ZaDeviceType entity) {
+    public R edit(@RequestBody ZaDeviceType entity) {
         if (checkCodeExists(entity.getCode(), entity.getId())) {
             return error("类型编码已存在：" + entity.getCode());
         }
@@ -101,7 +101,7 @@ public class ZaDeviceTypeController extends BaseController {
     @PreAuthorize("@ss.hasPermi('sys:devicetype:remove')")
     @Log(title = "设备类型", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
-    public AjaxResult remove(@PathVariable Long[] ids) {
+    public R remove(@PathVariable Long[] ids) {
         int rows = mapper.deleteBatchIds(Arrays.asList(ids));
         typeMappingService.reload();
         return toAjax(rows);

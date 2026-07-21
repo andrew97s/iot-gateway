@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.config.ZhianConfig;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.file.FileUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -152,57 +152,57 @@ public class EwVideoGatewayHandler extends BasePlatformHandler {
     }
 
     @Override
-    public AjaxResult doControl(ControlVo controlVo) {
+    public R doControl(ControlVo controlVo) {
         ZaSysDevice camera = controlVo.getDevice();
         if (camera == null) {
-            return AjaxResult.error("设备信息不存在");
+            return R.error("设备信息不存在");
         }
 
         ZaSysDevice netDevice = deviceService.selectZaSysDeviceByCode(camera.getNet(), null);
         if (netDevice == null) {
-            return AjaxResult.error("未找到视频网关");
+            return R.error("未找到视频网关");
         }
         GatewayVideoInfo.DeviceInfo.PlayUrl playUrl = JSONObject.parseObject(camera.getRemark(), GatewayVideoInfo.DeviceInfo.PlayUrl.class);
         //流地址
         if (ControlVo.CMD_STREAM.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.success(playUrl.getFlv());
+            return R.success(playUrl.getFlv());
         } else if (ControlVo.CMD_PLAY_BACK.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.error("暂不支持回放");
+            return R.error("暂不支持回放");
         } else if (ControlVo.CMD_RECORDS.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.error("暂不支持回放");
+            return R.error("暂不支持回放");
         } else if (ControlVo.CMD_PTZ.equalsIgnoreCase(controlVo.getCommand())) {
-            return AjaxResult.error("不支持云台控制");
+            return R.error("不支持云台控制");
         } else if (ControlVo.CMD_SNAP.equalsIgnoreCase(controlVo.getCommand())) {
             //截图自己实现
             try {
                 String rtsp = playUrl.getRtsp();
                 if (StringUtils.isEmpty(rtsp)) {
                     log.error("截图 {} - {} 时未找到视频流", camera.getNet(), camera.getCode());
-                    return AjaxResult.error("未找到视频流");
+                    return R.error("未找到视频流");
                 }
 
                 String path = VideoUtil.ffmpeg(rtsp);
                 if (StringUtils.isEmpty(path)) {
                     log.error("FFMPEG截图 {} - {} 失败", camera.getNet(), camera.getCode());
-                    return AjaxResult.error("截图失败");
+                    return R.error("截图失败");
                 }
 
                 File imgFile = new File(ZhianConfig.getUploadPath() + path);
                 if (!imgFile.exists()) {
                     log.error("未找到FFMPEG截图文件 {} - {} : {}", camera.getNet(), camera.getCode(), path);
-                    return AjaxResult.error("截图文件不存在");
+                    return R.error("截图文件不存在");
                 }
                 byte[] result = FileUtils.readFileToByteArray(imgFile);
                 imgFile.delete();
-                return AjaxResult.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(result));
+                return R.success("data:image/jpeg;base64," + Base64.getEncoder().encodeToString(result));
 
 
             } catch (Exception e) {
                 e.printStackTrace();
                 zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "视频网关反控失败", e.getMessage(), JSONObject.toJSONString(controlVo));
-                return AjaxResult.error("视频网关调用失败");
+                return R.error("视频网关调用失败");
             }
         }
-        return AjaxResult.error("不支持操作");
+        return R.error("不支持操作");
     }
 }

@@ -3,7 +3,7 @@ package com.zhian.gateway.third.dahua;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.config.ZhianConfig;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.framework.disruptor.DisruptorUtil;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
@@ -51,21 +51,21 @@ public class DahuaInnerApi {
      * @param multipartFile
      */
     @PostMapping("/jz")
-    public AjaxResult alarmInfo(@RequestParam("deviceID") String deviceID,
+    public R alarmInfo(@RequestParam("deviceID") String deviceID,
                                 @RequestParam("dhClientID") String dhClientID,
                                 @RequestParam("alarmType") Integer alarmType,
                                 @RequestPart("eventImage") MultipartFile multipartFile) {
         log.info("----接收到[大华告警]告警消息 : deviceID[{}],alarmType[{}]",  deviceID, alarmType);
 
         if(alarmType == null || alarmType == 0){
-            return AjaxResult.error("信息有误");
+            return R.error("信息有误");
         }
 
         /*
         EmAlarmType alarmTypeEm = EmAlarmType.getAlarm(alarmType);
         if(alarmTypeEm == null){
             log.error("摄像机{}未关注的事件[{}]-[{}]将忽略", dhClientID, alarmType, String.format("0x%x",alarmType));
-            return AjaxResult.success( "告警成功");
+            return R.success( "告警成功");
         }
          */
 
@@ -91,7 +91,7 @@ public class DahuaInnerApi {
             dhSdkHandler.consumeMsg(message);
         });
 
-        return AjaxResult.error(0, "告警成功");
+        return R.error(0, "告警成功");
     }
 
     /**
@@ -128,7 +128,7 @@ public class DahuaInnerApi {
      * @return
      */
     @PostMapping("icc")
-    public AjaxResult iccMsg(@RequestBody String msgStr){
+    public R iccMsg(@RequestBody String msgStr){
         log.info("----接收到[大华ICC平台的]告警消息 : {}",  msgStr);
 
         IccAlarmMsg alarmMsg = JSONObject.parseObject(msgStr, IccAlarmMsg.class);
@@ -136,6 +136,6 @@ public class DahuaInnerApi {
             dhIccHandler.processMsg(alarmMsg);
         });
 
-        return AjaxResult.error(0, "已接收到消息");
+        return R.error(0, "已接收到消息");
     }
 }

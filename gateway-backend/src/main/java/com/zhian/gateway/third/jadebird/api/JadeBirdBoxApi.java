@@ -1,7 +1,7 @@
 package com.zhian.gateway.third.jadebird.api;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.zhian.gateway.common.core.domain.AjaxResult;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.ServletUtils;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
@@ -41,7 +41,7 @@ public class JadeBirdBoxApi
      * @param msg
      */
     @RequestMapping("/alarmInfo")
-    public AjaxResult alarmInfo(@RequestHeader("x-timestamp") String timestamp,
+    public R alarmInfo(@RequestHeader("x-timestamp") String timestamp,
                                 @RequestHeader("x-signature") String signature,
                                 @RequestHeader("x-id") String id,
                                 @RequestBody String msg) {
@@ -51,7 +51,7 @@ public class JadeBirdBoxApi
         boxMsg.setType(BoxMsg.TYPE_ALARM);
         boxMsg.setMsg(msg);
         processMsg(boxMsg);
-        return AjaxResult.error(0, "告警成功");
+        return R.error(0, "告警成功");
     }
 
     /**
@@ -62,7 +62,7 @@ public class JadeBirdBoxApi
      * @param msg
      */
     @RequestMapping("/registerDevice")
-    public AjaxResult registerDevice(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msg){
+    public R registerDevice(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msg){
         log.info("box register msg: {}", msg);
 
         BoxDeviceInfo deviceInfo = JSONObject.parseObject(msg, BoxDeviceInfo.class);
@@ -71,7 +71,7 @@ public class JadeBirdBoxApi
         boxMsg.setType(BoxMsg.TYPE_REGISTER);
         boxMsg.setMsg(msg);
         processMsg(boxMsg);
-        return AjaxResult.error(0, "注册成功");
+        return R.error(0, "注册成功");
     }
 
     /**
@@ -82,14 +82,14 @@ public class JadeBirdBoxApi
      * @param msgStr
      */
     @RequestMapping("/heartbeat")
-    public AjaxResult heartbeat(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msgStr){
+    public R heartbeat(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msgStr){
         log.debug("box heartbeat msg: {}", msgStr);
 
         BoxMsg boxMsg = new BoxMsg();
         boxMsg.setType(BoxMsg.TYPE_HEARTBEAT);
         boxMsg.setMsg(msgStr);
         processMsg(boxMsg);
-        return AjaxResult.error(0, "操作成功");
+        return R.error(0, "操作成功");
     }
 
 
@@ -101,14 +101,14 @@ public class JadeBirdBoxApi
      * @param msgStr
      */
     @RequestMapping("/registerAllCamera")
-    public AjaxResult registerAllCamera(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msgStr){
+    public R registerAllCamera(@RequestHeader("x-timestamp") String timestamp, @RequestHeader("x-signature") String signature, @RequestHeader("x-id") String id, @RequestBody String msgStr){
         log.debug("box registerAllCamera msg: {}", msgStr);
 
         BoxMsg boxMsg = new BoxMsg();
         boxMsg.setType(BoxMsg.TYPE_REGISTER_CAMERA);
         boxMsg.setMsg(msgStr);
         processMsg(boxMsg);
-        return AjaxResult.error(0, "操作成功");
+        return R.error(0, "操作成功");
     }
 
     /**
