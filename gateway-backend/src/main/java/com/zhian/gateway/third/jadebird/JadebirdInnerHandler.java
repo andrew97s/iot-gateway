@@ -1,7 +1,6 @@
 package com.zhian.gateway.third.jadebird;
 
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.*;
 import com.zhian.gateway.common.core.domain.R;
@@ -9,17 +8,20 @@ import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.http.HttpUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
-import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
+import com.zhian.gateway.consts.DeviceConstants;
+import com.zhian.gateway.core.message.Message;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.sys.domain.ZaDeviceType;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.sys.service.TypeMappingService;
 import com.zhian.gateway.sys.utils.MessageUtil;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.common.bo.SyncDevice;
-import com.zhian.gateway.third.common.constants.DeviceType;
-import com.zhian.gateway.third.common.constants.MsgConstants;
 import com.zhian.gateway.third.common.util.DeviceUtil;
+import com.zhian.gateway.third.jadebird.util.JbProtocolParser;
 import com.zhian.gateway.third.jadebird.vo.Facility;
 import com.zhian.gateway.third.jadebird.vo.HrpDeivceVo;
 import com.zhian.gateway.third.jadebird.vo.JbResponse;
@@ -44,9 +46,21 @@ import java.util.*;
 @Slf4j
 @DependsOn(value = "gatewayHandler")
 public class JadebirdInnerHandler extends BasePlatformHandler {
+    /**
+     * The constant PLATFORM_NAME.
+     */
     public static final String PLATFORM_NAME = "trserver";
+    /**
+     * The constant PROTOCOL_NAME.
+     */
     public static final String PROTOCOL_NAME = "jb";
+    /**
+     * The constant CACHE_MAP.
+     */
     public static final String CACHE_MAP = "trserver";
+    /**
+     * The constant OFFLINE_HOURS.
+     */
     public static final Integer OFFLINE_HOURS = 1;
     private static ZaSysPlatform zaSysPlatform;
     private static Channel channel;
@@ -192,9 +206,9 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
         JbResponse res = null;
 
         //用传和HRP网关，支持复位和消音
-        if (device.getType().equalsIgnoreCase(DeviceType.UITD)) {
+        if (device.getType().equalsIgnoreCase(DeviceConstants.UITD)) {
             res = controlNet(controlVo);
-        } else if (device.getType().equalsIgnoreCase(DeviceType.HRPWLG)) {
+        } else if (device.getType().equalsIgnoreCase(DeviceConstants.HRPWLG)) {
             res = controlHrp(controlVo);
         } else {
             if (device.getWireless().equalsIgnoreCase("1")) {
@@ -397,8 +411,8 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
     /**
      * 处理接收到的消息 TODO
      *
-     * @param msgObj
-     * @return
+     * @param msgObj msgObj
+     * @return info
      */
     @Override
     public ProcessInfo doProcessMsg(Object msgObj) {
@@ -407,17 +421,23 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
             return null;
         }
 
-        MonitorMsg monitorMsg = (msgObj instanceof MonitorMsg) ? (MonitorMsg) msgObj : JSONObject.parseObject(msgObj.toString(), MonitorMsg.class);
+        MonitorMsg monitorMsg = (msgObj instanceof MonitorMsg) ?
+                (MonitorMsg) msgObj : JSONObject.parseObject(msgObj.toString(), MonitorMsg.class);
         Facility mf = monitorMsg.getFacility();
-        if (mf == null || StringUtils.isEmpty(mf.getAddrStr())) {
+        if (mf == null ) {
+            throw new ServiceException("数据格式有误");
+        }
+        String addrStr = mf.getAddrStr();
+        String net = mf.getNet();
+        if (StrUtil.isBlank(addrStr)) {
             throw new ServiceException("数据格式有误");
         }
         // 网关编码自动转小写
         else {
-            if (mf.getAddrStr().equals(mf.getNet())) {
-                mf.setAddrStr(mf.getAddrStr().toLowerCase());
+            if (StrUtil.equals(addrStr , mf.getNet())) {
+                mf.setAddrStr(addrStr.toLowerCase());
             }
-            mf.setNet(StrUtil.isNotBlank(mf.getNet()) ? mf.getNet().toLowerCase() : "");
+            mf.setNet(StrUtil.isNotBlank(net) ? net.toLowerCase() : "");
         }
 
         // 当前设备归属的网关设备编码,生成网关设备
@@ -427,25 +447,26 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
             return null;
         }
 
-        String code = addrStr2Code(mf.getAddrStr());
-        if (mf.getNet() != null && !code.equalsIgnoreCase(mf.getNet())) {
+        String code = addrStr2Code(addrStr);
+        if (mf.getNet() != null && !StrUtil.equals(code , net)) {
             sysDevice = syncFacility(mf, JSONObject.toJSONString(msgObj));
-        }
-        if (sysDevice == null) {
-            log.error("注册设备失败 net:{}, addrStr: {}", mf.getNet(), mf.getAddrStr());
-            return null;
         }
 
         //心跳数据，包括巡检
         if (monitorMsg.getEvent().equalsIgnoreCase(MonitorMsg.Event.HEARTBEAT.name())) {
-            if (mf.getAnalogValue() == null && mf.getTemperature() == null && mf.getRssi() == null && mf.getVoltage() == null) {
+            if (
+                    mf.getAnalogValue() == null &&
+                            mf.getTemperature() == null &&
+                            mf.getRssi() == null &&
+                            mf.getVoltage() == null
+            ) {
                 log.debug("无监测值的心跳数据，暂时忽略");
                 return null;
             }
         }
 
         // 当前设备编码，如果以”通道“结尾，就去掉通道号
-        String fsn = mf.getAddrStr() == null ? null : mf.getAddrStr().trim();
+        String fsn = addrStr.trim();
 
         Integer chn = null;
         if (fsn.endsWith("通道")) {
@@ -479,34 +500,13 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
         if (StringUtils.isNotEmpty(mf.getVoltage())) {
             facility.setVoltage(Integer.parseInt(mf.getVoltage()));
         }
-        String event = monitorMsg.getEvent();
-        MqMessage message = new MqMessage();
-        message.setDeviceId(sysDevice.getId());
-        message.setEvent(event.equalsIgnoreCase("alarm") ? MqMessage.EVENT_ALARM : MqMessage.EVENT_BUSINESS);
-        message.setFacility(facility);
-        message.setMsgData(JSONObject.toJSONString(monitorMsg));
-        message.setTime(new Date());
-        message.setProtocol(PROTOCOL_NAME);
-        message.setUuid(SnowflakeIdWorker.getInstance().nextStringId());
 
-        String msgType = null;
-        switch (event) {
-            case "alarm":
-                msgType = MsgConstants.MSG_TYPE_ALARM;
-                break;
-            case "business":
-                msgType = MsgConstants.MSG_TYPE_BUSINESS;
-                break;
-            case "device":
-                msgType = MsgConstants.MSG_TYPE_DEVICE;
-                break;
-        }
-        return msgType != null ? ProcessInfo.newInstance(
-                sysDevice,
-                JSON.toJSONString(monitorMsg),
-                msgType,
-                Collections.singletonList(message)
-        ) : null;
+        // 解析告警 & 业务监测数据
+        MsgProcessContext.getProcessInfo().setDevice(sysDevice);
+        List<Message> msgList = JbProtocolParser.extractMessage(sysDevice, monitorMsg);
+
+        MsgProcessContext.addMsg(msgList);
+        return null;
     }
 
     /**
@@ -546,23 +546,23 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
         net = net.toLowerCase();
         String name = "网关" + net;
         // 用传(主机) 有线
-        if (DeviceType.isUITD(net)) {
-            typeCode = DeviceType.UITD;
+        if (isUITD(net)) {
+            typeCode = DeviceConstants.UITD;
             name = "用传" + net;
         }
         // HRP（路由） 无线
         else {
-            typeCode = DeviceType.HRPWLG;
+            typeCode = DeviceConstants.HRPWLG;
         }
         // 同步设备信息
         SyncDevice syncDevice = SyncDevice.builder()
                 .code(net)
                 .name(name)
                 .net(net)
-                //.model(mf.getFacilitiesModel())
+                .model(mf.getFacilitiesModel())
                 .typeCode(typeCode)
                 .pfCode(zaSysPlatform.getCode())
-                .wireless(typeCode.equals(DeviceType.HRPWLG) ? "1" : "0")
+                .wireless(typeCode.equals(DeviceConstants.HRPWLG) ? "1" : "0")
                 .build();
         return DeviceUtil.syncDevice(syncDevice, this);
     }
@@ -570,8 +570,8 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
     /**
      * 同步设备信息,不包括网关
      *
-     * @param mf
-     * @param msg
+     * @param mf mf
+     * @param msg msg
      */
     private ZaSysDevice syncFacility(Facility mf, String msg) {
         // 网关编码
@@ -579,9 +579,17 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
         String code = mf.getAddrStr();
 
         // 当前设备编码，如果以”通道“结尾，就去掉通道号
-        String fsn = mf.getAddrStr() == null ? null : mf.getAddrStr().trim();
+        String fsn = mf.getAddrStr() == null ? "" : mf.getAddrStr().trim();
 
-        //主机设备信息
+        // 解析设备类型
+        TypeMappingService typeMapping = SpringUtils.getBean(TypeMappingService.class);
+        Optional<ZaDeviceType> mfType = typeMapping.resolveDeviceType(getPlatform(), mf.getFacilitiesTypeCode() + "");
+        String typeCode = "UNKNOWN";
+        if (mfType.isPresent()) {
+            typeCode = mfType.get().getCode();
+        }
+
+        // 主机设备信息
         if (fsn.contains("机")) {
             code = code.substring(0, code.indexOf("机") + 1);
             ZaSysDevice ctlDevice = deviceService.selectZaSysDeviceByCode(code, net);
@@ -592,7 +600,7 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
                         .code(code)
                         .name(code)
                         .net(net)
-                        .typeCode(mf.getFacilitiesTypeCode() == null ? "FAC" : mf.getFacilitiesTypeCode().toString())
+                        .typeCode(mf.getFacilitiesTypeCode() == null ? "FAC" : typeCode)
                         .pfCode(zaSysPlatform.getCode())
                         .wireless("0")
                         .build();
@@ -620,7 +628,7 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
                     .name(name)
                     .net(net)
                     .model(StringUtils.isEmpty(mf.getFacilitiesModel()) ? mf.getModel() : mf.getFacilitiesModel())
-                    .typeCode(mf.getFacilitiesTypeCode() + "")
+                    .typeCode(typeCode)
                     .pfCode(zaSysPlatform.getCode())
                     .wireless(mf.isWireless() ? "1" : "0")
                     .build();
@@ -630,4 +638,13 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
         return componentDevice;
     }
 
+    /**
+     * Is uitd boolean.
+     *
+     * @param code the code
+     * @return the boolean
+     */
+    public static boolean isUITD(String code){
+        return code.length() == 32 && code.startsWith("000000");
+    }
 }

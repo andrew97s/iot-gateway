@@ -8,6 +8,8 @@ import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
 import com.zhian.gateway.consts.DeviceTypeEnum;
 import com.zhian.gateway.consts.DictValue;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.utils.MessageUtil;
@@ -56,8 +58,11 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
             if (last == null || last + OFFLINE_HOURS * 3600 * 1000 < System.currentTimeMillis()) {
                 log.info("青瞳{}已离线，将推送离线告警，并将设备标识为离线状态", zaSysDevice.getCode());
                 // 推送离线消息
-                DeviceUtil.pushDevice(DeviceUpdReq.newOfflineReq(zaSysDevice , "心跳超时"));
-
+                MsgProcessContext.addMsg(
+                        MessageBuilder.buildDeviceState(
+                                zaSysDevice , "0" , "心跳超时"
+                        )
+                );
                 //更新状态
                 zaSysDevice.setOnline(DictValue.DEVICE_OFFLINE);
                 deviceService.updateZaSysDevice(zaSysDevice);

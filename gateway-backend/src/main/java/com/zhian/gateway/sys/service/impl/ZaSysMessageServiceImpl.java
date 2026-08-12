@@ -5,6 +5,7 @@ import com.zhian.gateway.common.utils.DateUtils;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
+import com.zhian.gateway.core.message.Message;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysMessage;
 import com.zhian.gateway.sys.domain.ZaSysMessageLog;
@@ -17,20 +18,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 接入消息Service业务层处理
- * 
+ *
  * @author yepanpan
  * @date 2024-07-10
  */
 @Slf4j
 @Service
-public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , ZaSysMessage> implements IZaSysMessageService
-{
+public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper, ZaSysMessage> implements IZaSysMessageService {
     @Autowired
     private ZaSysMessageMapper zaSysMessageMapper;
 
@@ -39,15 +38,16 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
 
     /**
      * 快速记录错误日志
-     * @param device 设备
-     * @param type 类别
+     *
+     * @param device  设备
+     * @param type    类别
      * @param content 数据内容
      * @param results 结果
      */
     @Override
-    public ZaSysMessage log(ZaSysDevice device, String type, String content, String results){
+    public ZaSysMessage log(ZaSysDevice device, String type, String content, String results) {
         // 忽略心跳数据
-        if ("heartbeat".equals(type)){
+        if ("heartbeat".equals(type)) {
             return null;
         }
 
@@ -65,11 +65,6 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
 
     @Override
     public ZaSysMessage log(ProcessInfo info) {
-        // 忽略心跳数据
-        if ("heartbeat".equals(info.getType())){
-            return null;
-        }
-
         ZaSysDevice device = info.getDevice();
 
         ZaSysMessage message = new ZaSysMessage();
@@ -83,6 +78,11 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
         message.setHandleStatus(info.getHandleStatus());
         message.setHandleResult(info.getHandleResult());
         message.setPfCode(device.getPfCode());
+        // 花费时间
+        message.setCostTime(info.getEndTime().getTime() - info.getStartTime().getTime());
+        // 消息类型
+        String types = info.getMsgList().stream().map(Message::getType).collect(Collectors.joining(","));
+        message.setType(types);
 
         // 汇总各上级平台推送结果：全部成功=sent，任一失败=failed（失败消息可重推）
         List<MessageSyncHandler.UpstreamPushResult> results = info.getPushResults();
@@ -119,37 +119,34 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
 
     /**
      * 查询接入消息
-     * 
+     *
      * @param id 接入消息主键
      * @return 接入消息
      */
     @Override
-    public ZaSysMessage selectZaSysMessageById(Long id)
-    {
+    public ZaSysMessage selectZaSysMessageById(Long id) {
         return zaSysMessageMapper.selectZaSysMessageById(id);
     }
 
     /**
      * 查询接入消息列表
-     * 
+     *
      * @param zaSysMessage 接入消息
      * @return 接入消息
      */
     @Override
-    public List<ZaSysMessage> selectZaSysMessageList(ZaSysMessage zaSysMessage)
-    {
+    public List<ZaSysMessage> selectZaSysMessageList(ZaSysMessage zaSysMessage) {
         return zaSysMessageMapper.selectZaSysMessageList(zaSysMessage);
     }
 
     /**
      * 新增接入消息
-     * 
+     *
      * @param zaSysMessage 接入消息
      * @return 结果
      */
     @Override
-    public int insertZaSysMessage(ZaSysMessage zaSysMessage)
-    {
+    public int insertZaSysMessage(ZaSysMessage zaSysMessage) {
         zaSysMessage.setId(SnowflakeIdWorker.getInstance().nextId());
         zaSysMessage.setCreateTime(DateUtils.getNowDate());
         return zaSysMessageMapper.insertZaSysMessage(zaSysMessage);
@@ -157,25 +154,23 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
 
     /**
      * 修改接入消息
-     * 
+     *
      * @param zaSysMessage 接入消息
      * @return 结果
      */
     @Override
-    public int updateZaSysMessage(ZaSysMessage zaSysMessage)
-    {
+    public int updateZaSysMessage(ZaSysMessage zaSysMessage) {
         return zaSysMessageMapper.updateZaSysMessage(zaSysMessage);
     }
 
     /**
      * 批量删除接入消息
-     * 
+     *
      * @param ids 需要删除的接入消息主键
      * @return 结果
      */
     @Override
-    public int deleteZaSysMessageByIds(Long[] ids)
-    {
+    public int deleteZaSysMessageByIds(Long[] ids) {
         if (ids != null && ids.length > 0) {
             pushLogMapper.deleteByMessageIds(ids);
         }
@@ -189,8 +184,7 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
      * @return 结果
      */
     @Override
-    public int deleteZaSysMessageById(Long id)
-    {
+    public int deleteZaSysMessageById(Long id) {
         pushLogMapper.deleteByMessageId(id);
         return zaSysMessageMapper.deleteZaSysMessageById(id);
     }
@@ -271,12 +265,81 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper , Za
 
     @Override
     public List<Map<String, Object>> countTodayByType() {
-        return zaSysMessageMapper.countTodayByType();
+        List<Map<String, Object>> maps = zaSysMessageMapper.countTodayByType();
+
+        List<Map<String, Object>> results = new ArrayList<>();
+        Map<String, Long> mp = new HashMap<String, Long>();
+
+        for (Map<String, Object> map : maps) {
+            String type = (String) map.get("type");
+            Long total = (Long) map.get("total");
+
+            if (type.contains(",")) {
+                String[] types = type.split(",");
+                for (String tp : types) {
+                    if (mp.containsKey(tp)) {
+                        mp.put(tp, mp.get(tp) + total);
+                    } else {
+                        mp.put(tp, total);
+                    }
+                }
+            } else {
+                if (mp.containsKey(type)) {
+                    mp.put(type, mp.get(type) + total);
+                } else {
+                    mp.put(type, total);
+                }
+            }
+        }
+
+        results = mp.entrySet().stream().map(entry->{
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("type", entry.getKey());
+            map.put("total", entry.getValue());
+
+            return map;
+        }).collect(Collectors.toList());
+        return results;
     }
 
     @Override
     public List<Map<String, Object>> countTodayByTypeAndPlatform(String pfCode) {
-        return zaSysMessageMapper.countTodayByTypeAndPlatform(pfCode);
+
+        List<Map<String, Object>> maps = zaSysMessageMapper.countTodayByTypeAndPlatform(pfCode);
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        Map<String, Long> mp = new HashMap<String, Long>();
+
+        for (Map<String, Object> map : maps) {
+            String type = (String) map.get("type");
+            Long total = (Long) map.get("total");
+
+            if (type.contains(",")) {
+                String[] types = type.split(",");
+                for (String tp : types) {
+                    if (mp.containsKey(tp)) {
+                        mp.put(tp, mp.get(tp) + total);
+                    } else {
+                        mp.put(tp, total);
+                    }
+                }
+            } else {
+                if (mp.containsKey(type)) {
+                    mp.put(type, mp.get(type) + total);
+                } else {
+                    mp.put(type, total);
+                }
+            }
+        }
+
+        results = mp.entrySet().stream().map(entry->{
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("type", entry.getKey());
+            map.put("total", entry.getValue());
+
+            return map;
+        }).collect(Collectors.toList());
+        return results;
     }
 
     @Override

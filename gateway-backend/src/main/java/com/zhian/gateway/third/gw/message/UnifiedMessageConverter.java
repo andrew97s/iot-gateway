@@ -140,7 +140,7 @@ public class UnifiedMessageConverter {
         if (std.isPresent()) {
             msg.getPayload().put("alarmType", std.get().getCode());
             msg.getPayload().put("alarmTypeName", std.get().getName());
-            msg.getPayload().put("level", std.get().getLevel());
+            msg.getPayload().put("level", std.get().getType());
         } else {
             // 未配置映射时保留原始告警码，方便上级平台与运维排查
             msg.getPayload().put("alarmType", rawAlarmType);

@@ -11,7 +11,7 @@ import lombok.Data;
 @Data
 public class MessageDevice {
 
-    private String deviceId;
+    private long deviceId;
 
     private String code;
 
@@ -20,4 +20,6 @@ public class MessageDevice {
     private String name;
 
     private String typeCode;
+
+    private String online;
 }

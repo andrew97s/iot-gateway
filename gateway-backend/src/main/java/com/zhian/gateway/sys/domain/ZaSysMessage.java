@@ -96,4 +96,6 @@ public class ZaSysMessage extends BaseEntity
     private Integer syncTotal;
     @ApiModelProperty(hidden = true)
     private String syncLabel;
+
+    private Long costTime;
 }

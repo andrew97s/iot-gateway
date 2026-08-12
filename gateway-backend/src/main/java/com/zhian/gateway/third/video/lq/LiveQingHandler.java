@@ -7,15 +7,16 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.sign.Md5Utils;
+import com.zhian.gateway.consts.MessageConstants;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
-import com.zhian.gateway.third.common.bo.DeviceUpdReq;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.common.constants.DeviceType;
-import com.zhian.gateway.third.common.util.DeviceUtil;
 import com.zhian.gateway.third.video.VideoHelper;
 import com.zhian.gateway.third.video.vo.LiveQingResult;
 import com.zhian.gateway.third.video.vo.ZaFacility;
@@ -104,7 +105,9 @@ public class LiveQingHandler extends BasePlatformHandler {
                 if (StringUtils.isEmpty(netDevice.getOnline()) || StrUtil.equals(netDevice.getOnline() , "0")) {
                     netDevice.setOnline("1");
                     deviceService.updateZaSysDevice(netDevice);
-                    DeviceUtil.pushDevice(DeviceUpdReq.newOnlineReq(netDevice,"同步发现在线"));
+                    MsgProcessContext.addMsg(
+                            MessageBuilder.buildDeviceState(netDevice , "1" , "同步发现在线")
+                    );
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -116,7 +119,9 @@ public class LiveQingHandler extends BasePlatformHandler {
                 if (netDevice != null && StrUtil.equals(netDevice.getOnline(), "1")) {
                     netDevice.setOnline("0");
                     deviceService.updateZaSysDevice(netDevice);
-                    DeviceUtil.pushDevice(DeviceUpdReq.newOfflineReq(netDevice,"同步异常发现离线"));
+                    MsgProcessContext.addMsg(
+                            MessageBuilder.buildDeviceState(netDevice , "0" , "同步异常发现离线")
+                    );
                 }
             }
             syncCount++;
@@ -183,7 +188,9 @@ public class LiveQingHandler extends BasePlatformHandler {
             facility.setChn(row.getInteger(LiveQingConst.FIELD_CHANNEL));
             facility.setNet(gateway.getFacilityCode());
 
-            DeviceUtil.pushDevice(DeviceUpdReq.newAddReq(zaSysDevice, row.toJSONString()));
+            MsgProcessContext.addMsg(
+                    MessageBuilder.buildDevice(zaSysDevice , MessageConstants.MSG_TYPE_DEVICE_ADD , "主动同步发现")
+            );
         }
         return netDevice;
     }

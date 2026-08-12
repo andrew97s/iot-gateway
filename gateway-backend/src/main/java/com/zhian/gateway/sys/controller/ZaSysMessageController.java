@@ -250,8 +250,9 @@ public class ZaSysMessageController extends BaseController
         }
         int upstreamTotal = enabledUpstreamCount();
         for (ZaSysMessage msg : list) {
+            List<ZaSysMessageLog> logs = zaSysMessageService.selectPushLogsByMessageId(msg.getId());
             // 列表不查推送日志，避免 N+1；徽标按 sendStatus + 上级平台数估算
-            MessageViewHelper.enrich(msg, upstreamTotal, null);
+            MessageViewHelper.enrich(msg, upstreamTotal, logs);
         }
     }
 

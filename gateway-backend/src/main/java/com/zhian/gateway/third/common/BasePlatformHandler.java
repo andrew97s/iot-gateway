@@ -1,10 +1,13 @@
 package com.zhian.gateway.third.common;
 
 import cn.hutool.core.collection.CollUtil;
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.core.message.Message;
+import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
@@ -132,21 +135,21 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
     /**
      * 转换统一消息并推送全部上级平台，返回统一报文与各平台推送结果（写入消息日志）
      *
-     * @param message 插件原始事件
+     * @param msgList      插件原始事件
      * @param unifiedParts 收集统一报文
-     * @param results 收集推送结果
+     * @param results      收集推送结果
      */
-    protected void convertAndPush(MqMessage message,
+    protected void convertAndPush(List<Message> msgList,
                                   List<String> unifiedParts,
                                   List<MessageSyncHandler.UpstreamPushResult> results) {
-        // 1. 原始事件 → 统一消息（告警/设备/监测类型按标准字典映射）
-        String unifiedJson = messageSyncHandler.convert(message).toJson();
+        // 1. 原始事件 → 统一消息
+        String unifiedJson = JSON.toJSONString(msgList.size() == 1 ? msgList.get(0) : msgList);
         unifiedParts.add(unifiedJson);
         // 2. 推送全部启用的上级平台，逐平台记录结果
         results.addAll(messageSyncHandler.pushToUpstreams(unifiedJson));
-        // 3. 级联上级平台（WebSocket）沿用原始事件通道
+        // TODO 3. 级联上级平台（WebSocket）沿用原始事件通道
         try {
-            cascadeHandler.pushMsg(message);
+            // cascadeHandler.pushMsg(message);
         } catch (Exception e) {
             log.warn("级联推送失败: {}", e.getMessage());
         }
@@ -179,8 +182,8 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
                 device = new ZaSysDevice();
                 device.setPfCode(getPlatform());
             }
-            ProcessInfo info = ProcessInfo.newControl(device, controlVo, result);
-            logMessage(info);
+//            ProcessInfo info = ProcessInfo.newControl(device, controlVo, result);
+//            logMessage(info);
             MessageUtil.clear();
         }
 
@@ -211,19 +214,20 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
         // 记录操作日志
         ProcessInfo info = null;
         try {
-            info = doProcessMsg((T) msgObject);
+            MsgProcessContext.start(msgObject, platform);
+            doProcessMsg((T) msgObject);
+            info = MsgProcessContext.getProcessInfo();
             // 转换统一消息并推送上级平台，收集统一报文与逐平台推送结果
             if (info != null && CollUtil.isNotEmpty(info.getMsgList())) {
                 List<String> unifiedParts = new java.util.ArrayList<>();
                 List<MessageSyncHandler.UpstreamPushResult> results = new java.util.ArrayList<>();
-                for (MqMessage message : info.getMsgList()) {
-                    convertAndPush(message, unifiedParts, results);
-                }
+                convertAndPush(info.getMsgList(), unifiedParts, results);
                 info.setUnifiedContent(unifiedParts.size() == 1
                         ? unifiedParts.get(0) : "[" + String.join(",", unifiedParts) + "]");
                 info.setPushResults(results);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("处理消息发生异常:{}", e.getMessage());
             ZaSysDevice device = MessageUtil.getDevice();
             if (device == null) {
@@ -231,12 +235,14 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
                 device.setPfCode(getPlatform());
             }
             String msg = msgObject instanceof String ? (String) msgObject : JSONObject.toJSONString(msgObject);
-            info = ProcessInfo.newError(device, msg, e.getMessage());
+            assert info != null;
+            info.setHandleStatus("0");
+            info.setHandleResult(msg);
         } finally {
-            // 记录日志（原始报文 + 统一消息 + 各上级平台同步状态）
-            logMessage(info);
             // 清除设备信息
             MessageUtil.clear();
+            // 记录日志（原始报文 + 统一消息 + 各上级平台同步状态）
+            logMessage(MsgProcessContext.finishAndGet());
         }
     }
 

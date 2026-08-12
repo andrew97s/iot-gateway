@@ -27,9 +27,9 @@
             </template>
           </el-table-column>
           <el-table-column label="类型名称" prop="name" min-width="130" />
-          <el-table-column label="告警级别" width="110" align="center">
+          <el-table-column label="告警类别" width="110" align="center">
             <template #default="scope">
-              <el-tag :type="levelTag(scope.row.level)" size="small">{{ levelLabel(scope.row.level) }}</el-tag>
+              <el-tag :type="levelTag(scope.row.type)" size="small">{{ levelLabel(scope.row.type) }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="插件别名映射" min-width="260">
@@ -75,12 +75,12 @@
         <el-form-item label="类型名称" prop="name">
           <el-input v-model="form.name" placeholder="如：火警" />
         </el-form-item>
-        <el-form-item label="告警级别">
+        <el-form-item label="告警类别">
           <el-select v-model="form.level" style="width: 200px">
-            <el-option label="1 - 提示" :value="1" />
-            <el-option label="2 - 一般" :value="2" />
-            <el-option label="3 - 严重" :value="3" />
-            <el-option label="4 - 紧急" :value="4" />
+            <el-option label="1 - 火警" :value="1" />
+            <el-option label="2 - 预警" :value="2" />
+            <el-option label="3 - 故障" :value="3" />
+            <el-option label="4 - 事件" :value="4" />
           </el-select>
         </el-form-item>
         <el-form-item label="别名映射" class="alias-item">
@@ -127,7 +127,7 @@ const queryParams = reactive({
   status: null
 })
 
-const LEVELS = { 1: { label: '提示', tag: 'info' }, 2: { label: '一般', tag: '' }, 3: { label: '严重', tag: 'warning' }, 4: { label: '紧急', tag: 'danger' } }
+const LEVELS = { 1: { label: '火警', tag: 'danger' }, 2: { label: '预警', tag: 'warning' }, 3: { label: '故障', tag: 'info' }, 4: { label: '事件', tag: 'primary' } }
 function levelLabel(l) { return LEVELS[l]?.label || l || '-' }
 function levelTag(l) { return LEVELS[l]?.tag || 'info' }
 

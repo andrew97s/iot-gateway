@@ -1,17 +1,17 @@
 package com.zhian.gateway.third.common.util;
 
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
+import com.zhian.gateway.consts.MessageConstants;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
-import com.zhian.gateway.third.cascade.CascadeHandler;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.DeviceUpdReq;
 import com.zhian.gateway.third.common.bo.SyncDevice;
-import com.zhian.gateway.third.gw.MessageSyncHandler;
 import com.zhian.gateway.third.vo.MqMessage;
 import lombok.extern.slf4j.Slf4j;
 
@@ -105,13 +105,25 @@ public class DeviceUtil {
         // 推送设备变化消息
         if (isUpdate && updated) {
             deviceService.updateZaSysDevice(device);
-            pushDevice(DeviceUpdReq.newUpdReq(device, JSON.toJSONString(syncDevice)));
+            MsgProcessContext.addMsg(
+                    MessageBuilder.buildDevice(
+                            device ,
+                            MessageConstants.MSG_TYPE_DEVICE_UPD,
+                            handler.getPlatform() + " 发起同步"
+                    )
+            );
             log.info("发现设备({})发生变化,推送设备更新消息!" , device.getCode() );
         }
         else if (!isUpdate) {
             log.info("发现新设备({}),推送设备新增消息!" , device.getCode() );
             deviceService.insertZaSysDevice(device);
-            pushDevice(DeviceUpdReq.newAddReq(device, JSON.toJSONString(syncDevice)));
+            MsgProcessContext.addMsg(
+                    MessageBuilder.buildDevice(
+                            device ,
+                            MessageConstants.MSG_TYPE_DEVICE_ADD ,
+                            handler.getPlatform() + " 发起同步"
+                    )
+            );
         }
 
         // 主动同步在线设备状态
@@ -122,7 +134,11 @@ public class DeviceUtil {
             if (last != null && last + 3600_000 < ct) {
                 // 上线消息
                 log.info("发现设备心跳恢复事件,主动推送设备在线消息:{}", device.getCode());
-                DeviceUtil.pushDevice(DeviceUpdReq.newOnlineReq(device, null));
+                MsgProcessContext.addMsg(
+                        MessageBuilder.buildDeviceState(
+                                device , "1" , "设备恢复心跳 自动同步为在线"
+                        )
+                );
             }
         }
 
@@ -130,21 +146,6 @@ public class DeviceUtil {
         setCommTime(device.getId());
 
         return device;
-    }
-
-    /**
-     * 发送消息至上级平台
-     *
-     * @param req the mq message
-     */
-    public static void pushDevice(DeviceUpdReq req) {
-        MqMessage message = genMessage(req);
-
-        MessageSyncHandler msgSyncHandler = SpringUtils.getBean(MessageSyncHandler.class);
-        CascadeHandler cascadeHandler = SpringUtils.getBean(CascadeHandler.class);
-
-        msgSyncHandler.processMsg(message);
-        cascadeHandler.processMsg(message);
     }
 
 

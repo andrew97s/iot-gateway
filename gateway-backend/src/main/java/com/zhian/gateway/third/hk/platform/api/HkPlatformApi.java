@@ -32,7 +32,7 @@ public class HkPlatformApi {
 
         log.info("接收到海康平台的事件:{}", bodyStr);
 
-        CompletableFuture.runAsync(() -> handler.doProcessMsg(bodyStr)).exceptionally(e -> {
+        CompletableFuture.runAsync(() -> handler.processMsg(bodyStr)).exceptionally(e -> {
             log.error("处理海康事件发生异常:{}", e.getMessage());
             SpringUtils.getBean(IZaSysErrorService.class).log(ZaSysError.TYPE_MQ, handler.getPlatform(), "消息处理失败: " + e.getMessage(), bodyStr);
             return null;

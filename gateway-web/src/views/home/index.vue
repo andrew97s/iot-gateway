@@ -209,8 +209,12 @@ let chartInst = null
 
 const TYPE_META = {
   alarm:     { label: '告警事件', color: '#dc2626' },
-  business:  { label: '监测数据', color: '#2563eb' },
-  device:    { label: '设备事件', color: '#d97706' },
+  telemetry:  { label: '监测数据', color: '#2563eb' },
+  device_add:    { label: '设备新增', color: '#d97706' },
+  device_upd:    { label: '设备更新', color: '#d97706' },
+  device_del:    { label: '设备删除', color: '#d97706' },
+  device_online:    { label: '设备在线', color: '#d97706' },
+  device_offline:    { label: '设备离线', color: '#d97706' },
   control:   { label: '反控指令', color: '#7c3aed' },
   event:     { label: '事件',     color: '#0891b2' },
   heartbeat: { label: '心跳',     color: '#64748b' }

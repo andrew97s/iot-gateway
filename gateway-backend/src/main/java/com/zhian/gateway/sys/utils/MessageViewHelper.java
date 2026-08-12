@@ -1,9 +1,11 @@
 package com.zhian.gateway.sys.utils;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.utils.StringUtils;
+import com.zhian.gateway.consts.MessageConstants;
 import com.zhian.gateway.sys.domain.ZaSysMessage;
 import com.zhian.gateway.sys.domain.ZaSysMessageLog;
 
@@ -91,16 +93,18 @@ public final class MessageViewHelper {
         if (payload == null) {
             payload = obj;
         }
-        if ("alarm".equalsIgnoreCase(type) || "ALARM".equalsIgnoreCase(obj.getString("messageType"))) {
-            String desc = firstNonEmpty(payload.getString("description"), payload.getString("alarmType"), payload.getString("eventDescription"));
+        if (StrUtil.startWith(type , MessageConstants.MSG_TYPE_ALARM)) {
+            String desc = firstNonEmpty(
+                    payload.getString("desc"),
+                    payload.getString("name")
+            );
             Object level = payload.get("level");
             if (StringUtils.isNotEmpty(desc) && level != null) {
                 return desc + " · 级别 " + level;
             }
             return StringUtils.isNotEmpty(desc) ? desc : "告警事件";
         }
-        if ("business".equalsIgnoreCase(type) || "monitor".equalsIgnoreCase(type)
-                || "TELEMETRY".equalsIgnoreCase(obj.getString("messageType"))) {
+        if (StrUtil.startWith(type , MessageConstants.MSG_TYPE_TELEMETRY)) {
             JSONObject metrics = payload.getJSONObject("metrics");
             if (metrics != null && !metrics.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
@@ -118,11 +122,11 @@ public final class MessageViewHelper {
             }
             return firstNonEmpty(payload.getString("description"), "监测数据");
         }
-        if ("device".equalsIgnoreCase(type) || "DEVICE_EVENT".equalsIgnoreCase(obj.getString("messageType"))) {
+        if (StrUtil.startWith(type , "device")) {
             String event = firstNonEmpty(payload.getString("event"), payload.getString("eventType"), obj.getString("eventType"));
             return StringUtils.isNotEmpty(event) ? event : "设备事件";
         }
-        if ("control".equalsIgnoreCase(type) || "COMMAND".equalsIgnoreCase(obj.getString("messageType"))) {
+        if (StrUtil.startWith(type , MessageConstants.MSG_TYPE_CONTROL)) {
             String cmd = firstNonEmpty(payload.getString("command"), payload.getString("action"));
             return StringUtils.isNotEmpty(cmd) ? cmd : "反控指令";
         }

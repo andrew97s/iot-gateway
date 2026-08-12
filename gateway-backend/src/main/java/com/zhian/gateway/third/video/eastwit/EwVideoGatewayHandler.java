@@ -7,6 +7,8 @@ import com.zhian.gateway.common.config.ZhianConfig;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.file.FileUtils;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.third.common.BasePlatformHandler;
@@ -54,7 +56,9 @@ public class EwVideoGatewayHandler extends BasePlatformHandler {
                 gateway.setOnline("0");
                 deviceService.updateZaSysDevice(gateway);
                 //  推送网关离线消息
-                DeviceUtil.pushDevice(DeviceUpdReq.newOfflineReq(gateway , "心跳超时"));
+                MsgProcessContext.addMsg(
+                        MessageBuilder.buildDeviceState(gateway , "0" , "心跳超时")
+                );
             }
         }
         return DeviceSyncInfo.success(gatewayMap.size());

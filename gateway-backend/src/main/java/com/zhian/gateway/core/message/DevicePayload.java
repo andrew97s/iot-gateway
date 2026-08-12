@@ -5,8 +5,6 @@ import com.zhian.gateway.sys.domain.ZaSysDevice;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.HashMap;
-
 /**
  * 负载-设备消息
  *
@@ -25,7 +23,7 @@ public class DevicePayload extends MessagePayload {
     /**
      * 设备ID - 网关内唯一{@link ZaDeviceType#getId()}
      */
-    private String deviceId;
+    private long deviceId;
 
     /**
      * 设备编码{@link ZaDeviceType#getCode()}
@@ -53,7 +51,12 @@ public class DevicePayload extends MessagePayload {
     private String position;
 
     /**
-     * 设备最新状态 - online 在线 、 offline 离线
+     * 设备最新状态 - 1 在线 、 0 离线
      */
-    private String state;
+    private String online;
+
+    /**
+     * 执行原因
+     */
+    private String reason;
 }

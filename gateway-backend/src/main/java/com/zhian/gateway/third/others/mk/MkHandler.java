@@ -6,11 +6,12 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
-import com.zhian.gateway.third.common.bo.DeviceUpdReq;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.common.bo.SyncDevice;
 import com.zhian.gateway.third.common.constants.MsgConstants;
@@ -81,7 +82,9 @@ public class MkHandler extends BasePlatformHandler<MkCanMsg> {
                 device.setOnline(Constants.NO);
                 deviceService.updateZaSysDevice(device);
                 // 推送离线告警
-                DeviceUtil.pushDevice(DeviceUpdReq.newOfflineReq(device, "心跳超时"));
+                MsgProcessContext.addMsg(
+                        MessageBuilder.buildDeviceState(device , "0" , "心跳超时")
+                );
             }
         }
 

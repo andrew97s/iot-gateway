@@ -80,7 +80,7 @@ public class RocEventApi {
                         faceEvent.setFaceImg(Base64.getEncoder().encodeToString(f.getBytes()));
                     }
                 }
-                rocHandler.doProcessMsg(faceEvent);
+                rocHandler.processMsg(faceEvent);
             }else{
                 log.debug("忽略ROC event content :{}", event.getEventType());
             }

@@ -58,6 +58,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="handleResult != null">handle_result,</if>
             <if test="sendStatus != null">send_status,</if>
             <if test="sendResult != null">send_result,</if>
+            <if test="costTime != null">cost_time,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -72,6 +73,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="handleResult != null">#{handleResult},</if>
             <if test="sendStatus != null">#{sendStatus},</if>
             <if test="sendResult != null">#{sendResult},</if>
+            <if test="costTime != null">#{costTime},</if>
          </trim>
     </insert>
 

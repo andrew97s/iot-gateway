@@ -39,7 +39,7 @@
           <el-table-column label="名称" min-width="120" show-overflow-tooltip>
             <template #default="{ row }">{{ displayName(row) }}</template>
           </el-table-column>
-          <el-table-column label="类型" width="100" align="center">
+          <el-table-column label="类型" width="160" align="center">
             <template #default="{ row }"><span class="gw-tag">{{ typeName(row.type) }}</span></template>
           </el-table-column>
           <el-table-column label="型号" prop="model" min-width="110" show-overflow-tooltip>

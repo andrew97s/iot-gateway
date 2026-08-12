@@ -6,15 +6,16 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
+import com.zhian.gateway.consts.MessageConstants;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
-import com.zhian.gateway.third.common.bo.DeviceUpdReq;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.common.constants.MsgConstants;
-import com.zhian.gateway.third.common.util.DeviceUtil;
 import com.zhian.gateway.third.video.roc.common.RocConstants;
 import com.zhian.gateway.third.video.roc.common.RocContext;
 import com.zhian.gateway.third.video.roc.common.RocMsg;
@@ -97,11 +98,17 @@ public class RocHandler extends BasePlatformHandler {
             sysDevice.setPfCode(PLATFORM_NAME);
             sysDevice.setWireless("0");
             deviceService.insertZaSysDevice(sysDevice);
-            DeviceUtil.pushDevice(DeviceUpdReq.newAddReq(sysDevice, null));
+
+            MsgProcessContext.addMsg(
+                    MessageBuilder.buildDevice(sysDevice , MessageConstants.MSG_TYPE_DEVICE_ADD , "扫描发现")
+            );
         } else if (!sysDevice.getIp().equalsIgnoreCase(zaSysPlatform.getIp())) {
             sysDevice.setIp(zaSysPlatform.getIp());
             deviceService.updateZaSysDevice(sysDevice);
-            DeviceUtil.pushDevice(DeviceUpdReq.newUpdReq(sysDevice, null));
+
+            MsgProcessContext.addMsg(
+                    MessageBuilder.buildDevice(sysDevice , MessageConstants.MSG_TYPE_DEVICE_UPD , "IP变更")
+            );
         }
 
         RocContext.getInstance().setDevice(sysDevice);

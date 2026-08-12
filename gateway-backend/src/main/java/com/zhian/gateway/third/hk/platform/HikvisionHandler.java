@@ -13,18 +13,18 @@ import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.DateUtils;
 import com.zhian.gateway.common.utils.StringUtils;
+import com.zhian.gateway.consts.MessageConstants;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
-import com.zhian.gateway.third.common.bo.DeviceUpdReq;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.common.constants.DeviceType;
 import com.zhian.gateway.third.common.constants.MsgConstants;
-import com.zhian.gateway.third.common.util.DeviceUtil;
 import com.zhian.gateway.third.hk.platform.consts.PlatformConstants;
-import com.zhian.gateway.third.hk.platform.vo.*;
 import com.zhian.gateway.third.hk.platform.vo.*;
 import com.zhian.gateway.third.video.jinzhi.JinZhiHandler;
 import com.zhian.gateway.third.video.vo.VideoRecord;
@@ -240,11 +240,10 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
                     for (HikOnline status : result.getData().getList()) {
                         ZaSysDevice camera = deviceService.selectZaSysDeviceByCode(status.getDeviceIndexCode(), GATE_WAY_NET_CODE);
                         if (camera != null && !camera.getOnline().equalsIgnoreCase(status.getOnline())) {
-                            boolean offline = StrUtil.equals(status.getOnline(), "0");
-                            DeviceUtil.pushDevice(
-                                    offline ?
-                                            DeviceUpdReq.newOfflineReq(camera, null) :
-                                            DeviceUpdReq.newOnlineReq(camera, null)
+                            MsgProcessContext.addMsg(
+                                    MessageBuilder.buildDeviceState(
+                                            camera, status.getOnline(), "海康安防平台主动同步设备状态"
+                                    )
                             );
                         }
                         cameraIds.add(status.getDeviceIndexCode());
@@ -527,7 +526,11 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
                 deviceService.updateZaSysDevice(dc);
             }
             // 同步网关设备状态
-            DeviceUtil.pushDevice(DeviceUpdReq.newOnlineReq(dc, null));
+            MsgProcessContext.addMsg(
+                    MessageBuilder.buildDeviceState(
+                            dc, "1", "海康平台注册发现同步"
+                    )
+            );
         } else {
             //保存新设备信息
             dc = new ZaSysDevice();
@@ -543,7 +546,11 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
             dc.setOnline("1");
             deviceService.insertZaSysDevice(dc);
             // 同步网关设备状态
-            DeviceUtil.pushDevice(DeviceUpdReq.newAddReq(dc, null));
+            MsgProcessContext.addMsg(
+                    MessageBuilder.buildDevice(
+                            dc, MessageConstants.MSG_TYPE_DEVICE_ADD, "海康平台注册发现同步"
+                    )
+            );
         }
     }
 
@@ -592,7 +599,11 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
         List<ZaSysDevice> list = deviceService.selectZaSysDeviceList(dc);
         for (ZaSysDevice camera : list) {
             if (!cameraIds.contains(camera.getCode())) {
-                DeviceUtil.pushDevice(DeviceUpdReq.newDelReq(camera, null));
+                MsgProcessContext.addMsg(
+                        MessageBuilder.buildDevice(
+                                camera, MessageConstants.MSG_TYPE_DEVICE_DEL, "海康平台主动同步"
+                        )
+                );
             }
         }
 
@@ -633,7 +644,9 @@ public class HikvisionHandler extends BasePlatformHandler<String> {
         }
 
         // 推送到平台
-        DeviceUtil.pushDevice(DeviceUpdReq.newAddReq(dc, JSONObject.toJSONString(camera)));
+        MsgProcessContext.addMsg(
+                MessageBuilder.buildDevice(dc, MessageConstants.MSG_TYPE_DEVICE_ADD, "海康平台主动同步")
+        );
         return dc;
     }
 

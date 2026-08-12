@@ -22,6 +22,7 @@ import java.util.Date;
 @Data
 @TableName("za_alarm_type")
 public class ZaAlarmType implements Serializable {
+
     private static final long serialVersionUID = 1L;
 
     @TableId(type = IdType.ASSIGN_ID)
@@ -36,9 +37,9 @@ public class ZaAlarmType implements Serializable {
     @ApiModelProperty("类型名称")
     private String name;
 
-    /** 告警级别：1提示 2一般 3严重 4紧急 */
+    /** 告警级别：1 火警 , 2 预警 ,  3 故障 , 4 事件 */
     @ApiModelProperty("告警级别")
-    private Integer level;
+    private Integer type;
 
     /**
      * 插件别名映射 JSON 数组：[{"pfCode":"jb","alias":"4"},{"pfCode":"hikvision","alias":"fireAlarm"}]
@@ -46,6 +47,12 @@ public class ZaAlarmType implements Serializable {
      */
     @ApiModelProperty("插件别名映射(JSON)")
     private String aliases;
+
+    @ApiModelProperty("代表可以恢复当前告警的事件编码(JSON)")
+    private String recoveryCode;
+
+    @ApiModelProperty("代表当前告警可以恢复的事件编码(JSON)")
+    private String cancelCode;
 
     /** 状态：1启用 0停用 */
     @ApiModelProperty("状态")

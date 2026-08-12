@@ -1,7 +1,17 @@
 package com.zhian.gateway.third.common.bo;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import lombok.Builder;
 import lombok.Data;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 设备同步B0
@@ -64,4 +74,29 @@ public class SyncDevice {
      * The Remark.
      */
     String remark;
+
+    public static void main(String[] args) {
+        String json = FileUtil.readString("C:\\Users\\Administrator\\Desktop\\aa.txt", StandardCharsets.UTF_8);
+        JSONObject obj = JSON.parseObject(json);
+        JSONArray data = obj.getJSONArray("data");
+        System.out.println("code - name - type - cancel - recovery : ");
+
+        String sql =  "insert into za_monitor_type(id, code, name, unit, aliases, create_time)\n" +
+                "values";
+        List<String> codes = Arrays.asList("1", "2", "6");
+        for (int i = 0; i < data.size(); i++) {
+            JSONObject jb = data.getJSONObject(i);
+
+            sql +=
+                     "(10000" + jb.getString("code") + ","
+                    + "'" + jb.getString("code") + "',"
+                    + "'" + jb.getString("name") + "',"
+                    + "'" + jb.getString("unit") + "',"
+                    + "'[{\"pfCode\":\"jb\",\"alias\":\""+jb.getString("code")+"\"}]',"
+                    +   "now()),";
+
+        }
+
+        System.out.println(sql);
+    }
 }

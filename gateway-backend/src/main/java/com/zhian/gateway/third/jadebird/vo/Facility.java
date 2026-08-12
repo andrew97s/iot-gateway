@@ -97,6 +97,11 @@ public class Facility implements Serializable {
      */
     private String chn;
 
+    /** HRP通道 **/
+    private Integer channel;
+    /** 0 剩余电流     1 温度     2 关闭 **/
+    private Integer channelType;
+
 
     private BigDecimal thresholdHigh;
     private BigDecimal thresholdLow;
@@ -126,6 +131,10 @@ public class Facility implements Serializable {
     //断路器
     private String currentMain;
     private String voltageMain;
+
+    //V3A3 tr_server
+    private ElectricVo[] currentArr;
+    private ElectricVo[] voltageArr;
 
     public boolean isWireless(){
         return isWireless != null &&( isWireless.equalsIgnoreCase("1") || isWireless.equalsIgnoreCase("true"));

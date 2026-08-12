@@ -274,9 +274,12 @@ const { proxy } = getCurrentInstance()
 
 const TYPE_META = {
   alarm: { label: '告警事件', color: '#dc2626' },
-  business: { label: '监测数据', color: '#2563eb' },
-  monitor: { label: '监测数据', color: '#2563eb' },
-  device: { label: '设备事件', color: '#d97706' },
+  telemetry: { label: '监测数据', color: '#2563eb' },
+  device_add: { label: '监测数据', color: '#2563eb' },
+  device_upd: { label: '设备事件', color: '#d97706' },
+  device_del: { label: '设备事件', color: '#d97706' },
+  device_online: { label: '设备事件', color: '#d97706' },
+  device_offline: { label: '设备事件', color: '#d97706' },
   control: { label: '指令回执', color: '#0891b2' },
   event: { label: '事件', color: '#0891b2' }
 }

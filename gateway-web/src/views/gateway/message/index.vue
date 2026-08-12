@@ -38,15 +38,13 @@
     <div class="gw-card">
       <div class="gw-card-body no-pad">
         <el-table :data="messageList" v-loading="loading">
-          <el-table-column label="时间" width="160" align="center">
-            <template #default="{ row }"><span class="gw-mono gw-muted gw-small">{{ row.createTime }}</span></template>
+
+          <el-table-column label="消息ID" width="160" show-overflow-tooltip>
+            <template #default="{ row }"><span class="gw-mono gw-medium">{{ row.messageId || row.id }}</span></template>
           </el-table-column>
-          <el-table-column label="消息ID" width="120" show-overflow-tooltip>
-            <template #default="{ row }"><span class="gw-mono gw-small">{{ shortId(row.messageId || row.id) }}</span></template>
-          </el-table-column>
-          <el-table-column label="类型" width="100" align="center">
+          <el-table-column label="类型" width="280" align="left">
             <template #default="{ row }">
-              <span class="gw-tag" :class="typeTagClass(row.type)">{{ getMsgTypeLabel(row.type) }}</span>
+              <span v-for="(tp) in  row.type.split(',')" class="gw-tag" :class="typeTagClass(tp)">{{ getMsgTypeLabel(tp) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="设备编码" min-width="140" show-overflow-tooltip>
@@ -55,8 +53,14 @@
           <el-table-column label="来源插件" min-width="120" show-overflow-tooltip>
             <template #default="{ row }">{{ platformName(row.pfCode) }}</template>
           </el-table-column>
+          <el-table-column label="处理时间(ms)" min-width="120" show-overflow-tooltip>
+            <template #default="{ row }">{{ platformName(row.costTime) }}</template>
+          </el-table-column>
           <el-table-column label="摘要" min-width="200" show-overflow-tooltip>
             <template #default="{ row }"><span class="gw-muted">{{ row.summary || '-' }}</span></template>
+          </el-table-column>
+          <el-table-column label="时间" width="160" align="center">
+            <template #default="{ row }"><span class="gw-mono gw-muted gw-small">{{ row.createTime }}</span></template>
           </el-table-column>
           <el-table-column label="上级平台同步" width="150" align="center">
             <template #default="{ row }">
@@ -157,9 +161,12 @@ const { proxy } = getCurrentInstance()
 
 const MSG_TYPES = {
   alarm: { label: '告警 ALARM', short: '告警', cls: 'red' },
-  business: { label: '监测 TELEMETRY', short: '监测', cls: 'blue' },
-  monitor: { label: '监测 TELEMETRY', short: '监测', cls: 'blue' },
-  device: { label: '设备事件 DEVICE_EVENT', short: '设备事件', cls: 'orange' },
+  telemetry: { label: '监测 TELEMETRY', short: '监测', cls: 'blue' },
+  device_add: { label: '设备事件 DEVICE_EVENT', short: '设备新增', cls: 'green' },
+  device_upd: { label: '设备事件 DEVICE_EVENT', short: '设备更新', cls: 'blue' },
+  device_del: { label: '设备事件 DEVICE_EVENT', short: '设备删除', cls: 'gray' },
+  device_online: { label: '设备事件 DEVICE_EVENT', short: '设备在线', cls: 'green' },
+  device_offline: { label: '设备事件 DEVICE_EVENT', short: '设备离线  ', cls: 'orange' },
   control: { label: '反控指令 COMMAND', short: '反控指令', cls: 'purple' },
   event: { label: '事件', short: '事件', cls: 'orange' },
   heartbeat: { label: '心跳', short: '心跳', cls: '' }
@@ -384,6 +391,7 @@ getList()
 .page-summary b.ok { color: #16a34a; }
 .page-summary b.warn { color: #d97706; }
 .gw-tag {
+  margin-right: 3px;
   display: inline-block; padding: 1px 8px; border-radius: 5px; font-size: 12px;
   background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
 }
@@ -391,6 +399,9 @@ getList()
 .gw-tag.blue { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
 .gw-tag.orange { background: #fffbeb; color: #d97706; border-color: #fde68a; }
 .gw-tag.purple { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
+.gw-tag.green { background: #f0fdf4;color: #16a34a;border-color: #bbf7d0; }
+.gw-tag.gray { background: #f9fafb;color: #6b7280;border-color: #d1d5db; }
+
 .table-foot {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px; border-top: 1px solid #e2e8f0; gap: 12px; flex-wrap: wrap;

@@ -35,6 +35,11 @@ public class AlarmPayload extends  MessagePayload {
     private String desc;
 
     /**
+     * 告警图片, 可能为多个使用, 分隔
+     */
+    private String picUrl;
+
+    /**
      * 告警时间戳
      */
     private long timestamp;

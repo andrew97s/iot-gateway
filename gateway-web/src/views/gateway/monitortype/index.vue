@@ -25,26 +25,26 @@
     <div class="gw-card">
       <div class="gw-card-body no-pad">
         <el-table :data="list" v-loading="loading">
-          <el-table-column label="类型编码" width="150">
+          <el-table-column label="类型编码" width="250">
             <template #default="scope">
               <span class="gw-mono" style="font-weight: 600">{{ scope.row.code }}</span>
             </template>
           </el-table-column>
           <el-table-column label="类型名称" prop="name" min-width="110" />
-          <el-table-column label="值类型" width="90" align="center">
+          <el-table-column label="值类型" width="120" align="center">
             <template #default="scope">
               <el-tag :type="scope.row.valueType === 'enum' ? 'warning' : 'primary'" size="small" effect="plain">
                 {{ scope.row.valueType === 'enum' ? '枚举值' : '线性值' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="单位" width="80" align="center">
+          <el-table-column label="单位" width="120" align="center">
             <template #default="scope">
               <span v-if="scope.row.valueType === 'linear'">{{ scope.row.unit || '-' }}</span>
               <span v-else class="gw-muted">—</span>
             </template>
           </el-table-column>
-          <el-table-column label="枚举值 / 取值" min-width="170">
+          <el-table-column label="枚举值 / 取值" min-width="120">
             <template #default="scope">
               <template v-if="scope.row.valueType === 'enum'">
                 <el-tag v-for="(o, i) in parseJsonArr(scope.row.enumOptions)" :key="i" size="small" class="alias-tag" effect="plain">
