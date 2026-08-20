@@ -1,0 +1,2826 @@
+{
+  "total": 313,
+  "kept": 218,
+  "filled": 4,
+  "updatedStale": 3,
+  "inserted": 88,
+  "items": [
+    {
+      "id": "6",
+      "code": "WSAS",
+      "name": "无线手报开关（默认）",
+      "ftCode": "334",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "8",
+      "code": "WWIS",
+      "name": "无线水浸传感器",
+      "ftCode": "505",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "9",
+      "code": "ICB",
+      "name": "智能断路器",
+      "ftCode": "377",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 19
+    },
+    {
+      "id": "11",
+      "code": "currencyComponent",
+      "name": "未识别现场部件",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "14",
+      "code": "ESSB",
+      "name": "紧急启停按钮",
+      "ftCode": "155",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "15",
+      "code": "WLRE",
+      "name": "无线中继器",
+      "ftCode": "369",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "18",
+      "code": "SSV",
+      "name": "启动装置、选择阀",
+      "ftCode": "319",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "20",
+      "code": "CEFMD",
+      "name": "组合式电器火灾监控探测器",
+      "ftCode": "197",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "22",
+      "code": "LLOWT",
+      "name": "水箱（池）液位",
+      "ftCode": "262",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "23",
+      "code": "WTFS",
+      "name": "水箱（池）流量开关",
+      "ftCode": "263",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "24",
+      "code": "SP",
+      "name": "喷淋泵",
+      "ftCode": "95",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "25",
+      "code": "NBWCGD",
+      "name": "NB无线可燃气体探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "26",
+      "code": "HRPWGLPS",
+      "name": "HRP无线气体传感器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "27",
+      "code": "FD280",
+      "name": "280度防火阀",
+      "ftCode": "284",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "28",
+      "code": "UVEP",
+      "name": "紫外防爆",
+      "ftCode": "300",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "29",
+      "code": "CP",
+      "name": "钢瓶压力",
+      "ftCode": "285",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "30",
+      "code": "FELC",
+      "name": "应急照明控制器",
+      "ftCode": "370",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "31",
+      "code": "LoraWIM",
+      "name": "Lora无线输入模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "32",
+      "code": "WTWTD",
+      "name": "无线末端试水装置",
+      "ftCode": "381",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "33",
+      "code": "LP",
+      "name": "联动部件",
+      "ftCode": "159",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "34",
+      "code": "LoraWA",
+      "name": "Lora无线声光",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "36",
+      "code": "FEA",
+      "name": "灭火辅助",
+      "ftCode": "135",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "37",
+      "code": "WFI",
+      "name": "水流指示器",
+      "ftCode": "96",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "38",
+      "code": "WCB",
+      "name": "智慧云盒",
+      "ftCode": "368",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 14
+    },
+    {
+      "id": "39",
+      "code": "CGD",
+      "name": "可燃气体探测器",
+      "ftCode": "10",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "41",
+      "code": "NCASO",
+      "name": "常闭送风口",
+      "ftCode": "114",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "42",
+      "code": "AV",
+      "name": "报警阀",
+      "ftCode": "98",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "43",
+      "code": "FIREE",
+      "name": "消防电梯",
+      "ftCode": "178",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "44",
+      "code": "FDM",
+      "name": "防火门监控器",
+      "ftCode": "118",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "45",
+      "code": "LoraWSCD",
+      "name": "Lora无线控烟探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "48",
+      "code": "OKA",
+      "name": "一键报警",
+      "ftCode": "800",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "49",
+      "code": "EFM",
+      "name": "电气火灾监控器",
+      "ftCode": "16",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "50",
+      "code": "DFD70",
+      "name": "70度防火阀",
+      "ftCode": "283",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "53",
+      "code": "DL",
+      "name": "探测回路",
+      "ftCode": "21",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "54",
+      "code": "SEOASEV",
+      "name": "排烟口、排烟阀",
+      "ftCode": "289",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "55",
+      "code": "SEO",
+      "name": "排烟口",
+      "ftCode": "115",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "56",
+      "code": "EFMA",
+      "name": "电气火灾监控报警器",
+      "ftCode": "16",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "58",
+      "code": "BFTS",
+      "name": "总线消防电话总机",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "59",
+      "code": "OFHAG",
+      "name": "室外消火栓（地上）",
+      "ftCode": "179",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "60",
+      "code": "FEPS",
+      "name": "消防应急电源",
+      "ftCode": "216",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "62",
+      "code": "BIM",
+      "name": "总线隔离模块",
+      "ftCode": "175",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "63",
+      "code": "CSATFD",
+      "name": "复合式感烟感温火灾探测器",
+      "ftCode": "51",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "65",
+      "code": "HRPWLRE",
+      "name": "HRP无线中继器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "66",
+      "code": "FDFAN",
+      "name": "送风机",
+      "ftCode": "139",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "67",
+      "code": "ITWTDC",
+      "name": "智能末端试水装置控制器",
+      "ftCode": "382",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "68",
+      "code": "PS",
+      "name": "压力开关",
+      "ftCode": "99",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "69",
+      "code": "SV",
+      "name": "信号阀",
+      "ftCode": "97",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "71",
+      "code": "ITIC",
+      "name": "信息传输接口卡",
+      "ftCode": "356",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 0
+    },
+    {
+      "id": "74",
+      "code": "FEPB",
+      "name": "应急电源箱",
+      "ftCode": "132",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "75",
+      "code": "FEDED",
+      "name": "消防应急分配电装置",
+      "ftCode": "217",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "77",
+      "code": "FHB",
+      "name": "消火栓按钮",
+      "ftCode": "24",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "78",
+      "code": "FUMEE",
+      "name": "排烟机",
+      "ftCode": "134",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "79",
+      "code": "ASFD",
+      "name": "吸气式感烟火灾探测器",
+      "ftCode": "44",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "81",
+      "code": "GRL",
+      "name": "气体释放灯",
+      "ftCode": "138",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "82",
+      "code": "EWTP",
+      "name": "末端试水装置",
+      "ftCode": "314",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "84",
+      "code": "camera",
+      "name": "摄像机",
+      "ftCode": "331",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "85",
+      "code": "MLFTE",
+      "name": "多线消防电话分机",
+      "ftCode": "345",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "87",
+      "code": "4GWTD",
+      "name": "4G无线感温探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "88",
+      "code": "FLST",
+      "name": "泡沫液储罐",
+      "ftCode": "320",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "90",
+      "code": "HRPWIOM",
+      "name": "HRP无线输入输出模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "92",
+      "code": "FELF",
+      "name": "消防应急照明灯具",
+      "ftCode": "302",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "93",
+      "code": "DNOFDM",
+      "name": "双常开防火门模块",
+      "ftCode": "143",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "95",
+      "code": "ESRVW",
+      "name": "电控挡烟垂壁",
+      "ftCode": "116",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "96",
+      "code": "LNEFMD",
+      "name": "电气火灾监控探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "98",
+      "code": "FPLUG",
+      "name": "泡沫栓",
+      "ftCode": "321",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "99",
+      "code": "LNFMM",
+      "name": "四项监控模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "100",
+      "code": "FEPM",
+      "name": "消防设备电源监控器",
+      "ftCode": "351",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "101",
+      "code": "HRPWA",
+      "name": "HRP无线声光",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "102",
+      "code": "HRPWCGD",
+      "name": "HRP无线可燃气体探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "103",
+      "code": "HRPWMETER",
+      "name": "HRP无线仪表",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "104",
+      "code": "LNEMMT",
+      "name": "环境监测管理终端",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "105",
+      "code": "EDS",
+      "name": "电磁门吸",
+      "ftCode": "177",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "106",
+      "code": "FGBV",
+      "name": "燃气截断阀",
+      "ftCode": "299",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "107",
+      "code": "LoraWSD",
+      "name": "Lora无线感烟探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "108",
+      "code": "SEFD",
+      "name": "排烟防火阀",
+      "ftCode": "113",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "109",
+      "code": "IOM",
+      "name": "输入输出模块",
+      "ftCode": "87",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "110",
+      "code": "FH",
+      "name": "消防水喉",
+      "ftCode": "310",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "113",
+      "code": "RPMD",
+      "name": "余压监控探测器",
+      "ftCode": "213",
+      "action": "update-stale",
+      "oldFtCode": "374",
+      "facilitiesCode": 2
+    },
+    {
+      "id": "116",
+      "code": "NBWSD",
+      "name": "NB无线感烟探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "117",
+      "code": "GFEC",
+      "name": "气体灭火控制器",
+      "ftCode": "81",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "118",
+      "code": "FAF",
+      "name": "新风机",
+      "ftCode": "185",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "119",
+      "code": "WMETER",
+      "name": "无线仪表（默认）",
+      "ftCode": "358",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "120",
+      "code": "EE",
+      "name": "排气设备",
+      "ftCode": "282",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "121",
+      "code": "ASV",
+      "name": "送风阀",
+      "ftCode": "140",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "122",
+      "code": "FFHB",
+      "name": "泡沫消火栓按钮",
+      "ftCode": "324",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "126",
+      "code": "PTPSFD",
+      "name": "点型光电感烟火灾探测器",
+      "ftCode": "42",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "127",
+      "code": "WLG",
+      "name": "无线网关",
+      "ftCode": "348",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 0
+    },
+    {
+      "id": "128",
+      "code": "currencyController",
+      "name": "未识别控制器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "129",
+      "code": "FN",
+      "name": "泡沫喷头",
+      "ftCode": "323",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "133",
+      "code": "PTTSFD",
+      "name": "点型感温火灾探测器",
+      "ftCode": "31",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "134",
+      "code": "MACB",
+      "name": "手自动转换盒",
+      "ftCode": "131",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "136",
+      "code": "TMEFMD",
+      "name": "测温式电气火灾监控探测器",
+      "ftCode": "18",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "137",
+      "code": "FESL",
+      "name": "消防应急标志灯具",
+      "ftCode": "303",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "138",
+      "code": "LBSFD",
+      "name": "线型光束感烟火灾探测器",
+      "ftCode": "43",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "139",
+      "code": "HAB",
+      "name": "水力警铃",
+      "ftCode": "313",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "140",
+      "code": "ICFD",
+      "name": "青瞳图像探测设备",
+      "ftCode": "78",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "141",
+      "code": "fireIntegrated",
+      "name": "消安一体化设备",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "142",
+      "code": "DC",
+      "name": "探测部件",
+      "ftCode": "158",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "143",
+      "code": "ETV",
+      "name": "末端试验阀",
+      "ftCode": "315",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "144",
+      "code": "4GWIOM",
+      "name": "4G输入输出模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "145",
+      "code": "4GWGLPS",
+      "name": "4G气体传感器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "146",
+      "code": "HRPWSD",
+      "name": "HRP无线感烟探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "147",
+      "code": "CGATSCD",
+      "name": "可燃气体和感温复合型探测器",
+      "ftCode": "380",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "148",
+      "code": "GFD",
+      "name": "气体灭火探测器",
+      "ftCode": "202",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "149",
+      "code": "4GWSCD",
+      "name": "4G控烟探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "151",
+      "code": "OFHMC",
+      "name": "室外消火栓（井盖）",
+      "ftCode": "180",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "152",
+      "code": "LNSCM",
+      "name": "单路模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "153",
+      "code": "WCGD",
+      "name": "无线可燃气体探测器（默认）",
+      "ftCode": "359",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "157",
+      "code": "AAVA",
+      "name": "声光报警器",
+      "ftCode": "160",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "159",
+      "code": "EFDWDIP",
+      "name": "探测绝缘性能式电气火灾探测器",
+      "ftCode": "295",
+      "action": "fill",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "160",
+      "code": "RPM",
+      "name": "余压监控器",
+      "ftCode": "384",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "161",
+      "code": "FIREP",
+      "name": "消防水泵",
+      "ftCode": "261",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "163",
+      "code": "ESTARTB",
+      "name": "紧急启动按钮",
+      "ftCode": "129",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "164",
+      "code": "4GWSD",
+      "name": "4G感烟探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "166",
+      "code": "LNSMD",
+      "name": "单项模块探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "167",
+      "code": "DAD",
+      "name": "数据采集装置",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "168",
+      "code": "basicFire",
+      "name": "基础消防设备",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "169",
+      "code": "HRPWLG",
+      "name": "HRP无线网关",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "170",
+      "code": "BFTE",
+      "name": "总线消防电话分机",
+      "ftCode": "343",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "171",
+      "code": "LoraWSAS",
+      "name": "Lora无线手报开关",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "172",
+      "code": "MFAB",
+      "name": "手动火灾报警按钮",
+      "ftCode": "23",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "174",
+      "code": "MLFTJ",
+      "name": "多线消防电话插孔",
+      "ftCode": "184",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "176",
+      "code": "DV",
+      "name": "雨淋阀",
+      "ftCode": "275",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "177",
+      "code": "FEPSM",
+      "name": "消防设备电源状态监控器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "179",
+      "code": "supervise",
+      "name": "监管",
+      "ftCode": "167",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "182",
+      "code": "MLFTH",
+      "name": "多线消防电话主机",
+      "ftCode": "346",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "183",
+      "code": "FWT",
+      "name": "消防水箱",
+      "ftCode": "92",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "185",
+      "code": "FHP",
+      "name": "消防栓泵",
+      "ftCode": "91",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "186",
+      "code": "DPITEFD",
+      "name": "探测热解离子式电气火灾探测器",
+      "ftCode": "221",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "187",
+      "code": "HRPWSAS",
+      "name": "HRP无线手报开关",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "188",
+      "code": "meter",
+      "name": "仪表",
+      "ftCode": "328",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "189",
+      "code": "FE",
+      "name": "灭火器",
+      "ftCode": "305",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "190",
+      "code": "BBP",
+      "name": "总线广播盘",
+      "ftCode": "165",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "195",
+      "code": "NBWSCD",
+      "name": "NB无线控烟探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "196",
+      "code": "NBWTD",
+      "name": "NB无线感温探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "197",
+      "code": "HTIntercom",
+      "name": "对讲机",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "198",
+      "code": "HSMS",
+      "name": "全息网关",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "199",
+      "code": "4GWIM",
+      "name": "4G输入模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "200",
+      "code": "ESTOPB",
+      "name": "紧急停止按钮",
+      "ftCode": "130",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "202",
+      "code": "WFS",
+      "name": "无线流量传感器",
+      "ftCode": "504",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "204",
+      "code": "VCSS",
+      "name": "电流信号传感器",
+      "ftCode": "151",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "205",
+      "code": "FAC",
+      "name": "火灾报警控制器",
+      "ftCode": "1",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "207",
+      "code": "FECD",
+      "name": "消防电器控制装置",
+      "ftCode": "82",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "208",
+      "code": "fireFacilities",
+      "name": "消防设施",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "209",
+      "code": "FM",
+      "name": "消防炮",
+      "ftCode": "311",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "210",
+      "code": "DP",
+      "name": "雨淋泵",
+      "ftCode": "269",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "211",
+      "code": "IFD",
+      "name": "红外火焰探测器",
+      "ftCode": "62",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "212",
+      "code": "BFTJ",
+      "name": "总线消防电话插孔",
+      "ftCode": "183",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "213",
+      "code": "SMV",
+      "name": "信号检修（碟）阀",
+      "ftCode": "274",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "214",
+      "code": "WCV",
+      "name": "水幕阀",
+      "ftCode": "279",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "216",
+      "code": "ACO",
+      "name": "自动转换开关",
+      "ftCode": "133",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "218",
+      "code": "currencyDevice",
+      "name": "未识别设备",
+      "ftCode": "2",
+      "action": "fill",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "219",
+      "code": "NBWFH",
+      "name": "NB无线消火栓终端",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "221",
+      "code": "OGTB",
+      "name": "电子巡更",
+      "ftCode": "473",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "222",
+      "code": "MLM",
+      "name": "多线模块",
+      "ftCode": "156",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "223",
+      "code": "AFD",
+      "name": "感声火灾探测器",
+      "ftCode": "79",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "224",
+      "code": "VAG",
+      "name": "视频网关",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "225",
+      "code": "PCD",
+      "name": "功放、卡座、分配盘",
+      "ftCode": "342",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "226",
+      "code": "HRPWTD",
+      "name": "HRP无线感温探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "227",
+      "code": "gateway",
+      "name": "网关设备",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "230",
+      "code": "LTFD",
+      "name": "线型感温火灾探测器",
+      "ftCode": "34",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "233",
+      "code": "HRPWCEFMD",
+      "name": "HRP无线组合式电气火灾监控探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "235",
+      "code": "GDDIFCR",
+      "name": "消防控制室图形显示装置",
+      "ftCode": "83",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 0
+    },
+    {
+      "id": "236",
+      "code": "internetFire",
+      "name": "物联网消防设备",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "238",
+      "code": "FEP",
+      "name": "灭火盘",
+      "ftCode": "164",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "239",
+      "code": "GPRS",
+      "name": "GPRS模块",
+      "ftCode": "355",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 0
+    },
+    {
+      "id": "241",
+      "code": "OFTSFD",
+      "name": "光纤感温火灾探测器",
+      "ftCode": "37",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "243",
+      "code": "VSS",
+      "name": "电压信号传感器",
+      "ftCode": "150",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "244",
+      "code": "WFH",
+      "name": "无线消火栓终端",
+      "ftCode": "365",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "245",
+      "code": "RCEFMD",
+      "name": "剩余电流式电气火灾监控探测器",
+      "ftCode": "17",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "247",
+      "code": "ASOASV",
+      "name": "送风口、送风阀",
+      "ftCode": "290",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "248",
+      "code": "LNCEFMD",
+      "name": "复合式电气火灾监控探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "249",
+      "code": "FD",
+      "name": "防火阀",
+      "ftCode": "103",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "250",
+      "code": "FLP",
+      "name": "泡沫液泵",
+      "ftCode": "105",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "251",
+      "code": "HRPWIM",
+      "name": "HRP无线输入模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "253",
+      "code": "NBWMETER",
+      "name": "NB无线仪表",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "254",
+      "code": "IFH",
+      "name": "室内消火栓",
+      "ftCode": "309",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "255",
+      "code": "WCEFMD",
+      "name": "无线组合式电气火灾监控探测器（默认）",
+      "ftCode": "357",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "257",
+      "code": "LoraWLG",
+      "name": "Lora无线网关",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "258",
+      "code": "UFD",
+      "name": "紫外火焰探测器",
+      "ftCode": "61",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "259",
+      "code": "PFD",
+      "name": "感光火灾探测器",
+      "ftCode": "69",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "260",
+      "code": "FPCUT",
+      "name": "电源强切",
+      "ftCode": "301",
+      "action": "update-stale",
+      "oldFtCode": "146",
+      "facilitiesCode": 2
+    },
+    {
+      "id": "261",
+      "code": "FP",
+      "name": "泡沫比例混合器",
+      "ftCode": "325",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "262",
+      "code": "BM",
+      "name": "广播模块",
+      "ftCode": "154",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "263",
+      "code": "CPSFD",
+      "name": "复合式感光感烟火灾探测器",
+      "ftCode": "53",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "264",
+      "code": "JP",
+      "name": "稳压泵",
+      "ftCode": "265",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "266",
+      "code": "SNOFDM",
+      "name": "单常开防火门模块",
+      "ftCode": "141",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "268",
+      "code": "FLOWM",
+      "name": "流量监测",
+      "ftCode": "297",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "271",
+      "code": "DNCFDM",
+      "name": "双常闭防火门模块",
+      "ftCode": "144",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "272",
+      "code": "UITD",
+      "name": "用户信息传输装置",
+      "ftCode": "307",
+      "action": "update-stale",
+      "oldFtCode": "128",
+      "facilitiesCode": 0
+    },
+    {
+      "id": "274",
+      "code": "IM",
+      "name": "输入模块",
+      "ftCode": "85",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "276",
+      "code": "CGC",
+      "name": "可燃气体控制器",
+      "ftCode": "340",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "277",
+      "code": "LoraWCGD",
+      "name": "Lora无线可燃气体探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "278",
+      "code": "SNCFDM",
+      "name": "单常闭防火门模块",
+      "ftCode": "142",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "279",
+      "code": "FDP",
+      "name": "火灾显示盘",
+      "ftCode": "22",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "280",
+      "code": "PCY",
+      "name": "泡沫产生器",
+      "ftCode": "322",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "281",
+      "code": "4GWA",
+      "name": "4G声光",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "283",
+      "code": "NBWCEFMD",
+      "name": "NB无线组合式电气火灾监控探测器",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "285",
+      "code": "FLC",
+      "name": "消防联动控制器",
+      "ftCode": "306",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "286",
+      "code": "HD",
+      "name": "混合式探测器",
+      "ftCode": "199",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "288",
+      "code": "WGP",
+      "name": "智慧青瞳",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "289",
+      "code": "OLIRD",
+      "name": "在线绝缘式电阻探测器",
+      "ftCode": "198",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "291",
+      "code": "PNSV",
+      "name": "管网电磁阀",
+      "ftCode": "106",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "311",
+      "code": "FAD",
+      "name": "故障电弧探测器",
+      "ftCode": "147",
+      "action": "fill",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "196271196511552",
+      "code": "currencyNetComponent",
+      "name": "未识别物联网设备",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "196446514304576",
+      "code": "currencyGateway",
+      "name": "未识别网关设备",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "196447233626176",
+      "code": "4GWMETER",
+      "name": "4G无线仪表",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "196465770046752",
+      "code": "WA",
+      "name": "无线声光（默认）",
+      "ftCode": "338",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "196465816503584",
+      "code": "WSD",
+      "name": "无线感烟探测器（默认）",
+      "ftCode": "332",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "196465835159840",
+      "code": "WTD",
+      "name": "无线感温探测器（默认）",
+      "ftCode": "333",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "196468356403488",
+      "code": "WIM",
+      "name": "无线输入模块（默认）",
+      "ftCode": "335",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "196468519163680",
+      "code": "WIOM",
+      "name": "输入输出模块（默认）",
+      "ftCode": "373",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "196470045248544",
+      "code": "WSCD",
+      "name": "无线控烟探测器（默认）",
+      "ftCode": "360",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "196470122032672",
+      "code": "WGLPS",
+      "name": "无线气体传感器（默认）",
+      "ftCode": "372",
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "198106349212704",
+      "code": "OVFD",
+      "name": "其他图像探测设备",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "198239911738912",
+      "code": "FRD",
+      "name": "防火卷帘门",
+      "ftCode": "181",
+      "action": "fill",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "204166908078976",
+      "code": "ZAM",
+      "name": "值守一体机",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "205291486562912",
+      "code": "CO2",
+      "name": "二氧化碳探测",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "207458375057856",
+      "code": "cr_v1",
+      "name": "读卡器模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "207458383499456",
+      "code": "roc_v2",
+      "name": "人脸识别模块",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "208459462506368",
+      "code": "XFJQR",
+      "name": "消防机器人",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "208459487596160",
+      "code": "PN_RB",
+      "name": "面板机器人",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "214564041329024",
+      "code": "BZKXJ",
+      "name": "巡检控制柜",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "214564047794816",
+      "code": "BZKFC",
+      "name": "消防控制柜",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "214668466037920",
+      "code": "FJKZG",
+      "name": "风机控制柜",
+      "ftCode": null,
+      "action": "keep",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    },
+    {
+      "id": "220000000000396",
+      "code": "WRGVLD",
+      "name": "无线燃气阀井气体泄漏检测仪",
+      "ftCode": "396",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000395",
+      "code": "WFHB",
+      "name": "无线消火栓按钮",
+      "ftCode": "395",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000394",
+      "code": "WMD",
+      "name": "细水雾探测器",
+      "ftCode": "394",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000393",
+      "code": "PPD",
+      "name": "热解粒子探测器",
+      "ftCode": "393",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000392",
+      "code": "ICBCM",
+      "name": "智能断路器通讯模组",
+      "ftCode": "392",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 0
+    },
+    {
+      "id": "220000000000391",
+      "code": "WSMDA",
+      "name": "无线智能门磁报警器",
+      "ftCode": "391",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000390",
+      "code": "ICCGD",
+      "name": "工商业用可燃气体探测器",
+      "ftCode": "390",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000389",
+      "code": "CCS",
+      "name": "充电柜屏幕",
+      "ftCode": "389",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000388",
+      "code": "CCOM",
+      "name": "充电仓",
+      "ftCode": "388",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000387",
+      "code": "CCAB",
+      "name": "充电柜",
+      "ftCode": "387",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000386",
+      "code": "WSC",
+      "name": "水系统控制器",
+      "ftCode": "386",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000383",
+      "code": "EQC",
+      "name": "环境质量控制器",
+      "ftCode": "383",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000379",
+      "code": "SSUED",
+      "name": "智慧安全用电设备",
+      "ftCode": "379",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 19
+    },
+    {
+      "id": "220000000000378",
+      "code": "IEUT",
+      "name": "智能用电终端",
+      "ftCode": "378",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 19
+    },
+    {
+      "id": "220000000000376",
+      "code": "NCFD",
+      "name": "常闭防火门",
+      "ftCode": "376",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000375",
+      "code": "NOFD",
+      "name": "常开防火门",
+      "ftCode": "375",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000371",
+      "code": "WPM",
+      "name": "无线压力监测",
+      "ftCode": "371",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000367",
+      "code": "IPCAM",
+      "name": "摄像头",
+      "ftCode": "367",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 8
+    },
+    {
+      "id": "220000000000366",
+      "code": "GFIOTMD",
+      "name": "气体灭火物联网实时监测装置",
+      "ftCode": "366",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000364",
+      "code": "HTZ",
+      "name": "感温分区",
+      "ftCode": "364",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 13
+    },
+    {
+      "id": "220000000000363",
+      "code": "HTPOS",
+      "name": "感温位置",
+      "ftCode": "363",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 12
+    },
+    {
+      "id": "220000000000362",
+      "code": "HTCABLE",
+      "name": "感温电缆",
+      "ftCode": "362",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 11
+    },
+    {
+      "id": "220000000000361",
+      "code": "SU",
+      "name": "信号单元",
+      "ftCode": "361",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 10
+    },
+    {
+      "id": "220000000000352",
+      "code": "PHSFD",
+      "name": "点型家用感烟火灾探测器",
+      "ftCode": "352",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000350",
+      "code": "EFME",
+      "name": "电气火灾监控设备",
+      "ftCode": "350",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000349",
+      "code": "NGC",
+      "name": "无网关控制器",
+      "ftCode": "349",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000344",
+      "code": "BFTM",
+      "name": "总线消防电话主机",
+      "ftCode": "344",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000337",
+      "code": "WTM",
+      "name": "无线传输模块",
+      "ftCode": "337",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000312",
+      "code": "AVTEDV",
+      "name": "报警阀组试验排放阀",
+      "ftCode": "312",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000308",
+      "code": "RMS",
+      "name": "远程监控系统",
+      "ftCode": "308",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000296",
+      "code": "MPPEFMD",
+      "name": "测量热解粒子式电气火灾监控探测器",
+      "ftCode": "296",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000294",
+      "code": "DNCFDMM",
+      "name": "双常闭防火门模块",
+      "ftCode": "294",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000293",
+      "code": "SNCFDMM",
+      "name": "单常闭防火门模块",
+      "ftCode": "293",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000292",
+      "code": "DNOFDMM",
+      "name": "双常开防火门模块",
+      "ftCode": "292",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000291",
+      "code": "SNOFDMM",
+      "name": "单常开防火门模块",
+      "ftCode": "291",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000286",
+      "code": "SA",
+      "name": "声报警器",
+      "ftCode": "286",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000281",
+      "code": "PAP",
+      "name": "管道气压",
+      "ftCode": "281",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000280",
+      "code": "INFEQ",
+      "name": "充气设备",
+      "ftCode": "280",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000271",
+      "code": "WTAV",
+      "name": "水箱(池)报警阀",
+      "ftCode": "271",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000268",
+      "code": "LPD",
+      "name": "防漏水检测",
+      "ftCode": "268",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000267",
+      "code": "STKP",
+      "name": "稳压罐压力",
+      "ftCode": "267",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000266",
+      "code": "PNP",
+      "name": "管网压力",
+      "ftCode": "266",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000223",
+      "code": "FEA2",
+      "name": "灭火辅助",
+      "ftCode": "223",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000222",
+      "code": "FEZ",
+      "name": "灭火区",
+      "ftCode": "222",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000219",
+      "code": "FEL",
+      "name": "消防应急灯具",
+      "ftCode": "219",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000218",
+      "code": "FEDB",
+      "name": "消防应急配电箱",
+      "ftCode": "218",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000215",
+      "code": "RPDV",
+      "name": "余压风阀",
+      "ftCode": "215",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000203",
+      "code": "ETD",
+      "name": "环境温度探测器",
+      "ftCode": "203",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000201",
+      "code": "IORD",
+      "name": "IOR式探测器",
+      "ftCode": "201",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000200",
+      "code": "COM",
+      "name": "控制输出模块",
+      "ftCode": "200",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000176",
+      "code": "DCL",
+      "name": "闭门器",
+      "ftCode": "176",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000166",
+      "code": "OBC",
+      "name": "其他板卡",
+      "ftCode": "166",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000163",
+      "code": "MLP",
+      "name": "多线盘",
+      "ftCode": "163",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000162",
+      "code": "BPANEL",
+      "name": "总线盘",
+      "ftCode": "162",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000161",
+      "code": "LCB",
+      "name": "回路板",
+      "ftCode": "161",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000157",
+      "code": "SW",
+      "name": "开关",
+      "ftCode": "157",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000153",
+      "code": "IFACE",
+      "name": "接口",
+      "ftCode": "153",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000152",
+      "code": "CMM",
+      "name": "电流监控模块",
+      "ftCode": "152",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000149",
+      "code": "TRR",
+      "name": "脱扣继电器",
+      "ftCode": "149",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000148",
+      "code": "OCD",
+      "name": "过电流探测器",
+      "ftCode": "148",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000145",
+      "code": "EL",
+      "name": "应急照明",
+      "ftCode": "145",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000137",
+      "code": "BBCAST",
+      "name": "总线广播",
+      "ftCode": "137",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000136",
+      "code": "EBCAST",
+      "name": "紧急广播",
+      "ftCode": "136",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000121",
+      "code": "ALDEV",
+      "name": "警报装置",
+      "ftCode": "121",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000117",
+      "code": "FDC",
+      "name": "防火门控制器",
+      "ftCode": "117",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 1
+    },
+    {
+      "id": "220000000000111",
+      "code": "SMEFAN",
+      "name": "防烟排烟风机",
+      "ftCode": "111",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000104",
+      "code": "HVAC",
+      "name": "通风空调",
+      "ftCode": "104",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000102",
+      "code": "FDOOR",
+      "name": "防火门",
+      "ftCode": "102",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000101",
+      "code": "VDA",
+      "name": "阀驱动装置",
+      "ftCode": "101",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000089",
+      "code": "SCIM",
+      "name": "短路隔离模块",
+      "ftCode": "89",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000088",
+      "code": "RELAYM",
+      "name": "中继模块",
+      "ftCode": "88",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000086",
+      "code": "OM",
+      "name": "输出模块",
+      "ftCode": "86",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000084",
+      "code": "MOD",
+      "name": "模块",
+      "ftCode": "84",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000074",
+      "code": "GD",
+      "name": "气体探测器",
+      "ftCode": "74",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000052",
+      "code": "CPTHFD",
+      "name": "复合式感光感温火灾探浏器",
+      "ftCode": "52",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000050",
+      "code": "CFD",
+      "name": "复合式火灾探测器",
+      "ftCode": "50",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000041",
+      "code": "PLISFD",
+      "name": "点型离子感烟火灾探测器",
+      "ftCode": "41",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000040",
+      "code": "SFD",
+      "name": "感烟火灾探测器",
+      "ftCode": "40",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000036",
+      "code": "LTFDR",
+      "name": "线型感温火灾探测器(R型)",
+      "ftCode": "36",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000035",
+      "code": "LTFDS",
+      "name": "线型感温火灾探测器(S型)",
+      "ftCode": "35",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000033",
+      "code": "PTTFDR",
+      "name": "点型感温火灾探测器(R型)",
+      "ftCode": "33",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000032",
+      "code": "PTTFDS",
+      "name": "点型感温火灾探测器(S型)",
+      "ftCode": "32",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000030",
+      "code": "TFD",
+      "name": "感温火灾探测器",
+      "ftCode": "30",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000025",
+      "code": "FDET",
+      "name": "火灾探测器",
+      "ftCode": "25",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000013",
+      "code": "LCGD",
+      "name": "线型可燃气体探测器",
+      "ftCode": "13",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000012",
+      "code": "DICGD",
+      "name": "独立式可燃气体探测器",
+      "ftCode": "12",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000011",
+      "code": "PCGD",
+      "name": "点型可燃气体探测器",
+      "ftCode": "11",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": 2
+    },
+    {
+      "id": "220000000000000",
+      "code": "GENERAL",
+      "name": "通用",
+      "ftCode": "0",
+      "action": "insert",
+      "oldFtCode": null,
+      "facilitiesCode": null
+    }
+  ]
+}
