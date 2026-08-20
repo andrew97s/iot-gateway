@@ -1,0 +1,1161 @@
+{
+    "message": null,
+    "code": 1,
+    "data": [
+        {
+            "code": 396,
+            "name": "无线燃气阀井气体泄漏检测仪",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 395,
+            "name": "无线消火栓按钮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 394,
+            "name": "细水雾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 393,
+            "name": "热解粒子探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 392,
+            "name": "智能断路器通讯模组",
+            "facilitiesCode": 0
+        },
+        {
+            "code": 391,
+            "name": "无线智能门磁报警器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 390,
+            "name": "工商业用可燃气体探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 389,
+            "name": "充电柜屏幕",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 388,
+            "name": "充电仓",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 387,
+            "name": "充电柜",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 386,
+            "name": "水系统控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 384,
+            "name": "余压监控器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 383,
+            "name": "环境质量控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 382,
+            "name": "智能末端试水控制主机",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 381,
+            "name": "无线末端试水装置",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 379,
+            "name": "智慧安全用电设备",
+            "facilitiesCode": 19
+        },
+        {
+            "code": 378,
+            "name": "智能用电终端",
+            "facilitiesCode": 19
+        },
+        {
+            "code": 377,
+            "name": "智能断路器",
+            "facilitiesCode": 19
+        },
+        {
+            "code": 376,
+            "name": "常闭防火门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 375,
+            "name": "常开防火门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 373,
+            "name": "无线输入输出模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 372,
+            "name": "无线气体/液位 压力传感器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 371,
+            "name": "无线压力监测",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 370,
+            "name": "消防应急照明控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 369,
+            "name": "无线中继器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 368,
+            "name": "智慧云盒",
+            "facilitiesCode": 14
+        },
+        {
+            "code": 367,
+            "name": "摄像头",
+            "facilitiesCode": 8
+        },
+        {
+            "code": 366,
+            "name": "气体灭火物联网实时监测装置",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 364,
+            "name": "感温分区",
+            "facilitiesCode": 13
+        },
+        {
+            "code": 363,
+            "name": "感温位置",
+            "facilitiesCode": 12
+        },
+        {
+            "code": 362,
+            "name": "感温电缆",
+            "facilitiesCode": 11
+        },
+        {
+            "code": 361,
+            "name": "信号单元",
+            "facilitiesCode": 10
+        },
+        {
+            "code": 360,
+            "name": "无线控烟探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 359,
+            "name": "无线可燃气体探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 358,
+            "name": "无线仪表",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 357,
+            "name": "无线组合式电气火灾监控探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 356,
+            "name": "信息传输接口卡",
+            "facilitiesCode": 0
+        },
+        {
+            "code": 355,
+            "name": "GPRS模块",
+            "facilitiesCode": 0
+        },
+        {
+            "code": 352,
+            "name": "点型家用感烟火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 351,
+            "name": "消防设备电源监控器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 350,
+            "name": "电气火灾监控设备",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 349,
+            "name": "无网关控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 348,
+            "name": "无线网关",
+            "facilitiesCode": 0
+        },
+        {
+            "code": 346,
+            "name": "多线消防电话主机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 345,
+            "name": "多线消防电话分机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 344,
+            "name": "总线消防电话主机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 340,
+            "name": "可燃气体控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 338,
+            "name": "无线声光",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 337,
+            "name": "无线传输模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 335,
+            "name": "无线输入模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 334,
+            "name": "无线手报开关",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 333,
+            "name": "无线感温探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 332,
+            "name": "无线感烟探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 331,
+            "name": "摄像机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 328,
+            "name": "仪表",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 324,
+            "name": "泡沫消火栓按钮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 319,
+            "name": "启动装置、选择阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 315,
+            "name": "末端试验阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 314,
+            "name": "末端试水装置",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 313,
+            "name": "水力警铃",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 312,
+            "name": "报警阀组试验排放阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 311,
+            "name": "消防炮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 310,
+            "name": "消防水喉",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 309,
+            "name": "室内消火栓",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 308,
+            "name": "远程监控系统",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 307,
+            "name": "用户信息传输装置",
+            "facilitiesCode": 0
+        },
+        {
+            "code": 306,
+            "name": "消防联动控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 305,
+            "name": "灭火器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 303,
+            "name": "消防应急标志灯具",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 302,
+            "name": "消防应急照明灯具",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 301,
+            "name": "电源强切",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 299,
+            "name": "燃气截断阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 297,
+            "name": "流量监测",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 296,
+            "name": "测量热解粒子式电气火灾监控探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 295,
+            "name": "探测绝缘性能式电气火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 294,
+            "name": "双常闭防火门模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 293,
+            "name": "单常闭防火门模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 292,
+            "name": "双常开防火门模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 291,
+            "name": "单常开防火门模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 290,
+            "name": "送风口、送风阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 289,
+            "name": "排烟口、排烟阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 286,
+            "name": "声报警器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 285,
+            "name": "钢瓶压力",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 284,
+            "name": "280度防火阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 283,
+            "name": "70度防火阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 282,
+            "name": "排气设备",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 281,
+            "name": "管道气压",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 280,
+            "name": "充气设备",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 279,
+            "name": "水幕阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 275,
+            "name": "雨淋阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 274,
+            "name": "信号检修（碟）阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 271,
+            "name": "水箱(池)报警阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 269,
+            "name": "雨淋泵",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 268,
+            "name": "防漏水检测",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 267,
+            "name": "稳压罐压力",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 266,
+            "name": "管网压力",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 265,
+            "name": "稳压泵",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 263,
+            "name": "水箱(池)流量开关",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 262,
+            "name": "水箱(池)液位",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 261,
+            "name": "消防水泵",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 223,
+            "name": "灭火辅助",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 222,
+            "name": "灭火区",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 219,
+            "name": "消防应急灯具",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 218,
+            "name": "消防应急配电箱",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 217,
+            "name": "消防应急分配电装置",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 216,
+            "name": "消防应急电源",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 215,
+            "name": "余压风阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 213,
+            "name": "余压监控探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 203,
+            "name": "环境温度探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 202,
+            "name": "气体灭火探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 201,
+            "name": "IOR式探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 200,
+            "name": "控制输出模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 199,
+            "name": "混合式探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 198,
+            "name": "在线绝缘式电阻探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 197,
+            "name": "组合式电气火灾监控探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 185,
+            "name": "新风机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 184,
+            "name": "多线消防电话插孔",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 183,
+            "name": "总线消防电话插孔",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 181,
+            "name": "防火卷帘门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 180,
+            "name": "室外消火栓（井盖）",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 179,
+            "name": "室外消火栓（地上）",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 178,
+            "name": "消防电梯",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 177,
+            "name": "电磁门吸",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 176,
+            "name": "闭门器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 175,
+            "name": "总线隔离模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 167,
+            "name": "监管",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 166,
+            "name": "其他板卡",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 165,
+            "name": "总线广播盘",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 164,
+            "name": "灭火盘",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 163,
+            "name": "多线盘",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 162,
+            "name": "总线盘",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 161,
+            "name": "回路板",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 160,
+            "name": "声光警报器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 159,
+            "name": "联动部件",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 158,
+            "name": "探测部件",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 157,
+            "name": "开关",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 156,
+            "name": "多线模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 155,
+            "name": "紧急启停按钮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 154,
+            "name": "广播模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 153,
+            "name": "接口",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 152,
+            "name": "电流监控模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 151,
+            "name": "电压/电流信号传感器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 150,
+            "name": "电压信号传感器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 149,
+            "name": "脱扣继电器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 148,
+            "name": "过电流探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 147,
+            "name": "故障电弧探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 145,
+            "name": "应急照明",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 144,
+            "name": "双常闭防火门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 143,
+            "name": "双常开防火门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 142,
+            "name": "单常闭防火门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 141,
+            "name": "单常开防火门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 140,
+            "name": "送风阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 139,
+            "name": "送风机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 138,
+            "name": "气体释放灯",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 137,
+            "name": "总线广播",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 136,
+            "name": "紧急广播",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 135,
+            "name": "灭火辅助",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 134,
+            "name": "排烟机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 133,
+            "name": "自动转换开关",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 132,
+            "name": "电源箱",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 131,
+            "name": "手自动转换盒",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 130,
+            "name": "紧急停止按钮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 129,
+            "name": "紧急启动按钮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 121,
+            "name": "警报装置",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 118,
+            "name": "防火门监控器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 117,
+            "name": "防火门控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 116,
+            "name": "电控挡烟垂壁",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 115,
+            "name": "排烟口",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 114,
+            "name": "常闭送风口",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 113,
+            "name": "排烟防火阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 111,
+            "name": "防烟排烟风机",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 106,
+            "name": "管网电磁阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 105,
+            "name": "泡沫液泵",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 104,
+            "name": "通风空调",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 103,
+            "name": "防火阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 102,
+            "name": "防火门",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 101,
+            "name": "阀驱动装置",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 99,
+            "name": "压力开关",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 98,
+            "name": "报警阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 97,
+            "name": "信号阀",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 96,
+            "name": "水流指示器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 95,
+            "name": "喷淋泵",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 92,
+            "name": "消防水箱",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 91,
+            "name": "消防栓泵",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 89,
+            "name": "短路隔离模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 88,
+            "name": "中继模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 87,
+            "name": "输入输出模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 86,
+            "name": "输出模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 85,
+            "name": "输入模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 84,
+            "name": "模块",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 83,
+            "name": "消防控制室图形显示装置",
+            "facilitiesCode": 0
+        },
+        {
+            "code": 82,
+            "name": "消防电气控制装置",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 81,
+            "name": "气体灭火控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 79,
+            "name": "感声火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 78,
+            "name": "图像摄像方式火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 74,
+            "name": "气体探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 69,
+            "name": "感光火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 62,
+            "name": "红外火焰探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 61,
+            "name": "紫外火焰探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 53,
+            "name": "复合式感光感烟火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 52,
+            "name": "复合式感光感温火灾探浏器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 51,
+            "name": "复合式感烟感温火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 50,
+            "name": "复合式火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 44,
+            "name": "吸气式感烟火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 43,
+            "name": "线型光束感烟火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 42,
+            "name": "点型光电感烟火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 41,
+            "name": "点型离子感烟火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 40,
+            "name": "感烟火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 37,
+            "name": "光纤感温火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 36,
+            "name": "线型感温火灾探测器(R型)",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 35,
+            "name": "线型感温火灾探测器(S型)",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 34,
+            "name": "线型感温火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 33,
+            "name": "点型感温火灾探测器(R型)",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 32,
+            "name": "点型感温火灾探测器(S型)",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 31,
+            "name": "点型感温火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 30,
+            "name": "感温火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 25,
+            "name": "火灾探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 24,
+            "name": "消火栓按钮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 23,
+            "name": "手动火灾报警按钮",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 22,
+            "name": "火灾显示盘",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 21,
+            "name": "探测回路",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 18,
+            "name": "测温式电气火灾监控探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 17,
+            "name": "剩余电流式电气火灾监控探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 16,
+            "name": "电气火灾监控报警器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 13,
+            "name": "线型可燃气体探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 12,
+            "name": "独立式可燃气体探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 11,
+            "name": "点型可燃气体探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 10,
+            "name": "可燃气体探测器",
+            "facilitiesCode": 2
+        },
+        {
+            "code": 2,
+            "name": "未识别设备",
+            "facilitiesCode": null
+        },
+        {
+            "code": 1,
+            "name": "火灾报警控制器",
+            "facilitiesCode": 1
+        },
+        {
+            "code": 0,
+            "name": "通用",
+            "facilitiesCode": null
+        }
+    ]
+}
