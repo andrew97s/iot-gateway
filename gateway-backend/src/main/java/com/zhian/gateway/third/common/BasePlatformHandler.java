@@ -1,11 +1,13 @@
 package com.zhian.gateway.third.common;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.core.message.AlarmPayload;
 import com.zhian.gateway.core.message.Message;
 import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
@@ -13,22 +15,26 @@ import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
 import com.zhian.gateway.sys.service.IZaSysErrorService;
 import com.zhian.gateway.sys.service.IZaSysMessageService;
+import com.zhian.gateway.sys.service.TypeMappingService;
 import com.zhian.gateway.sys.utils.MessageUtil;
 import com.zhian.gateway.third.ThirdHandler;
 import com.zhian.gateway.third.cascade.CascadeHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
 import com.zhian.gateway.third.common.bo.DeviceUpdReq;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
+import com.zhian.gateway.third.common.bo.SyncDevice;
 import com.zhian.gateway.third.common.util.DeviceUtil;
 import com.zhian.gateway.third.gw.MessageSyncHandler;
+import com.zhian.gateway.third.jadebird.vo.Facility;
 import com.zhian.gateway.third.vo.ControlVo;
 import com.zhian.gateway.third.vo.MqMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.N;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -73,12 +79,23 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
     @Autowired
     protected IZaSysMessageService zaSysMessageService;
     /**
+     * The Type mapping service.
+     */
+    @Autowired
+    protected TypeMappingService typeMappingService;
+    /**
      * 设备在线状态Map，key=设备ID , value=设备最近一次通讯时间
      */
     public ConcurrentHashMap<Long, Long> statusMap = new ConcurrentHashMap<>();
 
+    /**
+     * The Running.
+     */
     public volatile boolean running = false;
 
+    /**
+     * The Platform.
+     */
     protected volatile ZaSysPlatform platform;
 
     @Override
@@ -95,13 +112,14 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
 
     @Override
     public boolean stop() {
+        log.info("停止插件:{}", getPlatform());
         this.platform = null;
         running = false;
         return running;
     }
 
     /**
-     * 检查设备状态, 子类通过{@link DeviceUtil.syncDevice( DeviceUpdReq )}方法同步设备在线状态&通讯时间
+     * 检查设备状态, 子类通过{@link DeviceUtil#syncDevice(SyncDevice)}方法同步设备在线状态&通讯时间
      * 1. 设备离线触发场景
      * 1.1 设备本身触发离线告警
      * 1.2 设备心跳超时
@@ -115,6 +133,8 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
 
     /**
      * 同步所有设备状态
+     *
+     * @return the device sync info
      */
     public DeviceSyncInfo syncDeviceStatus() {
         return DeviceSyncInfo.success(0);
@@ -135,24 +155,27 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
     /**
      * 转换统一消息并推送全部上级平台，返回统一报文与各平台推送结果（写入消息日志）
      *
-     * @param msgList      插件原始事件
-     * @param unifiedParts 收集统一报文
-     * @param results      收集推送结果
+     * @param info the info
      */
-    protected void convertAndPush(List<Message> msgList,
-                                  List<String> unifiedParts,
-                                  List<MessageSyncHandler.UpstreamPushResult> results) {
-        // 1. 原始事件 → 统一消息
+    protected void convertAndPush(ProcessInfo info) {
+        List<Message> msgList = info.getMsgList();
+
+        // 统一消息
         String unifiedJson = JSON.toJSONString(msgList.size() == 1 ? msgList.get(0) : msgList);
-        unifiedParts.add(unifiedJson);
-        // 2. 推送全部启用的上级平台，逐平台记录结果
-        results.addAll(messageSyncHandler.pushToUpstreams(unifiedJson));
+        // 执行推送
+        List<MessageSyncHandler.UpstreamPushResult> results = new ArrayList<>(
+                messageSyncHandler.pushToUpstreams(unifiedJson)
+        );
         // TODO 3. 级联上级平台（WebSocket）沿用原始事件通道
         try {
             // cascadeHandler.pushMsg(message);
         } catch (Exception e) {
             log.warn("级联推送失败: {}", e.getMessage());
         }
+
+        // 保存推送结果
+        info.setUnifiedContent(unifiedJson);
+        info.setPushResults(results);
     }
 
     /**
@@ -182,8 +205,6 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
                 device = new ZaSysDevice();
                 device.setPfCode(getPlatform());
             }
-//            ProcessInfo info = ProcessInfo.newControl(device, controlVo, result);
-//            logMessage(info);
             MessageUtil.clear();
         }
 
@@ -215,29 +236,24 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
         ProcessInfo info = null;
         try {
             MsgProcessContext.start(msgObject, platform);
+            if (!isAlive()) {
+                String msg = String.format("处理:%s消息失败,插件已停止!", getPlatform());
+                MsgProcessContext.failed(msg);
+                return;
+            }
             doProcessMsg((T) msgObject);
             info = MsgProcessContext.getProcessInfo();
             // 转换统一消息并推送上级平台，收集统一报文与逐平台推送结果
             if (info != null && CollUtil.isNotEmpty(info.getMsgList())) {
-                List<String> unifiedParts = new java.util.ArrayList<>();
-                List<MessageSyncHandler.UpstreamPushResult> results = new java.util.ArrayList<>();
-                convertAndPush(info.getMsgList(), unifiedParts, results);
-                info.setUnifiedContent(unifiedParts.size() == 1
-                        ? unifiedParts.get(0) : "[" + String.join(",", unifiedParts) + "]");
-                info.setPushResults(results);
+                // 处理后置业务
+                postProcess(info);
+                // 消息转换&推送
+                convertAndPush(info);
             }
         } catch (Exception e) {
             e.printStackTrace();
             log.error("处理消息发生异常:{}", e.getMessage());
-            ZaSysDevice device = MessageUtil.getDevice();
-            if (device == null) {
-                device = new ZaSysDevice();
-                device.setPfCode(getPlatform());
-            }
-            String msg = msgObject instanceof String ? (String) msgObject : JSONObject.toJSONString(msgObject);
-            assert info != null;
-            info.setHandleStatus("0");
-            info.setHandleResult(msg);
+            MsgProcessContext.failed(e.getMessage());
         } finally {
             // 清除设备信息
             MessageUtil.clear();
@@ -252,12 +268,61 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
      * @param info the info
      */
     protected void logMessage(ProcessInfo info) {
-        if (info == null) {
+        if (info == null || CollUtil.isEmpty(info.getMsgList())) {
             return;
         }
 
         // 判断当前插件最大支持记录消息的数量
         zaSysMessageService.log(info);
+    }
+
+    /**
+     * 手动同步设备
+     *
+     * @param fetchDevice 提取设备逻辑
+     * @param rawDevice   设备原始消息
+     */
+    protected void manualSyncDevice(Callable<ZaSysDevice> fetchDevice , String rawDevice) {
+        try {
+            MsgProcessContext.start(rawDevice, platform);
+
+            ZaSysDevice device = fetchDevice.call();
+
+            MsgProcessContext.getProcessInfo().setDevice(device);
+
+            convertAndPush(MsgProcessContext.getProcessInfo());
+        }
+        catch (Exception e) {
+            log.error("手动同步设备失败:{}", e.getMessage());
+            MsgProcessContext.failed(e.getMessage());
+        } finally {
+            logMessage(MsgProcessContext.finishAndGet());
+        }
+    }
+
+    private void postProcess(ProcessInfo info) {
+        List<Message> msgList = info.getMsgList();
+        if (CollUtil.isNotEmpty(msgList)) {
+            msgList.forEach(msg -> {
+                if (msg.getPayload() instanceof AlarmPayload) {
+                    AlarmPayload payload = (AlarmPayload) msg.getPayload();
+                    ZaSysDevice device = info.getDevice();
+                    // 设备离线
+                    if (StrUtil.equals(payload.getCode(), "55") && StrUtil.equals(device.getOnline(), "1")) {
+                        device.setOnline("0");
+                        deviceService.updateZaSysDevice(device);
+                        log.info("设备离线告警-同步设备状态为离线!");
+                    }
+
+                    // 设备在线
+                    if (StrUtil.equals(payload.getCode(), "54") && StrUtil.equals(device.getOnline(), "0")) {
+                        device.setOnline("1");
+                        deviceService.updateZaSysDevice(device);
+                        log.info("设备在线告警-同步设备状态为在线!");
+                    }
+                }
+            });
+        }
     }
 
     /**

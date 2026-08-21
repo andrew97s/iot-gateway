@@ -31,7 +31,6 @@ public class MessageBuilder {
         payload.setNet(device.getNet());
         payload.setTypeCode(device.getType());
         payload.setName(device.getName());
-        payload.setPosition(device.getLocation());
         payload.setOnline(device.getOnline());
         payload.setReason(reason);
         message.setPayload(payload);
@@ -40,15 +39,15 @@ public class MessageBuilder {
     }
 
     public static Message buildDeviceState(ZaSysDevice device, String online, String reason) {
-        Message message = buildBasic(
-                device, StrUtil.equals(online , "1") ?
-                        MessageConstants.MSG_TYPE_DEVICE_ONLINE : MessageConstants.MSG_TYPE_DEVICE_OFFLINE
-        );
-        DeviceStatePayload payload = new DeviceStatePayload();
+        Message message = buildBasic(device, MessageConstants.MSG_TYPE_ALARM);
 
-        // 设备状态
-        payload.setOnline(online);
-        payload.setReason(reason);
+        // 告警
+        AlarmPayload payload = new AlarmPayload();
+        payload.setTimestamp(System.currentTimeMillis());
+        payload.setCode(StrUtil.equals(online, "1") ? "54" : "55");
+        payload.setName("设备" + (StrUtil.equals(online, "1") ? "在线" : "离线"));
+        payload.setType(3);
+        payload.setDesc(reason);
         message.setPayload(payload);
 
         return message;
@@ -62,6 +61,7 @@ public class MessageBuilder {
 
         // 告警
         payload.setTimestamp(System.currentTimeMillis());
+        payload.setType(alarm.getType());
         payload.setCode(alarm.getCode());
         payload.setName(alarm.getName());
         payload.setDesc(desc);
@@ -96,9 +96,7 @@ public class MessageBuilder {
         return message;
     }
 
-    public static TelemetryPayload.Telemetry builderTelemetry(ZaMonitorType monitorType, String value, String desc){
-
-
+    public static TelemetryPayload.Telemetry builderTelemetry(ZaMonitorType monitorType, String value, String desc) {
         if (monitorType == null) {
             return null;
         }
@@ -111,7 +109,7 @@ public class MessageBuilder {
         builder.value(value);
         builder.unit(monitorType.getUnit());
         builder.timestamp(System.currentTimeMillis());
-        builder.desc(desc);
+        builder.desc(StrUtil.isNotBlank(desc) ? desc : monitorType.getName());
 
         return builder.build();
     }

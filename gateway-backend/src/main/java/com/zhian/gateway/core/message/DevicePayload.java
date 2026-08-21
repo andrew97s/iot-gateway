@@ -46,11 +46,6 @@ public class DevicePayload extends MessagePayload {
     private String net;
 
     /**
-     * 设备安装位置{@link ZaSysDevice#getLocation}
-     */
-    private String position;
-
-    /**
      * 设备最新状态 - 1 在线 、 0 离线
      */
     private String online;

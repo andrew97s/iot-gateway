@@ -37,6 +37,26 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="handleStatus != null  and handleStatus != ''"> and t.handle_status = #{handleStatus}</if>
         </where>
     </select>
+
+    <select id="selectLatestTelemetry" resultMap="ZaSysMessageResult">
+        <include refid="selectZaSysMessageVo"/>
+        where t.device_id = #{deviceId}
+          and t.type like '%telemetry%'
+          and t.unified_content is not null
+          and t.unified_content != ''
+        order by t.id desc
+        limit #{limit}
+    </select>
+
+    <select id="selectLatestAlarms" resultMap="ZaSysMessageResult">
+        <include refid="selectZaSysMessageVo"/>
+        where t.device_id = #{deviceId}
+          and t.type like '%alarm%'
+          and t.unified_content is not null
+          and t.unified_content != ''
+        order by t.id desc
+        limit #{limit}
+    </select>
     
     <select id="selectZaSysMessageById" parameterType="Long" resultMap="ZaSysMessageResult">
         <include refid="selectZaSysMessageVo"/>

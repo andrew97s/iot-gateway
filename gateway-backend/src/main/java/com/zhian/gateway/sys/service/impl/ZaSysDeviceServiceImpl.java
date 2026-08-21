@@ -1,5 +1,6 @@
 package com.zhian.gateway.sys.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.PageHelper;
 import com.zhian.gateway.common.core.cache.Cache;
@@ -160,6 +161,16 @@ public class ZaSysDeviceServiceImpl extends ServiceImpl<ZaSysDeviceMapper, ZaSys
             }
         }
         return zaSysDeviceMapper.updateZaSysDevice(zaSysDevice);
+    }
+
+    @Override
+    public int updCommTime(Long deviceId) {
+        return getBaseMapper()
+                .update(
+                        Wrappers.lambdaUpdate(ZaSysDevice.class)
+                                .set(ZaSysDevice::getLastCommTime, new Date())
+                                .eq(ZaSysDevice::getId, deviceId)
+                );
     }
 
     /**

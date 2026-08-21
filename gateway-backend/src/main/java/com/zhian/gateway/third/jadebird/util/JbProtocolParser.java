@@ -5,18 +5,23 @@ import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.core.cache.Cache;
+import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.exception.job.TaskException;
+import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
+import com.zhian.gateway.consts.DeviceConstants;
 import com.zhian.gateway.core.message.Message;
+import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.core.message.TelemetryPayload;
 import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.framework.cache.RedisCache;
-import com.zhian.gateway.sys.domain.ZaAlarmType;
-import com.zhian.gateway.sys.domain.ZaMonitorType;
-import com.zhian.gateway.sys.domain.ZaSysDevice;
+import com.zhian.gateway.sys.domain.*;
 import com.zhian.gateway.sys.mapper.ZaAlarmTypeMapper;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
 import com.zhian.gateway.sys.service.TypeMappingService;
+import com.zhian.gateway.third.common.bo.SyncDevice;
+import com.zhian.gateway.third.common.util.DeviceUtil;
+import com.zhian.gateway.third.jadebird.JadebirdCloudHandler;
 import com.zhian.gateway.third.jadebird.vo.ElectricVo;
 import com.zhian.gateway.third.jadebird.vo.Facility;
 import com.zhian.gateway.third.jadebird.vo.MonitorMsg;
@@ -40,6 +45,137 @@ public class JbProtocolParser {
     private static String WM_TYPE_CODES = "WA,HRPWA,LoraWA";
     private static String ELECTRIC_TYPE_CODES = "WCEFMD,NBWCEFMD,HRPWCEFMDM,LNEFMDM,LNCEFMD,,LNFMM,LNEMMT,LNSCM,LNSMD";
 
+    public static ZaSysDevice requireDevice(Facility mf, String pfCode) {
+        if (mf == null) {
+            throw new ServiceException("数据格式有误");
+        }
+        String addrStr = mf.getAddrStr();
+        String net = mf.getNet();
+        if (StrUtil.isBlank(addrStr)) {
+            throw new ServiceException("数据格式有误");
+        }
+        // 网关编码自动转小写
+        else {
+            if (StrUtil.equals(addrStr, mf.getNet())) {
+                mf.setAddrStr(addrStr.toLowerCase());
+            }
+            mf.setNet(StrUtil.isNotBlank(net) ? net.toLowerCase() : "");
+        }
+
+        // 当前设备归属的网关设备编码,生成网关设备
+        ZaSysDevice sysDevice = syncNet(mf, pfCode);
+
+        if (mf.getNet() != null && !StrUtil.equals(addrStr, net)) {
+            sysDevice = syncFacility(mf, pfCode);
+        }
+
+        return sysDevice;
+    }
+
+    private static ZaSysDevice syncFacility(Facility mf, String pfCode) {
+        // 网关编码
+        String net = StrUtil.isBlank(mf.getNet()) ? "" : mf.getNet().trim().toLowerCase();
+        String code = mf.getAddrStr();
+
+        // 当前设备编码，如果以”通道“结尾，就去掉通道号
+        String fsn = mf.getAddrStr() == null ? "" : mf.getAddrStr().trim();
+
+        // 解析设备类型
+        TypeMappingService typeMapping = SpringUtils.getBean(TypeMappingService.class);
+        Optional<ZaDeviceType> mfType = typeMapping.resolveDeviceType(pfCode, mf.getFacilitiesTypeCode() + "");
+        String typeCode = "currencyComponent";
+        if (mfType.isPresent()) {
+            typeCode = mfType.get().getCode();
+        }
+
+        IZaSysDeviceService deviceService = SpringUtils.getBean(IZaSysDeviceService.class);
+
+        // 主机设备信息
+        if (fsn.contains("机")) {
+            code = code.substring(0, code.indexOf("机") + 1);
+            ZaSysDevice ctlDevice = deviceService.selectZaSysDeviceByCode(code, net);
+            if (ctlDevice == null) {
+                // 同步主机信息
+                SyncDevice syncDevice = SyncDevice.builder()
+                        .id(mf.getId())
+                        .code(code)
+                        .name(code)
+                        .net(net)
+                        .typeCode(mf.getFacilitiesTypeCode() == null ? "FAC" : typeCode)
+                        .pfCode(pfCode)
+                        .wireless("0")
+                        .build();
+                ctlDevice = DeviceUtil.syncDevice(syncDevice);
+            }
+            //当前是主机设备
+            if (mf.getFacilitiesTypeCode() == 1) {
+                return ctlDevice;
+            }
+        }
+
+        // 同步部件信息
+        code = mf.getAddrStr();
+        if (code.contains("通道") || code.contains("线路")) {
+            code = code.substring(0, code.lastIndexOf(' ')).trim();
+        }
+        String name = StringUtils.isNotEmpty(mf.getDescr()) ? mf.getDescr() : code;
+
+        ZaSysDevice componentDevice = deviceService.selectZaSysDeviceByCode(code, net);
+        if (componentDevice == null) {
+            // 同步设备信息
+            SyncDevice syncDevice = SyncDevice.builder()
+                    .id(mf.getId())
+                    .code(code)
+                    .name(name)
+                    .net(net)
+                    .model(StringUtils.isEmpty(mf.getFacilitiesModel()) ? mf.getModel() : mf.getFacilitiesModel())
+                    .typeCode(typeCode)
+                    .pfCode(pfCode)
+                    .wireless(mf.isWireless() ? "1" : "0")
+                    .build();
+            componentDevice = DeviceUtil.syncDevice(syncDevice);
+        }
+
+        return componentDevice;
+    }
+
+    private static ZaSysDevice syncNet(Facility mf, String pfCode) {
+        String net = mf.getNet();
+        // TR_SERVER 此处一定包含网关字段
+        if (StringUtils.isEmpty(net)) {
+            log.warn("放弃同步网关设备，网关编码为空!");
+            return null;
+        }
+
+        String typeCode = "128";
+        net = net.toLowerCase();
+        String name = "网关" + net;
+        // 用传(主机) 有线
+        if (isUITD(net)) {
+            typeCode = DeviceConstants.UITD;
+            name = "用传" + net;
+        }
+        // HRP（路由） 无线
+        else {
+            typeCode = DeviceConstants.HRPWLG;
+        }
+        // 同步设备信息
+        SyncDevice syncDevice = SyncDevice.builder()
+                .code(net)
+                .name(name)
+                .net(net)
+                .model(mf.getFacilitiesModel())
+                .typeCode(typeCode)
+                .pfCode(pfCode)
+                .wireless(typeCode.equals(DeviceConstants.HRPWLG) ? "1" : "0")
+                .build();
+        return DeviceUtil.syncDevice(syncDevice);
+    }
+
+    public static boolean isUITD(String code) {
+        return code.length() == 32 && code.startsWith("000000");
+    }
+
     public static List<Message> extractMessage(ZaSysDevice device, MonitorMsg msg) {
         List<Message> msgList = new ArrayList<>();
         TypeMappingService typeMapping = SpringUtils.getBean(TypeMappingService.class);
@@ -54,7 +190,6 @@ public class JbProtocolParser {
                     log.info("提取青鸟告警事件类型失败:{}未注册告警类型!", st.getVal());
                     continue;
                 }
-
                 // TODO 针对阈值预警 ，告警描述可能需要修改
                 String desc = "";
 
@@ -68,15 +203,65 @@ public class JbProtocolParser {
             msgList.add(extractBusinessMessage(device, msg));
         }
 
+        // 解析心跳数据中的业务监测数据
+        if (StrUtil.equals(event, "heartbeat")) {
+            // TODO 处理心跳时间
+
+
+            Facility mf = msg.getFacility();
+
+            // 更新设备状态
+            if (StrUtil.isNotBlank(mf.getVoltage()) || StrUtil.isNotBlank(mf.getRssi())
+                    || StrUtil.isNotBlank(mf.getTemperature())
+            ) {
+
+                TelemetryPayload.Telemetry battery = MessageBuilder.builderTelemetry(
+                        fetchMonitorType("battery"), mf.getVoltage(), "电池电量"
+                );
+                TelemetryPayload.Telemetry rssi = MessageBuilder.builderTelemetry(
+                        fetchMonitorType("rssi"), mf.getVoltage(), "信号强度"
+                );
+                TelemetryPayload.Telemetry temperature = MessageBuilder.builderTelemetry(
+                        fetchMonitorType("temperature"), mf.getVoltage(), "温度"
+                );
+
+                List<TelemetryPayload.Telemetry> telemetries = Arrays.asList(battery, rssi, temperature);
+                if (CollUtil.isNotEmpty(telemetries)) {
+                    msgList.add(MessageBuilder.buildTelemetry(device, Arrays.asList(battery, rssi, temperature)));
+                }
+            }
+        }
+
         return msgList;
+    }
+
+    private static Integer requireChannel(Facility mf, String fsn) {
+        Integer chn = null;
+        if (fsn == null) {
+            return chn;
+        }
+        if (fsn.endsWith("通道")) {
+            chn = Integer.parseInt(fsn.substring(fsn.indexOf(' ') + 1).substring(0, 1));
+        }
+        if (fsn.contains(" 线路") && mf.getNet() != null && fsn.startsWith(mf.getNet())) {
+            chn = Integer.parseInt(fsn.substring(fsn.indexOf("线路") + 2));
+        }
+
+        return chn;
     }
 
     private static Message extractBusinessMessage(ZaSysDevice device, MonitorMsg monitorMsg) {
         Message message = null;
         Facility mf = monitorMsg.getFacility();
         String deviceType = device.getType();
-        // 用电设备
-        if (mf.getAnalogValue() != null && StrUtil.isNotBlank(mf.getAnalogType()) && ELECTRIC_TYPE_CODES.contains(deviceType)) {
+        String fsn = mf.getAddrStr() == null ? null : mf.getAddrStr().trim();
+        Integer channel = requireChannel(mf, fsn);
+        // 用电设备 & 包含通道号
+        if (
+                mf.getAnalogValue() != null && StrUtil.isNotBlank(mf.getAnalogType()) &&
+                        ELECTRIC_TYPE_CODES.contains(deviceType) &&
+                        channel != null
+        ) {
             return processElectricDevice(device, mf);
         }
         // 智能断路器
@@ -132,7 +317,6 @@ public class JbProtocolParser {
             message = MessageBuilder.buildTelemetry(device, Arrays.asList(battery, rssi, temperature));
 
             // TODO 忽略 V3A3 断路器的非标监测数据
-
         }
 
         return message;

@@ -4,9 +4,14 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.consts.DeviceTypeEnum;
+import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
+import com.zhian.gateway.sys.domain.ZaAlarmType;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.sys.service.TypeMappingService;
 import com.zhian.gateway.sys.utils.MessageUtil;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
@@ -22,6 +27,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 青鸟云盒(特殊项目临时使用)对接
@@ -110,40 +116,37 @@ public class JadebirdBoxV2Handler extends BasePlatformHandler<BoxMsg> {
 
     @Override
     public ProcessInfo doProcessMsg(BoxMsg boxMsg) {
-        //非运行状态下，不处理告警
-        if (!running) {
-            log.error("云盒插件-V2暂时停止");
-            return null;
-        }
-
-        List<MqMessage> msgList = new ArrayList<>();
         String msg = boxMsg.getMsg();
-        MqMessage.Facility facility = new MqMessage.Facility();
         // 心跳
         if (boxMsg.getType().equalsIgnoreCase(BoxMsg.TYPE_HEARTBEAT)) {
-            msgList.add(processHeart(boxMsg));
+            extractSysDevice(boxMsg);
         }
         // 告警
         else if (boxMsg.getType().equalsIgnoreCase(BoxMsg.TYPE_ALARM)) {
-            ZaSysDevice zaSysDevice = extractSysDevice(boxMsg);
+            ZaSysDevice sysDevice = extractSysDevice(boxMsg);
+            TypeMappingService mappingService = SpringUtils.getBean(TypeMappingService.class);
 
             BoxV2AlarmInfo boxInfo = JSONObject.parseObject(msg, BoxV2AlarmInfo.class);
+            for (BoxV2AlarmInfo.AlarmInfo alarmInfo : boxInfo.getAlarmArray()) {
 
-            facility.setCode(boxInfo.getMachineCode());
-            facility.setOnLine(true);
-            facility.setWireless(false);
-            facility.setName(zaSysDevice.getName());
+                Optional<ZaAlarmType> type = mappingService.resolveAlarmType(getPlatform(), alarmInfo.getClassid());
 
-            // 推送告警消息 ，eventType 默认为-1 , 具体告警类型需要在 alarmInfos里面去取
-            msgList.add(
-                    MqMessage.createAlarm(
-                            zaSysDevice.getId(), PROTOCOL_NAME, facility, "-1", boxMsg.getMsg()
-                    )
-            );
+                if (!type.isPresent()) {
+                    log.error("云盒告警处理失败,告警类型:{}未注册!" , alarmInfo.getClassid());
+                    continue;
+                }
 
-            MessageUtil.setDevice(zaSysDevice);
+                MsgProcessContext.addMsg(
+                        MessageBuilder.buildAlarm(
+                                sysDevice, type.get() , type.get().getName() , boxInfo.getAlarmPicName()
+                        )
+                );
+            }
 
-            return ProcessInfo.newInstance(zaSysDevice, JSON.toJSONString(boxMsg), MsgConstants.MSG_TYPE_ALARM , msgList);
+
+
+            MessageUtil.setDevice(sysDevice);
+            return null;
         } else {
             log.error("不支持云盒消息类型: {}", boxMsg.getType());
         }
@@ -171,7 +174,7 @@ public class JadebirdBoxV2Handler extends BasePlatformHandler<BoxMsg> {
                 .ip(boxInfo.getIp())
                 .remark(JSONObject.toJSONString(boxInfo)).build();
 
-        ZaSysDevice zaSysDevice = DeviceUtil.syncDevice(syncDevice , this);
+        ZaSysDevice zaSysDevice = DeviceUtil.syncDevice(syncDevice);
 
         MessageUtil.setDevice(zaSysDevice);
 

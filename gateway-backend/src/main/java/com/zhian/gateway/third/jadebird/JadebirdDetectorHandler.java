@@ -5,11 +5,14 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
+import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
+import com.zhian.gateway.consts.AlarmConstants;
 import com.zhian.gateway.consts.DeviceTypeEnum;
 import com.zhian.gateway.consts.DictValue;
 import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.core.message.builder.MessageBuilder;
+import com.zhian.gateway.sys.domain.ZaAlarmType;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.utils.MessageUtil;
@@ -103,10 +106,6 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
     @Override
     public ProcessInfo doProcessMsg(Object msgObj) {
         log.info("青瞳消息: {}", JSON.toJSONString(msgObj));
-        if (!running) {
-            log.warn("青瞳消息处理失败,插件已暂停!");
-            return null;
-        }
         DetectorMsg detectorMsg = (msgObj instanceof DetectorMsg) ?
                 ((DetectorMsg) msgObj) : JSONObject.parseObject(msgObj.toString(), DetectorMsg.class);
         if (detectorMsg == null || StringUtils.isEmpty(detectorMsg.getMsg())) {
@@ -123,42 +122,32 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
                 break;
             case DetectorMsg.TYPE_REGISTER_DETECTOR_LIST:
                 //青瞳下属探测器的注册信息
-                msgList = processRegisterDetectorList(detectorMsg);
-                msgType = MsgConstants.MSG_TYPE_DEVICE;
+                processRegisterDetectorList(detectorMsg);
                 break;
             case DetectorMsg.TYPE_ALARM:
                 //青瞳上报的告警信息
-                msgList.add(processAlarm(detectorMsg));
-                msgType = MsgConstants.MSG_TYPE_ALARM;
+                processAlarm(detectorMsg);
                 break;
             case DetectorMsg.TYPE_CANCEL_ALARM:
                 //青瞳上报的取消告警信息
-                msgList.add(processCancelAlarm(detectorMsg));
-                msgType = MsgConstants.MSG_TYPE_ALARM;
+                processCancelAlarm(detectorMsg);
                 break;
             case DetectorMsg.TYPE_HEARTBEAT:
                 // 心跳数据 - 判断主机在线、离线
-                MqMessage message = processHeart(detectorMsg);
-                if (message != null) {
-                    msgList.add(message);
-                    msgType = MsgConstants.MSG_TYPE_DEVICE;
-                }
+                processHeart(detectorMsg);
                 break;
             default:
                 log.error("不支持青瞳消息类型: {}", detectorMsg.getType());
         }
-
-        return StrUtil.isBlank(msgType) ?
-                null :
-                ProcessInfo.newInstance(MessageUtil.getDevice(), JSON.toJSONString(detectorMsg), msgType, msgList);
+        return null;
     }
 
     /**
      * 处置青瞳设备告警
      *
-     * @param detectorMsg
+     * @param detectorMsg de
      */
-    private List<MqMessage> processRegisterDetectorList(DetectorMsg detectorMsg) {
+    private void processRegisterDetectorList(DetectorMsg detectorMsg) {
         DetectorListInfo detectorListInfo = JSONObject.parseObject(detectorMsg.getMsg(), DetectorListInfo.class);
         ZaSysDevice netDetector = MessageUtil.getDevice();
         if (netDetector == null) {
@@ -166,9 +155,8 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
         }
         if (netDetector == null) {
             log.error("青瞳主机 {} 未注册", detectorListInfo.getDeviceId());
-            return null;
+            return;
         }
-        List<MqMessage> msgList = new ArrayList<>();
         for (DetectorListInfo.Detector detector : detectorListInfo.getDetectors()) {
             //记录摄像头信息
             Map<String, String> attr = new HashMap<>();
@@ -194,115 +182,114 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
                     .ip(detector.getIp())
                     .remark(JSONObject.toJSONString(attr))
                     .build();
-            ZaSysDevice zaSysDevice = DeviceUtil.syncDevice(syncDevice , this);
-
-            //推送设备信息
-            msgList.add(
-                    DeviceUtil.genMessage(DeviceUpdReq.newAddReq(zaSysDevice,JSONObject.toJSONString(detector)))
-            );
+           DeviceUtil.syncDevice(syncDevice);
         }
-
-        return msgList;
     }
 
     /**
      * 处置青瞳告警撤销信息
      *
-     * @param detectorMsg
+     * @param detectorMsg detectorMsg
      */
-    private MqMessage processCancelAlarm(DetectorMsg detectorMsg) {
-        DetectorAlarmInfo detectorAlarmInfo = JSONObject.parseObject(detectorMsg.getMsg(), DetectorAlarmInfo.class);
+    private void processCancelAlarm(DetectorMsg detectorMsg) {
+        DetectorAlarmInfo alarmInfo = JSONObject.parseObject(detectorMsg.getMsg(), DetectorAlarmInfo.class);
         ZaSysDevice netDetector = MessageUtil.getDevice();
         if (netDetector == null) {
-            netDetector = deviceService.selectZaSysDeviceByCode(detectorAlarmInfo.getDeviceId(), null);
+            netDetector = deviceService.selectZaSysDeviceByCode(alarmInfo.getDeviceId(), null);
         }
         if (netDetector == null) {
-            log.error("青瞳主机 {} 未注册", detectorAlarmInfo.getDeviceId());
-            return null;
+            log.error("青瞳主机 {} 未注册", alarmInfo.getDeviceId());
+            return;
         }
 
-        ZaSysDevice detector = deviceService.selectZaSysDeviceByCode(detectorAlarmInfo.getDetectorSn(), detectorAlarmInfo.getDeviceId());
+        ZaSysDevice detector = deviceService.selectZaSysDeviceByCode(alarmInfo.getDetectorSn(), alarmInfo.getDeviceId());
         if (detector == null) {
-            log.error("青瞳 {} 探测器 {} 未注册", detectorAlarmInfo.getDeviceId(), detectorAlarmInfo.getDetectorSn());
-            return null;
+            log.error("青瞳 {} 探测器 {} 未注册", alarmInfo.getDeviceId(), alarmInfo.getDetectorSn());
+            return;
         }
 
-        MqMessage.Facility facility = new MqMessage.Facility();
-        //推送告警信息
-        facility.setWireless(false);
-        facility.setType(detector.getType());
-        facility.setCode(detector.getCode());
-        facility.setName(detector.getName());
-        facility.setNet(detector.getNet());
-        facility.setModel(detector.getModel());
-
-        MqMessage mqMessage = new MqMessage();
-        mqMessage.setDeviceId(detector.getId());
-        mqMessage.setEvent(MqMessage.EVENT_ALARM);
-        mqMessage.setFacility(facility);
-        mqMessage.setTime(new Date());
-        mqMessage.setProtocol(PROTOCOL_NAME);
-        mqMessage.setTime(detectorAlarmInfo.getTime());
-        mqMessage.setUuid(SnowflakeIdWorker.getInstance().nextStringId());
-
-        String ak = "alarm_" + facility.getCode();
+        String ak = "alarm_" + detector.getCode();
         DetectorAlarmInfo old = cache.getCacheMapValue(CACHE_MAP, ak);
         if (old != null) {
-            detectorAlarmInfo.setAlarmType(old.getAlarmType());
-            detectorAlarmInfo.setAlarmTypeName(old.getAlarmTypeName());
-            mqMessage.setEventType(old.getAlarmType().toString());
-            mqMessage.setMsgData(JSONObject.toJSONString(detectorAlarmInfo));
+            alarmInfo.setAlarmType(old.getAlarmType());
+            alarmInfo.setAlarmTypeName(old.getAlarmTypeName());
         }
+        else {
+            log.error("告警撤销处理失败,获取撤销告警信息为空!");
+            return;
+        }
+
+        String typeCode = alarmInfo.getAlarmType().toString();
+        Optional<ZaAlarmType> type = typeMappingService.resolveAlarmType(
+                getPlatform(), typeCode + AlarmConstants.ALARM_SUFFIX_OFF
+        );
+        if (!type.isPresent()) {
+            String errMsg = String.format("处理青瞳告警失败,告警类型%s未注册!" , typeCode);
+            log.error(errMsg);
+            return;
+        }
+
+        MsgProcessContext.addMsg(
+                MessageBuilder.buildAlarm(detector , type.get() , old.getAlarmTypeDesc() +" 撤销" , null)
+        );
 
         //清除缓存
         cache.deleteCacheMapValue(CACHE_MAP, ak);
         MessageUtil.setDevice(detector);
-
-        return mqMessage;
     }
 
     /**
      * 处置青瞳告警信息
      *
-     * @param detectorMsg
+     * @param detectorMsg de
      */
     private MqMessage processAlarm(DetectorMsg detectorMsg) {
-        DetectorAlarmInfo detectorAlarmInfo = JSONObject.parseObject(detectorMsg.getMsg(), DetectorAlarmInfo.class);
+        DetectorAlarmInfo alarmInfo = JSONObject.parseObject(detectorMsg.getMsg(), DetectorAlarmInfo.class);
         ZaSysDevice netDetector = MessageUtil.getDevice();
         if (netDetector == null) {
-            netDetector = deviceService.selectZaSysDeviceByCode(detectorAlarmInfo.getDeviceId(), null);
+            netDetector = deviceService.selectZaSysDeviceByCode(alarmInfo.getDeviceId(), null);
         }
         if (netDetector == null) {
-            log.error("青瞳告警消息处理失败,主机 {} 未注册", detectorAlarmInfo.getDeviceId());
+            log.error("青瞳告警消息处理失败,主机 {} 未注册", alarmInfo.getDeviceId());
             return null;
         }
 
         ZaSysDevice detector = deviceService.selectZaSysDeviceByCode(
-                detectorAlarmInfo.getDetectorSn(), detectorAlarmInfo.getDeviceId()
+                alarmInfo.getDetectorSn(), alarmInfo.getDeviceId()
         );
         if (detector == null) {
-            log.error("青瞳 {} 探测器 {} 未注册", detectorAlarmInfo.getDeviceId(), detectorAlarmInfo.getDetectorSn());
+            log.error("青瞳 {} 探测器 {} 未注册", alarmInfo.getDeviceId(), alarmInfo.getDetectorSn());
             return null;
         }
 
-        MqMessage.Facility facility = new MqMessage.Facility();
-        //推送设备信息
-        facility.setWireless(false);
-        facility.setType(DeviceTypeEnum.ICFD.getCode());
-        facility.setCode(detector.getCode());
-        facility.setName(detector.getName());
-        facility.setNet(detector.getNet());
-        facility.setModel(detector.getModel());
-        MqMessage mqMessage = MqMessage.createAlarm(
-                detector.getId(), PROTOCOL_NAME, facility, detectorAlarmInfo.getAlarmType().toString(), detectorMsg.getMsg()
+        String typeCode = alarmInfo.getAlarmType().toString();
+        Optional<ZaAlarmType> type = typeMappingService.resolveAlarmType(
+                getPlatform(), typeCode + AlarmConstants.ALARM_SUFFIX_ON
         );
-        mqMessage.setTime(detectorAlarmInfo.getTime());
+        if (!type.isPresent()) {
+            String errMsg = String.format("处理青瞳告警失败,告警类型%s未注册!" , typeCode);
+            log.error(errMsg);
+            return null;
+        }
+
+        String alarmPic = "";
+        if (StrUtil.isNotBlank(alarmInfo.getPicture1())) {
+            alarmPic += alarmInfo.getPicture1();
+        }
+        if (StrUtil.isNotBlank(alarmInfo.getPicture2())) {
+            alarmPic += StrUtil.isNotBlank(alarmPic) ? "," : "";
+            alarmPic += alarmInfo.getPicture2();
+        }
+
+        MsgProcessContext.addMsg(
+                MessageBuilder.buildAlarm(detector , type.get() , alarmInfo.getAlarmTypeDesc() ,alarmPic)
+        );
 
         //记录到缓存，反控时可以取消
-        cache.setCacheMapValue(CACHE_MAP, "alarm_" + facility.getCode(), detectorAlarmInfo);
+        cache.setCacheMapValue(CACHE_MAP, "alarm_" + detector.getCode(), alarmInfo);
         MessageUtil.setDevice(detector);
 
-        return mqMessage;
+        return null;
     }
 
     /**
@@ -310,7 +297,7 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
      *
      * @param detectorMsg
      */
-    private MqMessage processHeart(DetectorMsg detectorMsg) {
+    private void processHeart(DetectorMsg detectorMsg) {
         DetectorInfo detectorInfo = JSONObject.parseObject(detectorMsg.getMsg(), DetectorInfo.class);
         ZaSysDevice zaSysDevice = MessageUtil.getDevice();
         if (zaSysDevice == null) {
@@ -318,10 +305,8 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
         }
         if (zaSysDevice == null) {
             log.error("青瞳主机 {} 未注册", detectorInfo.getDeviceId());
-            return null;
+            return;
         }
-
-        return null;
     }
 
     private ZaSysDevice fetchControlDevice(DetectorMsg detectorMsg) {
@@ -333,8 +318,6 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
         if (StrUtil.isNotBlank(detectorInfo.getDeviceId())) {
             String ip = StrUtil.isNotBlank(detectorInfo.getIp()) ? detectorInfo.getIp() : detectorMsg.getIp();
             //青瞳主机的注册信息
-            MqMessage.Facility facility = new MqMessage.Facility();
-            // 同步设备信息
             SyncDevice syncDevice = SyncDevice.builder()
                     .code(detectorInfo.getDeviceId())
                     .name("青瞳" + ip)
@@ -345,11 +328,6 @@ public class JadebirdDetectorHandler extends BasePlatformHandler {
                     .remark(detectorMsg.getMsg())
                     .build();
             zaSysDevice = DeviceUtil.syncDevice(syncDevice , this);
-
-            facility.setWireless(false);
-            facility.setType("WGP");
-            facility.setCode(detectorInfo.getDeviceId());
-            facility.setName(zaSysDevice.getName());
         }
         MessageUtil.setDevice(zaSysDevice);
 

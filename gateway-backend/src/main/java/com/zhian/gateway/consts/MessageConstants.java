@@ -24,14 +24,6 @@ public interface MessageConstants {
      */
     String MSG_TYPE_DEVICE_DEL = "device_del";
     /**
-     * 设备在线.
-     */
-    String MSG_TYPE_DEVICE_ONLINE = "device_online";
-    /**
-     * 设备离线.
-     */
-    String MSG_TYPE_DEVICE_OFFLINE = "device_offline";
-    /**
      * 监测.
      */
     String MSG_TYPE_TELEMETRY = "telemetry";

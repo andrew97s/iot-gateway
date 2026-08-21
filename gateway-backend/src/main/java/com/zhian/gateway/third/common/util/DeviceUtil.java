@@ -15,6 +15,8 @@ import com.zhian.gateway.third.common.bo.SyncDevice;
 import com.zhian.gateway.third.vo.MqMessage;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Date;
+
 /**
  *
  * 设备相关工具类 ， 所有涉及到设备同步的操作全部集成到此类中实现，包含:
@@ -32,13 +34,7 @@ public class DeviceUtil {
 
     private static final String DEVICE_COMM_TIME = "device_comm_time";
 
-    /**
-     * 同步设备方法, 支持设备状态更新、设备新增、设备状态同步
-     *
-     * @param syncDevice the sync device
-     * @return the za sys device
-     */
-    public static ZaSysDevice syncDevice(SyncDevice syncDevice, BasePlatformHandler<?> handler) {
+    public static ZaSysDevice syncDevice(SyncDevice syncDevice) {
         boolean isUpdate = false, updated = false;
         // 保存当前设备数据通讯时间
         IZaSysDeviceService deviceService = SpringUtils.getBean(IZaSysDeviceService.class);
@@ -109,7 +105,7 @@ public class DeviceUtil {
                     MessageBuilder.buildDevice(
                             device ,
                             MessageConstants.MSG_TYPE_DEVICE_UPD,
-                            handler.getPlatform() + " 发起同步"
+                            "设备同步发现设备更新"
                     )
             );
             log.info("发现设备({})发生变化,推送设备更新消息!" , device.getCode() );
@@ -121,7 +117,7 @@ public class DeviceUtil {
                     MessageBuilder.buildDevice(
                             device ,
                             MessageConstants.MSG_TYPE_DEVICE_ADD ,
-                            handler.getPlatform() + " 发起同步"
+                            "设备同步发现新设备"
                     )
             );
         }
@@ -146,6 +142,16 @@ public class DeviceUtil {
         setCommTime(device.getId());
 
         return device;
+    }
+
+    /**
+     * 同步设备方法, 支持设备状态更新、设备新增、设备状态同步
+     *
+     * @param syncDevice the sync device
+     * @return the za sys device
+     */
+    public static ZaSysDevice syncDevice(SyncDevice syncDevice, BasePlatformHandler<?> handler) {
+        return syncDevice(syncDevice);
     }
 
 
@@ -178,6 +184,8 @@ public class DeviceUtil {
     }
 
     public static void setCommTime(Long deviceId) {
+        IZaSysDeviceService deviceService = SpringUtils.getBean(IZaSysDeviceService.class);
+        deviceService.updCommTime(deviceId);
         Cache cache = SpringUtils.getBean(Cache.class);
         cache.setCacheMapValue(DEVICE_COMM_TIME, deviceId + "", System.currentTimeMillis());
     }

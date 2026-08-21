@@ -93,7 +93,7 @@ public final class MessageViewHelper {
         if (payload == null) {
             payload = obj;
         }
-        if (StrUtil.startWith(type , MessageConstants.MSG_TYPE_ALARM)) {
+        if (StrUtil.contains(type , MessageConstants.MSG_TYPE_ALARM)) {
             String desc = firstNonEmpty(
                     payload.getString("desc"),
                     payload.getString("name")
@@ -104,7 +104,7 @@ public final class MessageViewHelper {
             }
             return StringUtils.isNotEmpty(desc) ? desc : "告警事件";
         }
-        if (StrUtil.startWith(type , MessageConstants.MSG_TYPE_TELEMETRY)) {
+        if (StrUtil.contains(type , MessageConstants.MSG_TYPE_TELEMETRY)) {
             JSONObject metrics = payload.getJSONObject("metrics");
             if (metrics != null && !metrics.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
@@ -122,15 +122,23 @@ public final class MessageViewHelper {
             }
             return firstNonEmpty(payload.getString("description"), "监测数据");
         }
-        if (StrUtil.startWith(type , "device")) {
-            String event = firstNonEmpty(payload.getString("event"), payload.getString("eventType"), obj.getString("eventType"));
+        if (StrUtil.contains(type , "device")) {
+            String event = firstNonEmpty(
+                    payload.getString("event"),
+                    payload.getString("eventType"),
+                    obj.getString("eventType")
+            );
             return StringUtils.isNotEmpty(event) ? event : "设备事件";
         }
         if (StrUtil.startWith(type , MessageConstants.MSG_TYPE_CONTROL)) {
             String cmd = firstNonEmpty(payload.getString("command"), payload.getString("action"));
             return StringUtils.isNotEmpty(cmd) ? cmd : "反控指令";
         }
-        return firstNonEmpty(payload.getString("description"), payload.getString("eventDescription"), defaultSummary(type));
+        return firstNonEmpty(
+                payload.getString("description"),
+                payload.getString("eventDescription"),
+                defaultSummary(type)
+        );
     }
 
     private static String defaultSummary(String type) {

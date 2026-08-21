@@ -15,6 +15,11 @@ import lombok.EqualsAndHashCode;
 public class AlarmPayload extends  MessagePayload {
 
     /**
+     * 告警类别对应 {@link ZaAlarmType#getType()}
+     */
+    private Integer type;
+
+    /**
      * 告警类型对应 {@link ZaAlarmType#getCode()}
      */
     private String code;

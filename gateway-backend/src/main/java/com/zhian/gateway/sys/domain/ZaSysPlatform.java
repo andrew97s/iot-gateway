@@ -26,11 +26,6 @@ public class ZaSysPlatform extends BaseEntity {
      */
     public static final String STATE_STOP = "0";
     /**
-     * The constant serialVersionUID.
-     */
-    private static final long serialVersionUID = 1L;
-
-    /**
      * 自增长主键
      */
     @ApiModelProperty("${comment}")

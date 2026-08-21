@@ -1,6 +1,7 @@
 package com.zhian.gateway.core.message;
 
 import cn.hutool.core.collection.CollUtil;
+import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -37,12 +38,12 @@ public class MsgProcessContext {
     }
 
     public static void addMsg(List<Message> msgList) {
-        List<Message> msg = getMsg();
         ProcessInfo processInfo = threadLocal.get();
         if (processInfo == null) {
             log.error("添加消息失败,context未初始化!");
             return;
         }
+        List<Message> msg = getMsg();
         msg = CollUtil.isEmpty(msg) ? new ArrayList<>() : msg;
         msg.addAll(msgList);
 
@@ -58,10 +59,19 @@ public class MsgProcessContext {
 
         process.setStartTime(new Date());
         process.setPlatform(platform);
-        process.setContent(source != null ? source.toString() : "");
+        process.setContent(source instanceof String ? (String) source : JSON.toJSONString(source));
 
         threadLocal.set(process);
         return process;
+    }
+
+    public static ProcessInfo failed(String reason) {
+        ProcessInfo processInfo = threadLocal.get();
+        processInfo.setEndTime(new Date());
+        processInfo.setHandleStatus("0");
+        processInfo.setHandleResult(reason);
+
+        return processInfo;
     }
 
     public static ProcessInfo finishAndGet() {

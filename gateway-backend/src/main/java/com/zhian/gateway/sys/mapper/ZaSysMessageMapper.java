@@ -34,6 +34,26 @@ public interface ZaSysMessageMapper extends BaseMapper<ZaSysMessage>
     public List<ZaSysMessage> selectZaSysMessageList(ZaSysMessage zaSysMessage);
 
     /**
+     * 查询设备最近的监测消息。
+     *
+     * @param deviceId 设备主键
+     * @param limit 最大返回条数
+     * @return 最近监测消息
+     */
+    List<ZaSysMessage> selectLatestTelemetry(@Param("deviceId") Long deviceId,
+                                             @Param("limit") int limit);
+
+    /**
+     * 查询设备最近的告警消息。
+     *
+     * @param deviceId 设备主键
+     * @param limit 最大返回条数
+     * @return 最近告警消息
+     */
+    List<ZaSysMessage> selectLatestAlarms(@Param("deviceId") Long deviceId,
+                                         @Param("limit") int limit);
+
+    /**
      * 新增接入消息
      * 
      * @param zaSysMessage 接入消息

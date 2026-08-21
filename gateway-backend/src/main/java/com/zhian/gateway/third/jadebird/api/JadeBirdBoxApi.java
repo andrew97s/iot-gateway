@@ -116,28 +116,7 @@ public class JadeBirdBoxApi
      * @param boxMsg
      */
     private void processMsg(BoxMsg boxMsg){
-        String results = "Y";
-        int log = 0;
-        try{
-            jadebirdBoxHandler.processMsg(boxMsg);
-        }catch (Exception e) {
-            e.printStackTrace();
-            log = zaSysErrorService.log(ZaSysError.TYPE_MQ, jadebirdBoxHandler.getPlatform(), "消息处理失败: " + e.getMessage(), boxMsg.getMsg());
-            results = "N";
-        }
-
-        //心跳数据不记录
-        if(boxMsg.getType().equalsIgnoreCase(BoxMsg.TYPE_HEARTBEAT)) {
-            MessageUtil.clear();
-            return;
-        }
-
-        ZaSysDevice device = MessageUtil.getDevice();
-        if(device != null){
-            zaSysMessageService.log(MessageUtil.getDevice(), boxMsg.getType(), boxMsg.getMsg(), results);
-        }else if(!boxMsg.getType().equalsIgnoreCase(BoxMsg.TYPE_HEARTBEAT) &&log == 0){
-            zaSysErrorService.log(ZaSysError.TYPE_MQ, jadebirdBoxHandler.getPlatform(), "消息被忽略", boxMsg.getMsg());
-        }
+        jadebirdBoxHandler.processMsg(boxMsg);
     }
 
 }

@@ -26,6 +26,22 @@ export function getDevice(id) {
   })
 }
 
+// 查询设备最新实时监测数据
+export function getDeviceTelemetry(id) {
+  return request({
+    url: `/sys/device/${id}/telemetry`,
+    method: 'get'
+  })
+}
+
+// 查询设备最近告警记录
+export function getDeviceAlarms(id) {
+  return request({
+    url: `/sys/device/${id}/alarms`,
+    method: 'get'
+  })
+}
+
 // 新增设备管理
 export function addDevice(data) {
   return request({

@@ -1,8 +1,6 @@
 package com.zhian.gateway.third.common.bo;
 
-import com.alibaba.fastjson2.JSON;
 import com.zhian.gateway.common.constant.Constants;
-import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.core.message.Message;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
@@ -104,20 +102,6 @@ public class ProcessInfo {
         return info;
     }
 
-    public static ProcessInfo newError(ZaSysDevice device, String content, String errorMsg) {
-        if (device == null) {
-            return null;
-        }
-
-        ProcessInfo info = new ProcessInfo();
-        info.setDevice(device);
-        info.setHandleStatus("N");
-        info.setHandleResult(errorMsg);
-        info.setType(MsgConstants.MSG_TYPE_ALARM);
-        info.setContent(content);
-        return info;
-    }
-
     public static ProcessInfo newDevice(ZaSysDevice device, String content , List<MqMessage> msgList) {
         if (device == null) {
             return null;
@@ -130,21 +114,6 @@ public class ProcessInfo {
         info.setType(MsgConstants.MSG_TYPE_DEVICE);
         info.setContent(content);
 //        info.setMsgList(msgList);
-        return info;
-    }
-
-    public static ProcessInfo newControl(ZaSysDevice device, ControlVo controlVo, R result) {
-        if (device == null) {
-            return null;
-        }
-
-        boolean success = result != null && Objects.equals(result.get("code"), 200);
-        ProcessInfo info = new ProcessInfo();
-        info.setDevice(device);
-        info.setHandleStatus(success ? "1" : "0");
-        info.setHandleResult(JSON.toJSONString(result));
-        info.setType(MsgConstants.MSG_TYPE_CONTROL);
-        info.setContent(JSON.toJSONString(controlVo));
         return info;
     }
 

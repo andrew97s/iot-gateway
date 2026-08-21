@@ -1,5 +1,6 @@
 package com.zhian.gateway.sys.domain;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.zhian.gateway.common.annotation.Excel;
 import com.zhian.gateway.common.core.domain.BaseEntity;
 import io.swagger.annotations.ApiModel;
@@ -8,6 +9,7 @@ import lombok.Data;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * 接入设备对象 za_sys_device
@@ -56,16 +58,6 @@ public class ZaSysDevice extends BaseEntity
     @NotNull
     private String name;
 
-    /** 经度 */
-    @Excel(name = "经度")
-    @ApiModelProperty("经度")
-    private BigDecimal longitude;
-
-    /** 纬度 */
-    @Excel(name = "纬度")
-    @ApiModelProperty("纬度")
-    private BigDecimal latitude;
-
     /** 无线设备 */
     @Excel(name = "无线设备", dictType = "sys_yes_no")
     @ApiModelProperty("无线设备")
@@ -91,7 +83,8 @@ public class ZaSysDevice extends BaseEntity
     @ApiModelProperty("IP")
     private String ip;
 
-    private String location;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date lastCommTime;
 
     /** 上级同步展示（非表字段） */
     @ApiModelProperty(hidden = true)

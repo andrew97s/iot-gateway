@@ -1,10 +1,7 @@
 [
-  {"code": "ip", "name": "MQ IP", "type": "string", "required": true,"defaultValue":"127.0.0.1"},
-  {"code": "port", "name": "MQ端口", "type": "int", "required": true,"defaultValue":5672},
-  {"code": "username", "name": "MQ账号", "type": "string", "required": false,"defaultValue":"admin"},
-  {"code": "password", "name": "MQ密码", "type": "password", "required": false,"defaultValue":"Pa33w0rd"},
-  {"code": "vhost", "name": "vhost", "type": "string", "required": false,"defaultValue":"/"},
-  {"code": "exchange", "name": "exchange", "type": "string", "required": false,"defaultValue":"monitor.src.upload"},
-  {"code": "queue", "name": "queue", "type": "string", "defaultValue": "test"},
-  {"code": "key", "name": "key", "type": "string", "defaultValue": ""}
+  {"code": "loginName", "name": "账号", "type": "string", "required": true,"defaultValue":""},
+  {"code": "password", "name": "密码", "type": "string", "required": true,"defaultValue":""},
+  {"code": "ticket", "name": "票据", "type": "string", "required": true,"defaultValue":""},
+  {"code": "fireUnitId", "name": "防火单位ID", "type": "string", "required": true,"defaultValue":""},
+  {"code": "syncAllDevice", "name": "是否主动同步云平台设备数据", "type": "boolean", "required": true,"defaultValue":false}
 ]

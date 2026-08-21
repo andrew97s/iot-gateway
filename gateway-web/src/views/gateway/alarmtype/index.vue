@@ -21,17 +21,48 @@
     <div class="gw-card">
       <div class="gw-card-body no-pad">
         <el-table :data="list" v-loading="loading">
-          <el-table-column label="类型编码" width="160">
-            <template #default="scope">
-              <span class="gw-mono" style="font-weight: 600">{{ scope.row.code }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="类型名称" prop="name" min-width="130" />
           <el-table-column label="告警类别" width="110" align="center">
             <template #default="scope">
               <el-tag :type="levelTag(scope.row.type)" size="small">{{ levelLabel(scope.row.type) }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="类型编码" width="100">
+            <template #default="scope">
+              <span class="gw-mono" style="font-weight: 600">{{ scope.row.code }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="类型名称" prop="name" min-width="130" />
+          <el-table-column label="恢复事件" min-width="160">
+            <template #default="scope">
+              <template v-if="parseCodes(scope.row.cancelCode).length > 0">
+                <el-tag
+                  v-for="code in parseCodes(scope.row.cancelCode)"
+                  :key="code"
+                  size="small"
+                  type="success"
+                  effect="plain"
+                  class="alias-tag"
+                >{{ codeName(code) }}</el-tag>
+              </template>
+              <span v-else class="gw-muted gw-small">未配置</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="被恢复事件" min-width="160">
+            <template #default="scope">
+              <template v-if="parseCodes(scope.row.recoveryCode).length > 0">
+                <el-tag
+                  v-for="code in parseCodes(scope.row.recoveryCode)"
+                  :key="code"
+                  size="small"
+                  type="warning"
+                  effect="plain"
+                  class="alias-tag"
+                >{{ codeName(code) }}</el-tag>
+              </template>
+              <span v-else class="gw-muted gw-small">未配置</span>
+            </template>
+          </el-table-column>
+
           <el-table-column label="插件别名映射" min-width="260">
             <template #default="scope">
               <template v-if="parseAliases(scope.row.aliases).length > 0">
@@ -67,8 +98,8 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="open" :title="form.id ? '修改告警类型' : '新增告警类型'" width="720px" append-to-body>
-      <el-form :model="form" label-width="90px" ref="formRef" :rules="rules" class="type-form">
+    <el-dialog v-model="open" :title="form.id ? '修改告警类型' : '新增告警类型'" width="720px" append-to-body destroy-on-close>
+      <el-form :model="form" label-width="108px" ref="formRef" :rules="rules" class="type-form">
         <el-form-item label="类型编码" prop="code">
           <el-input v-model="form.code" placeholder="唯一编码，如 fire、smoke（同步上级平台使用）" :disabled="!!form.id" />
         </el-form-item>
@@ -82,6 +113,28 @@
             <el-option label="3 - 故障" :value="3" />
             <el-option label="4 - 事件" :value="4" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="恢复事件">
+          <el-select-v2
+            v-model="form.cancelCodes"
+            :options="typeSelectOptions"
+            multiple
+            filterable
+            clearable
+            placeholder="当前告警可恢复的告警事件"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="被恢复事件">
+          <el-select-v2
+            v-model="form.recoveryCodes"
+            :options="typeSelectOptions"
+            multiple
+            filterable
+            clearable
+            placeholder="可恢复当前告警的告警事件"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="别名映射" class="alias-item">
           <AliasEditor v-model="form.aliases" />
@@ -112,7 +165,40 @@ const saving = ref(false)
 const open = ref(false)
 const list = ref([])
 const total = ref(0)
-const form = ref({})
+const emptyForm = () => ({
+  id: null,
+  code: '',
+  name: '',
+  level: 2,
+  aliases: '',
+  cancelCode: '',
+  recoveryCode: '',
+  cancelCodes: [],
+  recoveryCodes: [],
+  status: '1',
+  remark: ''
+})
+const form = ref(emptyForm())
+const allTypes = ref([])
+
+const typeMap = computed(() => {
+  const map = {}
+  allTypes.value.forEach(t => {
+    if (t.code) map[t.code] = t.name
+  })
+  return map
+})
+
+const typeSelectOptions = computed(() => {
+  const current = form.value.code
+  return allTypes.value
+    .filter(t => t.code)
+    .map(t => ({
+      value: t.code,
+      label: t.name,
+      disabled: !!current && t.code === current
+    }))
+})
 
 const rules = {
   code: [{ required: true, message: '请输入类型编码', trigger: 'blur' }],
@@ -139,6 +225,34 @@ function parseAliases(str) {
   } catch { return [] }
 }
 
+function parseCodes(str) {
+  if (!str) return []
+  if (Array.isArray(str)) return str.filter(Boolean)
+  try {
+    const arr = JSON.parse(str)
+    if (Array.isArray(arr)) {
+      return arr.map(v => typeof v === 'string' ? v : v?.code).filter(Boolean)
+    }
+  } catch { /* 兼容逗号分隔 */ }
+  return String(str).split(',').map(s => s.trim()).filter(Boolean)
+}
+
+function stringifyCodes(codes) {
+  return Array.isArray(codes) && codes.length > 0 ? JSON.stringify(codes) : ''
+}
+
+function codeName(code) {
+  return typeMap.value[code] || code
+}
+
+function loadAllTypes() {
+  return alarmTypeApi.select().then(res => {
+    allTypes.value = res.data || []
+  }).catch(() => {
+    allTypes.value = []
+  })
+}
+
 function getList() {
   loading.value = true
   alarmTypeApi.list(queryParams).then(res => {
@@ -162,8 +276,8 @@ function resetQuery() {
 
 function openDialog(row) {
   form.value = row
-    ? { ...row }
-    : { id: null, code: '', name: '', level: 2, aliases: '', status: '1', remark: '' }
+    ? { ...emptyForm(), ...row, cancelCodes: parseCodes(row.cancelCode), recoveryCodes: parseCodes(row.recoveryCode) }
+    : emptyForm()
   open.value = true
 }
 
@@ -172,15 +286,23 @@ async function submitForm() {
     await proxy.$refs['formRef'].validate()
   } catch (e) { return }
   saving.value = true
+  const payload = {
+    ...form.value,
+    cancelCode: stringifyCodes(form.value.cancelCodes),
+    recoveryCode: stringifyCodes(form.value.recoveryCodes)
+  }
+  delete payload.cancelCodes
+  delete payload.recoveryCodes
   try {
-    if (form.value.id) {
-      await alarmTypeApi.update(form.value)
+    if (payload.id) {
+      await alarmTypeApi.update(payload)
     } else {
-      await alarmTypeApi.add(form.value)
+      await alarmTypeApi.add(payload)
     }
     proxy.$modal.msgSuccess('保存成功')
     open.value = false
     getList()
+    loadAllTypes()
   } finally {
     saving.value = false
   }
@@ -192,10 +314,12 @@ function handleDelete(row) {
     .then(() => {
       proxy.$modal.msgSuccess('删除成功')
       getList()
+      loadAllTypes()
     })
     .catch(() => {})
 }
 
+loadAllTypes()
 getList()
 </script>
 

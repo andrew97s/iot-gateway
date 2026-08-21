@@ -11,8 +11,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="net"    column="net"    />
         <result property="code"    column="code"    />
         <result property="name"    column="name"    />
-        <result property="longitude"    column="longitude"    />
-        <result property="latitude"    column="latitude"    />
         <result property="wireless"    column="wireless"    />
         <result property="remark"    column="remark"    />
         <result property="createTime"    column="create_time"    />
@@ -21,6 +19,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="cascadeId"    column="cascade_id"    />
         <result property="online"    column="online"    />
         <result property="ip"    column="ip"    />
+        <result property="lastCommTime"    column="last_comm_time"    />
     </resultMap>
 
     <sql id="selectZaSysDeviceVo">
@@ -43,8 +42,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="net != null  and net != ''"> and t.net = #{net}</if>
             <if test="code != null  and code != ''"> and t.code = #{code}</if>
             <if test="name != null  and name != ''"> and t.name like concat('%', #{name}, '%')</if>
-            <if test="longitude != null "> and t.longitude = #{longitude}</if>
-            <if test="latitude != null "> and t.latitude = #{latitude}</if>
             <if test="wireless != null  and wireless != ''"> and t.wireless = #{wireless}</if>
             <if test="pfCode != null "> and t.pf_code = #{pfCode}</if>
             <if test="cascadeId != null "> and t.cascade_id = #{cascadeId}</if>
@@ -77,8 +74,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="net != null">net,</if>
             <if test="code != null and code != ''">code,</if>
             <if test="name != null and name != ''">name,</if>
-            <if test="longitude != null">longitude,</if>
-            <if test="latitude != null">latitude,</if>
             <if test="wireless != null and wireless != ''">wireless,</if>
             <if test="remark != null">remark,</if>
             <if test="createTime != null">create_time,</if>
@@ -96,8 +91,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="net != null">#{net},</if>
             <if test="code != null and code != ''">#{code},</if>
             <if test="name != null and name != ''">#{name},</if>
-            <if test="longitude != null">#{longitude},</if>
-            <if test="latitude != null">#{latitude},</if>
             <if test="wireless != null and wireless != ''">#{wireless},</if>
             <if test="remark != null">#{remark},</if>
             <if test="createTime != null">#{createTime},</if>
@@ -118,8 +111,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="net != null">net = #{net},</if>
             <if test="code != null and code != ''">code = #{code},</if>
             <if test="name != null and name != ''">name = #{name},</if>
-            <if test="longitude != null">longitude = #{longitude},</if>
-            <if test="latitude != null">latitude = #{latitude},</if>
             <if test="wireless != null and wireless != ''">wireless = #{wireless},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
@@ -129,6 +120,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="online != null">`online` = #{online},</if>
             <if test="ip != null">`ip` = #{ip},</if>
             <if test="bizId != null">`biz_id` = #{bizId},</if>
+            <if test="lastCommTime != null">last_comm_time = #{lastCommTime},</if>
         </trim>
         where id = #{id}
     </update>

@@ -66,6 +66,14 @@ public interface IZaSysDeviceService extends IService<ZaSysDevice>
     public int updateZaSysDevice(ZaSysDevice zaSysDevice);
 
     /**
+     * Upd comm time int.
+     *
+     * @param deviceId the device id
+     * @return the int
+     */
+    int updCommTime(Long deviceId);
+
+    /**
      * 批量删除接入设备
      *
      * @param ids 需要删除的接入设备主键集合

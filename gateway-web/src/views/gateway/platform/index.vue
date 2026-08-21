@@ -150,30 +150,33 @@
       <p class="cfg-hint">表单由插件 <b>config-schema</b> 动态渲染；保存后热生效（运行中实例将自动重载）。</p>
       <el-form ref="cfgFormRef" :model="cfgForm" label-position="top" class="cfg-form">
         <div class="cfg-grid">
-          <el-form-item label="平台/设备地址">
-            <el-input v-model="cfgForm.ip" placeholder="如 192.168.1.64" />
-          </el-form-item>
-          <el-form-item label="端口">
-            <el-input-number v-model="cfgForm.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
-          </el-form-item>
           <el-form-item v-for="field in schemaFields" :key="field.code" :label="field.name" :required="!!field.required">
             <el-select v-if="field.type === 'select'" v-model="cfgForm.config[field.code]" clearable style="width: 100%">
               <el-option v-for="opt in field.options || []" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
             </el-select>
             <el-switch v-else-if="field.type === 'boolean'" v-model="cfgForm.config[field.code]" />
             <el-input-number
-              v-else-if="field.type === 'integer' || field.type === 'number'"
-              v-model="cfgForm.config[field.code]"
-              controls-position="right"
-              style="width: 100%"
+                v-else-if="field.type === 'integer' || field.type === 'number'"
+                v-model="cfgForm.config[field.code]"
+                controls-position="right"
+                style="width: 100%"
             />
             <el-input v-else-if="field.type === 'password'" v-model="cfgForm.config[field.code]" type="password" show-password />
             <el-input v-else-if="field.type === 'textarea'" v-model="cfgForm.config[field.code]" type="textarea" :rows="3" />
             <el-input v-else v-model="cfgForm.config[field.code]" />
+            <template #label>
+              <span style="margin-right: 3px">{{ field.name }}</span>
+<!--              <el-tooltip-->
+<!--                  v-if="field.desc"-->
+<!--                  :content="field.desc"-->
+<!--                  placement="top"-->
+<!--              >-->
+<!--                <el-icon class="tip-icon">-->
+<!--                  <InfoFilled />-->
+<!--                </el-icon>-->
+<!--              </el-tooltip>-->
+            </template>
             <div v-if="field.desc" class="field-hint">{{ field.desc }}</div>
-          </el-form-item>
-          <el-form-item label="心跳接口" class="full">
-            <el-input v-model="cfgForm.apis" placeholder="可选" />
           </el-form-item>
           <el-form-item label="备注" class="full">
             <el-input v-model="cfgForm.remark" type="textarea" :rows="2" />
@@ -521,7 +524,6 @@ function normalizeSchema(schema) {
   return schema
     .map((f) => {
       const code = f.code != null ? String(f.code) : f.key != null ? String(f.key) : ''
-      if (!code || code === 'ip' || code === 'port') return null
       let type = String(f.type || 'string').toLowerCase()
       if (type === 'switch') type = 'boolean'
       if (type === 'text') type = 'string'
@@ -627,8 +629,19 @@ async function loadDrawerStats(id) {
   }
 }
 
+function disposeTrendChart() {
+  if (trendChart) {
+    trendChart.dispose()
+    trendChart = null
+  }
+}
+
 function renderTrend() {
   if (!trendChartRef.value) return
+  // destroy-on-close 会重建 DOM，旧实例挂在已销毁节点上，需重新 init
+  if (trendChart && trendChart.getDom() !== trendChartRef.value) {
+    disposeTrendChart()
+  }
   if (!trendChart) trendChart = echarts.init(trendChartRef.value)
   const points = hourlyTrend.value || []
   if (!points.length) {
@@ -655,7 +668,8 @@ function renderTrend() {
       itemStyle: { color: '#2563eb', borderRadius: [3, 3, 0, 0] },
       barMaxWidth: 16
     }]
-  })
+  }, true)
+  nextTick(() => trendChart?.resize())
 }
 
 /** 将后台日志行映射为原型控制台条目（忽略原有分类型卡片逻辑） */
@@ -719,14 +733,14 @@ function downloadLogs() {
   URL.revokeObjectURL(url)
 }
 
+watch(drawerOpen, (open) => {
+  if (!open) disposeTrendChart()
+})
 watch(drawerTab, (t) => {
   if (t === 'stats') nextTick(() => renderTrend())
 })
 onBeforeUnmount(() => {
-  if (trendChart) {
-    trendChart.dispose()
-    trendChart = null
-  }
+  disposeTrendChart()
 })
 
 loadList()
@@ -772,7 +786,7 @@ loadList()
 .cfg-grid :deep(.el-input-number),
 .cfg-grid :deep(.el-textarea) { width: 100%; }
 .cfg-grid :deep(.el-form-item.full), .cfg-grid .full { grid-column: 1 / -1; }
-.field-hint { margin-top: 4px; font-size: 12px; color: #94a3b8; }
+.field-hint { margin-left: 4px;margin-top: 4px; font-size: 12px; color: #94a3b8; }
 .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .mini-stat {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px;
