@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -62,8 +63,13 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
      * The constant OFFLINE_HOURS.
      */
     public static final Integer OFFLINE_HOURS = 1;
+    private static final int LOG_BODY_LIMIT = 512;
+
     private static ZaSysPlatform zaSysPlatform;
-    private static Channel channel;
+    /** 业务上报队列 channel，与心跳队列拆开，避免 multiple ack 互相确认 */
+    private static Channel uploadChannel;
+    private static Channel heartChannel;
+    private static String mqConnectionKey;
     private static Boolean running = false;
     private static Boolean useMQ = false;
 
@@ -90,63 +96,116 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
     private boolean consumeMQ() {
         String ip = zaSysPlatform.getConfigStr("ip");
         Integer port = zaSysPlatform.getConfigInt("port");
-        // 为防止dev 与 test 环境互相影响 ， 此处应通过 profiles 来区分 vhost
-        String vhost = Arrays.asList(SpringUtils.getActiveProfiles()).contains("test") ?
-                "test" : zaSysPlatform.getConfigStr("vhost");
+        String vhost = RabbitMqUtil.resolveVhost(zaSysPlatform.getConfigStr("vhost"), SpringUtils.getActiveProfiles());
         String username = zaSysPlatform.getConfigStr("username");
         String password = zaSysPlatform.getConfigStr("password");
+        mqConnectionKey = RabbitMqUtil.connectionKey(ip, port, vhost, username);
+        RabbitMqUtil.closeQuietly(uploadChannel);
+        RabbitMqUtil.closeQuietly(heartChannel);
+        uploadChannel = null;
+        heartChannel = null;
         Connection connection = RabbitMqUtil.getConnection(ip, port, vhost, username, password);
         if (connection == null) {
             log.error("连接RabbitMQ失败");
-            zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "连接RabbitMQ异常", null, zaSysPlatform.getConfig());
+            zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "连接RabbitMQ异常", exceptionMessage(), zaSysPlatform.getConfig());
             return false;
         }
 
-        DeliverCallback deliverCallback = (tag, message) -> {
-            //将信道存储的信息转化为字符串类型
-            String msg = new String(message.getBody());
-            log.info("receive rabbit {} message: {}", zaSysPlatform.getName(), msg);
-
-            String results = "Y";
-            int log = 0;
-            MonitorMsg monitorMsg = JSONObject.parseObject(msg, MonitorMsg.class);
-            try {
-                processMsg(monitorMsg);
-            } catch (Exception e) {
-                e.printStackTrace();
-                log = zaSysErrorService.log(ZaSysError.TYPE_MQ, PLATFORM_NAME, "消息处理失败: " + e.getMessage(), msg);
-                results = "N";
-            } finally {
-                ZaSysDevice device = MessageUtil.getDevice();
-                //记录消息
-                if (device != null) {
-                    zaSysMessageService.log(MessageUtil.getDevice(), monitorMsg.getEvent(), msg, results);
-                    MessageUtil.clear();
-                } else if (monitorMsg.getEvent() != null && !monitorMsg.getEvent().equalsIgnoreCase(MonitorMsg.Event.HEARTBEAT.name()) && log == 0) {
-                    zaSysErrorService.log(ZaSysError.TYPE_MQ, getPlatform(), "消息被忽略", msg);
-                }
-
-                channel.basicAck(message.getEnvelope().getDeliveryTag(), true);
+        CancelCallback cancelCallback = tag -> log.info("rabbit {} consumer {} cancel", zaSysPlatform.getName(), tag);
+        ShutdownListener shutdownListener = cause -> {
+            if (cause.isInitiatedByApplication()) {
+                return;
             }
+            log.error("RabbitMQ {} 通道异常断开: {}", ip, cause.getReason());
         };
-        //取消消费的回调接口
-        CancelCallback cancelCallback = (tag) -> {
-            log.info("rabbit {} message {} cancel", zaSysPlatform.getName(), tag);
-        };
-        ShutdownListener shutdownListener = (ShutdownSignalException cause) -> {
-            log.error("RabbitMQ {} 连接异常断开: {}", ip, cause);
-        };
+
+        int prefetch = zaSysPlatform.getConfigInt("prefetch") == null
+                ? RabbitMqUtil.DEFAULT_PREFETCH : zaSysPlatform.getConfigInt("prefetch");
         String exchange = zaSysPlatform.getConfigStr("exchange", "monitor.src.upload");
         String queue = zaSysPlatform.getConfigStr("queue", "zhian");
         String key = zaSysPlatform.getConfigStr("key", "");
-        channel = RabbitMqUtil.consume(connection, exchange, queue, key, deliverCallback, cancelCallback, shutdownListener);
-        RabbitMqUtil.consume(channel, "monitor.src.link", "za-heart", key, deliverCallback, cancelCallback);
-        if (channel == null) {
-            log.error("绑定RabbitMQ消费队列失败");
-            zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "绑定RabbitMQ消费队列失败", RabbitMqUtil.getException().getMessage(), zaSysPlatform.getConfig());
+        String heartExchange = zaSysPlatform.getConfigStr("heartExchange", "monitor.src.link");
+        String heartQueue = zaSysPlatform.getConfigStr("heartQueue", "za-heart");
+        String heartKey = zaSysPlatform.getConfigStr("heartKey", key);
+
+        uploadChannel = subscribe(connection, exchange, queue, key, prefetch, cancelCallback, shutdownListener);
+        if (uploadChannel == null) {
+            log.error("绑定RabbitMQ业务队列失败: {}", queue);
+            zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "绑定RabbitMQ消费队列失败", exceptionMessage(), zaSysPlatform.getConfig());
             return false;
         }
+
+        heartChannel = subscribe(connection, heartExchange, heartQueue, heartKey, prefetch, cancelCallback, shutdownListener);
+        if (heartChannel == null) {
+            log.error("绑定RabbitMQ心跳队列失败: {}，业务队列仍继续消费", heartQueue);
+            zaSysErrorService.log(ZaSysError.TYPE_API_ERROR, "绑定RabbitMQ心跳队列失败", exceptionMessage(), zaSysPlatform.getConfig());
+        }
         return true;
+    }
+
+    /**
+     * 每个队列使用独立 channel，回调里只 ack/nack 本 channel 的消息。
+     */
+    private Channel subscribe(Connection connection, String exchange, String queue, String routingKey, int prefetch,
+                              CancelCallback cancelCallback, ShutdownListener shutdownListener) {
+        Channel channel;
+        try {
+            channel = connection.createChannel();
+        } catch (Exception e) {
+            log.error("创建RabbitMQ channel失败, queue={}: {}", queue, e.getMessage(), e);
+            return null;
+        }
+        if (shutdownListener != null) {
+            channel.addShutdownListener(shutdownListener);
+        }
+        DeliverCallback callback = (tag, message) -> handleDelivery(channel, message);
+        if (!RabbitMqUtil.consume(channel, exchange, queue, routingKey, callback, cancelCallback, prefetch)) {
+            RabbitMqUtil.closeQuietly(channel);
+            return null;
+        }
+        return channel;
+    }
+
+    private void handleDelivery(Channel consumeChannel, Delivery message) {
+        long deliveryTag = message.getEnvelope().getDeliveryTag();
+        boolean redelivered = message.getEnvelope().isRedeliver();
+        String msg = new String(message.getBody(), StandardCharsets.UTF_8);
+        if (log.isDebugEnabled()) {
+            log.debug("receive rabbit {} message: {}", zaSysPlatform.getName(), msg);
+        } else {
+            log.info("receive rabbit {} message, size={}, body={}", zaSysPlatform.getName(), msg.length(), truncate(msg));
+        }
+
+        try {
+            MonitorMsg monitorMsg = JSONObject.parseObject(msg, MonitorMsg.class);
+            if (monitorMsg == null) {
+                throw new ServiceException("消息体为空");
+            }
+            processMsg(monitorMsg);
+            RabbitMqUtil.ack(consumeChannel, deliveryTag);
+        } catch (ServiceException e) {
+            log.error("消息无法处理, drop: {}", e.getMessage());
+            zaSysErrorService.log(ZaSysError.TYPE_MQ, PLATFORM_NAME, "消息无法处理: " + e.getMessage(), msg);
+            RabbitMqUtil.nack(consumeChannel, deliveryTag, false);
+        } catch (Exception e) {
+            log.error("处理消息发生异常: {}", e.getMessage(), e);
+            zaSysErrorService.log(ZaSysError.TYPE_MQ, PLATFORM_NAME, "消息处理失败: " + e.getMessage(), msg);
+            // 首次失败重投，再次失败则丢弃，避免毒消息死循环
+            RabbitMqUtil.nack(consumeChannel, deliveryTag, !redelivered);
+        } finally {
+            MessageUtil.clear();
+        }
+    }
+
+    private static String truncate(String msg) {
+        if (msg == null || msg.length() <= LOG_BODY_LIMIT) {
+            return msg;
+        }
+        return msg.substring(0, LOG_BODY_LIMIT) + "...";
+    }
+
+    private static String exceptionMessage() {
+        return RabbitMqUtil.getException() == null ? null : RabbitMqUtil.getException().getMessage();
     }
 
     @Override
@@ -156,12 +215,20 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
             return true;
         }
         try {
-            RabbitMqUtil.close(zaSysPlatform.getConfigStr("ip"));
-            //channel.close();
-            channel = null;
-            running = false;
+            RabbitMqUtil.closeQuietly(uploadChannel);
+            RabbitMqUtil.closeQuietly(heartChannel);
+            if (mqConnectionKey != null) {
+                RabbitMqUtil.closeByKey(mqConnectionKey);
+            } else {
+                RabbitMqUtil.close(zaSysPlatform.getConfigStr("ip"));
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("关闭RabbitMQ失败: {}", e.getMessage(), e);
+        } finally {
+            uploadChannel = null;
+            heartChannel = null;
+            mqConnectionKey = null;
+            running = false;
         }
         return true;
     }
@@ -172,7 +239,13 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
      * @return
      */
     public boolean isAlive() {
-        return running;
+        if (!Boolean.TRUE.equals(running)) {
+            return false;
+        }
+        if (!Boolean.TRUE.equals(useMQ)) {
+            return true;
+        }
+        return uploadChannel != null && uploadChannel.isOpen();
     }
 
     @Override

@@ -3,7 +3,6 @@ package com.zhian.gateway.third.gw.sender;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ShutdownListener;
-import com.rabbitmq.client.ShutdownSignalException;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
@@ -12,7 +11,6 @@ import com.zhian.gateway.third.utils.RabbitMqUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,6 +48,7 @@ public class MqMessageSender implements MessageSender {
      * The constant platform.
      */
     private ZaSysPlatform platform;
+    private String mqConnectionKey;
 
     @Override
     public boolean start(ZaSysPlatform platform) {
@@ -57,14 +56,15 @@ public class MqMessageSender implements MessageSender {
         IZaSysErrorService errorService = SpringUtils.getBean(IZaSysErrorService.class);
         // 初始化MQ连接
         String ip = platform.getConfigStr("ip");
-        // 为防止dev 与 test 环境互相影响 ， 此处应通过 profiles 来区分 vhost
-        String vhost = Arrays.asList(SpringUtils.getActiveProfiles()).contains("test") ?
-                "test" : platform.getConfigStr("vhost");
+        Integer port = platform.getConfigInt("port");
+        String vhost = RabbitMqUtil.resolveVhost(platform.getConfigStr("vhost"), SpringUtils.getActiveProfiles());
+        String username = platform.getConfigStr("username");
+        mqConnectionKey = RabbitMqUtil.connectionKey(ip, port, vhost, username);
         Connection connection = RabbitMqUtil.getConnection(
-                platform.getConfigStr("ip"),
-                platform.getConfigInt("port"),
+                ip,
+                port,
                 vhost,
-                platform.getConfigStr("username"),
+                username,
                 platform.getConfigStr("password")
         );
         if (connection == null) {
@@ -77,8 +77,12 @@ public class MqMessageSender implements MessageSender {
         Map<String, Object> args = new HashMap<>();
         args.put("x-message-ttl", 1000 * 3600 * 24 * 30L);
 
-        ShutdownListener shutdownListener =
-                (ShutdownSignalException cause) -> log.error("RabbitMQ {} 连接异常断开: {}", ip, cause.getMessage());
+        ShutdownListener shutdownListener = cause -> {
+            if (cause.isInitiatedByApplication()) {
+                return;
+            }
+            log.error("RabbitMQ {} 连接异常断开: {}", ip, cause.getReason());
+        };
         queueExchange = platform.getConfigStr("exchange", queueExchange);
         queueName = platform.getConfigStr("queue", platform.getConfigStr("queueName", queueName));
         queueKey = platform.getConfigStr("key", queueKey);
@@ -93,8 +97,12 @@ public class MqMessageSender implements MessageSender {
 
     @Override
     public boolean stop() {
-        RabbitMqUtil.close(platform.getConfigStr("ip"));
+        RabbitMqUtil.closeQuietly(channel);
+        if (mqConnectionKey != null) {
+            RabbitMqUtil.closeByKey(mqConnectionKey);
+        }
         channel = null;
+        mqConnectionKey = null;
         return true;
     }
 
