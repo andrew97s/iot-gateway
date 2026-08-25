@@ -53,6 +53,12 @@ public class MkServer {
      */
     public static void start(BasePlatformHandler<MkCanMsg> handler) throws Exception {
         try {
+            if (bossGroup == null || bossGroup.isShutdown()) {
+                bossGroup = new NioEventLoopGroup();
+            }
+            if (workerGroup == null || workerGroup.isShutdown()) {
+                workerGroup = new NioEventLoopGroup();
+            }
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class) // 指定 NIO 模式
@@ -109,6 +115,7 @@ public class MkServer {
             workerGroup.shutdownGracefully();
             log.info(" MkServer 已成功停止 !");
         }
+        channel = null;
     }
 
     /**

@@ -2,47 +2,37 @@
   <div class="gw-page plugin-page">
     <div class="plugin-summary">
       <div class="plugin-summary-text">
-        运行中 <b class="ok">{{ summary.running }}</b>
-        · 已停止 <b>{{ summary.stopped }}</b>
-        · 异常 <b class="err">{{ summary.abnormal }}</b>
-        <span class="gw-muted" style="margin-left: 10px">共 {{ summary.total || 0 }} 个实例</span>
+        运行中 <b class="ok">{{ summary.running }}</b> · 已停止 <b>{{ summary.stopped }}</b> · 已安装 <b>{{ summary.installed }}</b> · 异常
+        <b class="err">{{ summary.abnormal }}</b>
+        <span class="gw-muted" style="margin-left: 10px">共 {{ summary.total || 0 }} 个插件项</span>
       </div>
       <div class="plugin-summary-actions">
-        <el-button size="small" icon="Upload" @click="openPackageUpload" v-hasPermi="['sys:platform:add']">安装插件包</el-button>
-        <el-button type="primary" size="small" icon="Plus" @click="openInstall" v-hasPermi="['sys:platform:add']">创建实例</el-button>
+        <el-button icon="Upload" size="small" v-hasPermi="['sys:platform:add']" @click="openPackageUpload">安装插件包</el-button>
+        <el-button icon="Plus" size="small" type="primary" v-hasPermi="['sys:platform:add']" @click="openInstall">创建实例</el-button>
       </div>
     </div>
 
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="filters.keyword" clearable placeholder="插件名称 / 厂商" style="width: 200px" @keyup.enter="loadList" />
-        <el-select v-model="filters.state" clearable placeholder="全部状态" style="width: 130px">
-          <el-option label="运行中" value="running" />
-          <el-option label="已停止" value="stopped" />
-          <el-option label="已安装" value="installed" />
-          <el-option label="异常" value="abnormal" />
-        </el-select>
-        <el-select v-model="filters.protocol" clearable placeholder="全部协议" style="width: 150px">
-          <el-option v-for="p in protocolOptions" :key="p" :label="p" :value="p" />
-        </el-select>
-        <el-button type="primary" icon="Search" @click="handleQuery">查询</el-button>
+        <el-select-v2 v-model="filters.state" :options="STATE_OPTIONS" clearable placeholder="全部状态" style="width: 130px" />
+        <el-select-v2 v-model="filters.protocol" :options="protocolSelectOptions" clearable placeholder="全部协议" style="width: 150px" />
+        <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" :loading="loading" @click="handleQuery">刷新</el-button>
         <div class="spacer" />
-        <span class="gw-muted gw-small">
-          插件为厂商接入的最小单元；配置由 plugin.yaml / config-schema 驱动，启停热生效
-        </span>
+        <span class="gw-muted gw-small"> 插件为厂商接入的最小单元；配置由 plugin.yaml / config-schema 驱动，启停热生效 </span>
       </div>
     </div>
 
     <!-- 卡片栅格直接铺在灰底上，与原型一致（不加白色容器） -->
     <div class="plugin-list">
       <div class="gw-plugin-grid" v-loading="loading">
-        <el-empty v-if="!loading && instances.length === 0" description="暂无插件实例，请先创建或安装" style="grid-column: 1 / -1" />
+        <el-empty description="暂无插件实例，请先创建或安装" style="grid-column: 1 / -1" v-if="!loading && instances.length === 0" />
         <div
           v-for="row in pagedInstances"
-          :key="row.instanceId"
           class="gw-plugin-card"
           :class="{ 'is-error': row.state === 'abnormal', 'is-disabled': row.state === 'stopped' || row.state === 'installed' }"
+          :key="row.instanceId || `installed-${row.pluginId}`"
         >
           <div class="pc-head">
             <div class="pc-ico" :style="{ background: pluginColor(row.pluginId) }">{{ pluginInitials(row.pluginId) }}</div>
@@ -54,64 +44,79 @@
               <div class="pc-meta gw-muted gw-small">
                 <span class="gw-tag">{{ row.protocol || row.pluginId }}</span>
                 <span class="gw-tag">v{{ row.version || '—' }}</span>
-                <span>· 实例 {{ row.instanceId }}</span>
+                <span v-if="row.instanceId">· 实例 {{ row.instanceId }}</span>
+                <span v-else>· 尚未创建实例</span>
                 <span v-if="capsText(row)">· 能力：{{ capsText(row) }}</span>
                 <span v-if="row.state === 'abnormal' && row.restartCount">· 已自动重启 {{ row.restartCount }} 次</span>
+              </div>
+              <div class="pc-health err" v-if="row.state === 'abnormal'">
+                {{ row.healthReason || '健康检查失败' }}
+                <span v-if="row.nextRestartTime"> · 下次重试 {{ formatTime(row.nextRestartTime) }}</span>
+                <span v-if="row.consecutiveFailures"> · 连续失败 {{ row.consecutiveFailures }} 次</span>
               </div>
             </div>
           </div>
           <div class="pc-stats">
-            <div><div class="v">{{ fmt(row.deviceCount) }}</div><div class="k">接入设备</div></div>
-            <div><div class="v">{{ fmt(row.todayMsgCount) }}</div><div class="k">今日消息</div></div>
+            <div>
+              <div class="v">{{ fmt(row.deviceCount) }}</div>
+              <div class="k">接入设备</div>
+            </div>
+            <div>
+              <div class="v">{{ fmt(row.todayMsgCount) }}</div>
+              <div class="k">今日消息</div>
+            </div>
             <div>
               <div class="v" :style="{ color: failColor(row) }">
-                {{ row.state === 'stopped' && !row.todayMsgCount ? '—' : fmt(row.todayFailCount || row.errCount) }}
+                {{ (row.state === 'stopped' || row.state === 'installed') && !row.todayMsgCount ? '—' : fmt(row.todayFailCount || row.errCount) }}
               </div>
               <div class="k">转换失败</div>
             </div>
           </div>
           <div class="pc-foot">
-            <el-button size="small" @click="openDrawer(row)">日志 / 统计</el-button>
-            <el-button size="small" @click="openConfig(row)" v-hasPermi="['sys:platform:edit']">配置</el-button>
-            <template v-if="row.state === 'running'">
-              <el-button size="small" type="danger" plain :loading="busy[row.instanceId]" @click="doStop(row)">停止</el-button>
-            </template>
-            <template v-else-if="row.state === 'abnormal'">
-              <el-button size="small" type="primary" :loading="busy[row.instanceId]" @click="doRestart(row)">重启</el-button>
-              <el-button size="small" type="danger" plain :loading="busy[row.instanceId]" @click="doStop(row)">停止</el-button>
+            <template v-if="row.state === 'installed'">
+              <el-button size="small" type="primary" v-hasPermi="['sys:platform:add']" @click="openInstallFor(row)">创建实例</el-button>
             </template>
             <template v-else>
-              <el-button size="small" type="primary" :loading="busy[row.instanceId]" @click="doStart(row)">启动</el-button>
-              <el-button size="small" type="danger" plain v-hasPermi="['sys:platform:remove']" @click="doUninstall(row)">卸载</el-button>
+              <el-button size="small" @click="openDrawer(row)">日志 / 统计</el-button>
+              <el-button size="small" v-hasPermi="['sys:platform:edit']" @click="openConfig(row)">配置</el-button>
+            </template>
+            <template v-if="row.state === 'running'">
+              <el-button :loading="busy[row.instanceId]" plain size="small" type="danger" @click="doStop(row)">停止</el-button>
+            </template>
+            <template v-else-if="row.state === 'abnormal'">
+              <el-button :loading="busy[row.instanceId]" size="small" type="primary" @click="doRestart(row)">重启</el-button>
+              <el-button :loading="busy[row.instanceId]" plain size="small" type="danger" @click="doStop(row)">停止</el-button>
+            </template>
+            <template v-else-if="row.state === 'stopped'">
+              <el-button :loading="busy[row.instanceId]" size="small" type="primary" @click="doStart(row)">启动</el-button>
+              <el-button plain size="small" type="danger" v-hasPermi="['sys:platform:remove']" @click="doUninstall(row)">卸载</el-button>
             </template>
           </div>
         </div>
       </div>
       <div class="plugin-pager" v-show="instances.length > 0">
-        <pagination
-          v-model:page="queryParams.pageNum"
-          v-model:limit="queryParams.pageSize"
-          :total="instances.length"
-          :page-sizes="[10, 20, 30]"
-        />
+        <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :page-sizes="[10, 20, 30]" :total="instances.length" />
       </div>
     </div>
 
     <!-- 创建实例：从类型目录选择 -->
-    <el-dialog v-model="installOpen" title="创建插件实例" width="560px" append-to-body destroy-on-close>
-      <el-form ref="installRef" :model="installForm" :rules="installRules" label-width="100px">
+    <el-dialog v-model="installOpen" append-to-body destroy-on-close title="创建插件实例" width="560px">
+      <el-form label-width="100px" :model="installForm" :rules="installRules" ref="installRef">
         <el-form-item label="插件类型" prop="pluginId">
-          <el-select v-model="installForm.pluginId" filterable style="width: 100%" placeholder="选择已注册的可运行插件" @change="onTypePicked">
-            <el-option
-              v-for="t in runnableTypes"
-              :key="t.id"
-              :label="`${t.name}（${t.id}）`"
-              :value="t.id"
-            >
-              <span>{{ t.name }}</span>
-              <span class="gw-muted gw-small" style="float: right">{{ t.protocol }} · v{{ t.version }}</span>
-            </el-option>
-          </el-select>
+          <el-select-v2
+            v-model="installForm.pluginId"
+            :options="runnableTypeOptions"
+            filterable
+            :teleported="false"
+            placeholder="选择已注册的可运行插件"
+            style="width: 100%"
+            @change="onTypePicked"
+          >
+            <template #default="{ item }">
+              <span>{{ item.name }}</span>
+              <span class="gw-muted gw-small" style="float: right">{{ item.protocol }} · v{{ item.version }}</span>
+            </template>
+          </el-select-v2>
         </el-form-item>
         <el-form-item label="实例编码">
           <el-input v-model="installForm.instanceId" disabled placeholder="与插件类型一致" />
@@ -124,80 +129,113 @@
           <el-input v-model="installForm.ip" placeholder="可选，配置时可再改" />
         </el-form-item>
         <el-form-item label="端口">
-          <el-input-number v-model="installForm.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+          <el-input-number v-model="installForm.port" controls-position="right" :max="65535" :min="1" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="installOpen = false">取消</el-button>
-        <el-button type="primary" :loading="installing" @click="submitInstall">创建</el-button>
+        <el-button :loading="installing" type="primary" @click="submitInstall">创建</el-button>
       </template>
     </el-dialog>
 
     <!-- 上传插件包 -->
-    <el-dialog v-model="pkgOpen" title="安装插件包" width="520px" append-to-body destroy-on-close>
+    <el-dialog v-model="pkgOpen" append-to-body destroy-on-close title="安装插件包" width="520px">
       <p class="cfg-hint">上传 zip，需包含 <b>plugin.yaml</b> 与可选 <b>config-schema.json</b>；若类型已有内置 Handler 则可创建并启动实例。</p>
-      <el-upload drag :auto-upload="false" :limit="1" accept=".zip" :on-change="onPkgChange" :on-remove="() => (pkgFile = null)">
+      <el-upload accept=".zip" :auto-upload="false" drag :limit="1" :on-change="onPkgChange" :on-remove="() => (pkgFile = null)">
         <div class="el-upload__text">将插件包拖到此处，或 <em>点击选择</em></div>
       </el-upload>
       <template #footer>
         <el-button @click="pkgOpen = false">取消</el-button>
-        <el-button type="primary" :loading="pkgLoading" :disabled="!pkgFile" @click="submitPackage">上传安装</el-button>
+        <el-button :disabled="!pkgFile" :loading="pkgLoading" type="primary" @click="submitPackage">上传安装</el-button>
       </template>
     </el-dialog>
 
     <!-- 配置 -->
-    <el-dialog v-model="cfgOpen" :title="cfgTitle" width="720px" append-to-body destroy-on-close>
+    <el-dialog v-model="cfgOpen" append-to-body destroy-on-close :title="cfgTitle" width="720px">
       <p class="cfg-hint">表单由插件 <b>config-schema</b> 动态渲染；保存后热生效（运行中实例将自动重载）。</p>
-      <el-form ref="cfgFormRef" :model="cfgForm" label-position="top" class="cfg-form">
+      <el-form class="cfg-form" label-position="top" :model="cfgForm" ref="cfgFormRef">
         <div class="cfg-grid">
-          <el-form-item v-for="field in schemaFields" :key="field.code" :label="field.name" :required="!!field.required">
-            <el-select v-if="field.type === 'select'" v-model="cfgForm.config[field.code]" clearable style="width: 100%">
-              <el-option v-for="opt in field.options || []" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
-            </el-select>
-            <el-switch v-else-if="field.type === 'boolean'" v-model="cfgForm.config[field.code]" />
-            <el-input-number
-                v-else-if="field.type === 'integer' || field.type === 'number'"
-                v-model="cfgForm.config[field.code]"
-                controls-position="right"
-                style="width: 100%"
+          <el-form-item v-for="field in schemaFields" :label="field.name" :required="!!field.required" :key="field.code">
+            <el-select-v2
+              v-model="cfgForm.config[field.code]"
+              :options="field.options"
+              clearable
+              :teleported="false"
+              style="width: 100%"
+              v-if="field.type === 'select'"
             />
-            <el-input v-else-if="field.type === 'password'" v-model="cfgForm.config[field.code]" type="password" show-password />
-            <el-input v-else-if="field.type === 'textarea'" v-model="cfgForm.config[field.code]" type="textarea" :rows="3" />
-            <el-input v-else v-model="cfgForm.config[field.code]" />
+            <el-switch v-model="cfgForm.config[field.code]" v-else-if="field.type === 'boolean'" />
+            <el-input-number
+              v-model="cfgForm.config[field.code]"
+              controls-position="right"
+              style="width: 100%"
+              v-else-if="field.type === 'integer' || field.type === 'number'"
+            />
+            <el-input v-model="cfgForm.config[field.code]" show-password type="password" v-else-if="field.type === 'password'" />
+            <el-input v-model="cfgForm.config[field.code]" :rows="3" type="textarea" v-else-if="field.type === 'textarea'" />
+            <el-input v-model="cfgForm.config[field.code]" v-else />
             <template #label>
               <span style="margin-right: 3px">{{ field.name }}</span>
-<!--              <el-tooltip-->
-<!--                  v-if="field.desc"-->
-<!--                  :content="field.desc"-->
-<!--                  placement="top"-->
-<!--              >-->
-<!--                <el-icon class="tip-icon">-->
-<!--                  <InfoFilled />-->
-<!--                </el-icon>-->
-<!--              </el-tooltip>-->
+              <!--              <el-tooltip-->
+              <!--                  v-if="field.desc"-->
+              <!--                  :content="field.desc"-->
+              <!--                  placement="top"-->
+              <!--              >-->
+              <!--                <el-icon class="tip-icon">-->
+              <!--                  <InfoFilled />-->
+              <!--                </el-icon>-->
+              <!--              </el-tooltip>-->
             </template>
-            <div v-if="field.desc" class="field-hint">{{ field.desc }}</div>
+            <div class="field-hint" v-if="field.desc">{{ field.desc }}</div>
           </el-form-item>
-          <el-form-item label="备注" class="full">
-            <el-input v-model="cfgForm.remark" type="textarea" :rows="2" />
+          <el-form-item class="full" label="备注">
+            <el-input v-model="cfgForm.remark" :rows="2" type="textarea" />
           </el-form-item>
         </div>
       </el-form>
       <template #footer>
         <el-button :loading="testing" @click="doTest">测试连接</el-button>
         <el-button @click="cfgOpen = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveConfig">保存并生效</el-button>
+        <el-button :loading="saving" type="primary" @click="saveConfig">保存并生效</el-button>
       </template>
     </el-dialog>
 
     <!-- 日志/统计 -->
-    <el-drawer v-model="drawerOpen" :title="drawerTitle" direction="rtl" size="700px" destroy-on-close>
+    <el-drawer
+      v-model="drawerOpen"
+      destroy-on-close
+      direction="rtl"
+      size="700px"
+      class="plugin-drawer"
+      custom-class="plugin-drawer"
+      :title="drawerTitle"
+    >
+      <div class="drawer-health" :class="'is-' + (drawerHealth.state || 'stopped')">
+        <div class="drawer-health-head">
+          <b>健康信息</b>
+          <span class="gw-badge" :class="badgeClass(drawerHealth.state)">{{ stateLabel(drawerHealth.state) }}</span>
+        </div>
+        <p class="drawer-health-reason">{{ healthSummary }}</p>
+        <div class="drawer-health-meta">
+          <span>最近检查 {{ formatTime(drawerHealth.lastHealthCheckTime) }}</span>
+          <span :class="{ err: drawerHealth.consecutiveFailures > 0 }">连续失败 {{ drawerHealth.consecutiveFailures || 0 }} 次</span>
+          <span>自动重启 {{ drawerHealth.restartCount || 0 }} 次</span>
+          <span v-if="drawerHealth.nextRestartTime">下次重试 {{ formatTime(drawerHealth.nextRestartTime) }}</span>
+          <span v-else-if="drawerHealth.lastStartTime">最近启动 {{ formatTime(drawerHealth.lastStartTime) }}</span>
+        </div>
+      </div>
       <el-tabs v-model="drawerTab">
         <el-tab-pane label="消息统计" name="stats">
           <div v-loading="drawerStatsLoading">
             <div class="stat-row">
-              <div class="mini-stat"><div class="label">累计接入消息</div><div class="value">{{ fmt(drawerStats.total) }}</div></div>
-              <div class="mini-stat"><div class="label">今日接入消息</div><div class="value">{{ fmt(drawerStats.todayTotal) }}</div></div>
+              <div class="mini-stat">
+                <div class="label">累计接入消息</div>
+                <div class="value">{{ fmt(drawerStats.total) }}</div>
+              </div>
+              <div class="mini-stat">
+                <div class="label">今日接入消息</div>
+                <div class="value">{{ fmt(drawerStats.todayTotal) }}</div>
+              </div>
               <div class="mini-stat">
                 <div class="label">今日转换失败</div>
                 <div class="value" :style="{ color: drawerStats.todayFailed > 0 ? '#dc2626' : '#16a34a' }">{{ fmt(drawerStats.todayFailed) }}</div>
@@ -206,9 +244,9 @@
             <div class="gw-card mt16">
               <div class="gw-card-head"><h2>今日消息类型分布</h2></div>
               <div class="gw-card-body">
-                <el-empty v-if="typeDist.length === 0" description="今日暂无消息" :image-size="60" />
-                <div v-else class="gw-hbar">
-                  <div v-for="item in typeDist" :key="item.type" class="row">
+                <el-empty description="今日暂无消息" :image-size="60" v-if="typeDist.length === 0" />
+                <div class="gw-hbar" v-else>
+                  <div v-for="item in typeDist" class="row" :key="item.type">
                     <span>{{ typeLabel(item.type) }}</span>
                     <div class="bar-bg"><div class="bar" :style="{ width: item.percent + '%', background: typeColor(item.type) }" /></div>
                     <span class="num">{{ fmt(item.total) }}</span>
@@ -219,34 +257,28 @@
             <div class="gw-card mt16">
               <div class="gw-card-head"><h2>近 24 小时消息量</h2></div>
               <div class="gw-card-body">
-                <div v-show="hourlyTrend.length > 0" ref="trendChartRef" class="trend-chart" />
-                <el-empty v-if="!drawerStatsLoading && hourlyTrend.length === 0" description="暂无趋势数据" :image-size="50" />
+                <div class="trend-chart" ref="trendChartRef" v-show="hourlyTrend.length > 0" />
+                <el-empty description="暂无趋势数据" :image-size="50" v-if="!drawerStatsLoading && hourlyTrend.length === 0" />
               </div>
             </div>
           </div>
         </el-tab-pane>
         <el-tab-pane label="运行日志" name="logs">
           <div class="gw-filter-bar log-filter" style="margin-bottom: 12px">
-            <el-select v-model="logLevel" clearable placeholder="全部级别" style="width: 130px">
-              <el-option label="全部级别" value="" />
-              <el-option label="DEBUG" value="DEBUG" />
-              <el-option label="INFO" value="INFO" />
-              <el-option label="WARN" value="WARN" />
-              <el-option label="ERROR" value="ERROR" />
-            </el-select>
+            <el-select-v2 v-model="logLevel" :options="LOG_LEVEL_OPTIONS" clearable placeholder="全部级别" style="width: 130px" />
             <el-input v-model="logKeyword" clearable placeholder="关键字过滤" style="flex: 1" />
-            <el-button size="small" icon="Refresh" :loading="logLoading" @click="loadLogs">刷新</el-button>
-            <el-button size="small" icon="Download" :disabled="!displayLogs.length" @click="downloadLogs">下载日志</el-button>
+            <el-button icon="Refresh" :loading="logLoading" size="small" @click="loadLogs">刷新</el-button>
+            <el-button :disabled="!displayLogs.length" icon="Download" size="small" @click="downloadLogs">下载日志</el-button>
           </div>
-          <div v-loading="logLoading" class="gw-log-console">
+          <div class="gw-log-console" v-loading="logLoading">
             <template v-if="displayLogs.length">
-              <div v-for="(log, idx) in displayLogs" :key="log.id || idx" class="log-line">
+              <div v-for="(log, idx) in displayLogs" class="log-line" :key="log.id || idx">
                 <span class="t">{{ formatLogTime(log.time) }}</span>
                 <span :class="'lv-' + log.level.toLowerCase()">[{{ padLevel(log.level) }}]</span>
                 <span> [{{ currentId }}] {{ log.message }}</span>
               </div>
             </template>
-            <div v-else class="empty-log">暂无运行日志</div>
+            <div class="empty-log" v-else>暂无运行日志</div>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -295,17 +327,30 @@ const PLUGIN_COLORS = [
   'linear-gradient(135deg,#d97706,#facc15)'
 ]
 
+const STATE_OPTIONS = [
+  { value: 'running', label: '运行中' },
+  { value: 'stopped', label: '已停止' },
+  { value: 'installed', label: '已安装' },
+  { value: 'abnormal', label: '异常' }
+]
+const LOG_LEVEL_OPTIONS = [
+  { value: 'DEBUG', label: 'DEBUG' },
+  { value: 'INFO', label: 'INFO' },
+  { value: 'WARN', label: 'WARN' },
+  { value: 'ERROR', label: 'ERROR' }
+]
+
 const loading = ref(false)
 const instances = ref([])
-const summary = ref({ running: 0, stopped: 0, abnormal: 0, total: 0 })
+const summary = ref({ running: 0, stopped: 0, installed: 0, abnormal: 0, total: 0 })
 const types = ref([])
-const filters = reactive({ keyword: '', state: '', protocol: '' })
-const queryParams = reactive({ pageNum: 1, pageSize: 10 })
+const filters = reactive({ keyword: '', state: undefined, protocol: undefined })
+const queryParams = reactive({ pageNum: 1, pageSize: 9 })
 const busy = ref({})
 
 const installOpen = ref(false)
 const installing = ref(false)
-const installForm = ref({ pluginId: '', instanceId: '', name: '', ip: '', port: undefined })
+const installForm = ref({ pluginId: undefined, instanceId: '', name: '', ip: '', port: undefined })
 const installRules = {
   pluginId: [{ required: true, message: '请选择插件类型', trigger: 'change' }],
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }]
@@ -326,6 +371,7 @@ const testing = ref(false)
 const drawerOpen = ref(false)
 const drawerTitle = ref('')
 const drawerTab = ref('stats')
+const drawerHealth = ref(emptyHealth())
 const drawerStatsLoading = ref(false)
 const drawerStats = ref({ total: 0, todayTotal: 0, todayFailed: 0 })
 const typeDist = ref([])
@@ -336,15 +382,25 @@ const currentId = ref('')
 const logLoading = ref(false)
 const consoleLogs = ref([])
 const logKeyword = ref('')
-const logLevel = ref('')
+const logLevel = ref()
 
 const runnableTypes = computed(() => (types.value || []).filter((t) => t.runnable))
+const runnableTypeOptions = computed(() =>
+  (runnableTypes.value || []).map((t) => ({
+    value: t.id,
+    label: `${t.name}（${t.id}）`,
+    name: t.name,
+    protocol: t.protocol,
+    version: t.version
+  }))
+)
 const protocolOptions = computed(() => {
   const set = new Set()
   instances.value.forEach((r) => r.protocol && set.add(r.protocol))
   types.value.forEach((t) => t.protocol && set.add(t.protocol))
   return Array.from(set)
 })
+const protocolSelectOptions = computed(() => protocolOptions.value.map((p) => ({ value: p, label: p })))
 const pagedInstances = computed(() => {
   const start = (queryParams.pageNum - 1) * queryParams.pageSize
   return (instances.value || []).slice(start, start + queryParams.pageSize)
@@ -357,13 +413,52 @@ const displayLogs = computed(() => {
   }
   if (logKeyword.value) {
     const kw = logKeyword.value.toLowerCase()
-    list = list.filter((l) => String(l.message || '').toLowerCase().includes(kw))
+    list = list.filter((l) =>
+      String(l.message || '')
+        .toLowerCase()
+        .includes(kw)
+    )
   }
   return list
 })
 
+function emptyHealth() {
+  return {
+    state: '',
+    healthReason: '',
+    connectionInfo: '',
+    lastHealthCheckTime: null,
+    consecutiveFailures: 0,
+    restartCount: 0,
+    nextRestartTime: null,
+    lastStartTime: null,
+    lastStopTime: null
+  }
+}
+function fillHealth(source) {
+  const s = source || {}
+  drawerHealth.value = {
+    state: s.state || '',
+    healthReason: s.healthReason || '',
+    connectionInfo: s.connectionInfo || '',
+    lastHealthCheckTime: s.lastHealthCheckTime || null,
+    consecutiveFailures: Number(s.consecutiveFailures || 0),
+    restartCount: Number(s.restartCount || 0),
+    nextRestartTime: s.nextRestartTime || null,
+    lastStartTime: s.lastStartTime || null,
+    lastStopTime: s.lastStopTime || null
+  }
+}
+const healthSummary = computed(() => {
+  const h = drawerHealth.value || {}
+  return h.healthReason || h.connectionInfo || '暂无健康检查结果'
+})
+
 function fmt(v) {
   return Number(v || 0).toLocaleString('zh-CN')
+}
+function formatTime(value) {
+  return value ? new Date(value).toLocaleString('zh-CN') : '—'
 }
 function pluginInitials(code) {
   const clean = String(code || '').replace(/[^a-zA-Z0-9]/g, '')
@@ -376,10 +471,10 @@ function pluginColor(code) {
   return PLUGIN_COLORS[hash % PLUGIN_COLORS.length]
 }
 function stateLabel(s) {
-  return { running: '运行中', stopped: '已停止', installed: '已安装', configured: '已配置', abnormal: '异常' }[s] || s
+  return { running: '运行中', stopped: '已停止', installed: '已安装', abnormal: '异常' }[s] || s
 }
 function badgeClass(s) {
-  return { running: 'ok', abnormal: 'err', stopped: 'off', installed: 'off', configured: 'info' }[s] || 'off'
+  return { running: 'ok', abnormal: 'err', stopped: 'off', installed: 'info' }[s] || 'off'
 }
 function capsText(row) {
   const caps = row.capabilities || []
@@ -389,7 +484,7 @@ function capsText(row) {
 }
 function failColor(row) {
   const n = Number(row.todayFailCount || row.errCount || 0)
-  if (row.state === 'stopped' && !row.todayMsgCount) return '#64748b'
+  if ((row.state === 'stopped' || row.state === 'installed') && !row.todayMsgCount) return '#64748b'
   return n > 0 ? '#dc2626' : '#16a34a'
 }
 function typeLabel(t) {
@@ -426,9 +521,23 @@ async function loadList() {
 }
 
 function openInstall() {
-  installForm.value = { pluginId: '', instanceId: '', name: '', ip: '', port: undefined }
+  installForm.value = { pluginId: undefined, instanceId: '', name: '', ip: '', port: undefined }
   installOpen.value = true
   if (!types.value.length) listPluginTypes().then((r) => (types.value = r.data || []))
+}
+async function openInstallFor(row) {
+  if (!types.value.length) {
+    const res = await listPluginTypes()
+    types.value = res.data || []
+  }
+  installForm.value = {
+    pluginId: row.pluginId,
+    instanceId: row.pluginId,
+    name: row.name || '',
+    ip: '',
+    port: undefined
+  }
+  installOpen.value = true
 }
 function onTypePicked(id) {
   const t = types.value.find((x) => x.id === id)
@@ -484,7 +593,9 @@ async function doStart(row) {
     await startPluginInstance(row.instanceId)
     proxy.$modal.msgSuccess('已启动')
     await loadList()
-  } catch (e) { /* cancel or error shown */ } finally {
+  } catch (e) {
+    /* cancel or error shown */
+  } finally {
     setBusy(row.instanceId, false)
   }
 }
@@ -495,7 +606,9 @@ async function doStop(row) {
     await stopPluginInstance(row.instanceId)
     proxy.$modal.msgSuccess('已停止')
     await loadList()
-  } catch (e) { /* */ } finally {
+  } catch (e) {
+    /* */
+  } finally {
     setBusy(row.instanceId, false)
   }
 }
@@ -506,7 +619,9 @@ async function doRestart(row) {
     await restartPluginInstance(row.instanceId)
     proxy.$modal.msgSuccess('已重启')
     await loadList()
-  } catch (e) { /* */ } finally {
+  } catch (e) {
+    /* */
+  } finally {
     setBusy(row.instanceId, false)
   }
 }
@@ -516,7 +631,9 @@ async function doUninstall(row) {
     await uninstallPluginInstance(row.instanceId)
     proxy.$modal.msgSuccess('已卸载')
     await loadList()
-  } catch (e) { /* */ }
+  } catch (e) {
+    /* */
+  }
 }
 
 function normalizeSchema(schema) {
@@ -533,7 +650,10 @@ function normalizeSchema(schema) {
         desc: f.desc || f.description || '',
         type,
         required: !!f.required,
-        options: f.options || [],
+        options: (f.options || []).map((opt) => ({
+          value: opt.value,
+          label: opt.label ?? String(opt.value ?? '')
+        })),
         defaultValue: f.defaultValue
       }
     })
@@ -548,6 +668,9 @@ async function openConfig(row) {
   schema.forEach((f) => {
     if (config[f.code] === undefined || config[f.code] === null || config[f.code] === '') {
       if (f.defaultValue !== undefined) config[f.code] = f.defaultValue
+    }
+    if (f.type === 'select' && (config[f.code] === '' || config[f.code] === null)) {
+      config[f.code] = undefined
     }
   })
   Object.keys(config).forEach((k) => {
@@ -600,9 +723,10 @@ async function openDrawer(row) {
   currentId.value = row.instanceId
   drawerTitle.value = `${row.name} · 实例 ${row.instanceId}`
   drawerTab.value = 'stats'
+  fillHealth(row)
   drawerOpen.value = true
   logKeyword.value = ''
-  logLevel.value = ''
+  logLevel.value = undefined
   await Promise.all([loadDrawerStats(row.instanceId), loadLogs()])
 }
 
@@ -623,6 +747,13 @@ async function loadDrawerStats(id) {
       .sort((a, b) => Number(b.total) - Number(a.total))
       .map((r) => ({ ...r, percent: Math.round((Number(r.total) / max) * 100) }))
     hourlyTrend.value = d.hourlyTrend || []
+    if (d.runtime) {
+      fillHealth({
+        ...drawerHealth.value,
+        ...d.runtime,
+        restartCount: d.restartCount ?? d.runtime.restartCount
+      })
+    }
     nextTick(() => renderTrend())
   } finally {
     drawerStatsLoading.value = false
@@ -648,27 +779,32 @@ function renderTrend() {
     trendChart.clear()
     return
   }
-  trendChart.setOption({
-    grid: { left: 36, right: 12, top: 16, bottom: 28 },
-    xAxis: {
-      type: 'category',
-      data: points.map((p) => String(p.timePoint || '').slice(11, 16)),
-      axisLabel: { color: '#94a3b8', fontSize: 11 },
-      axisLine: { lineStyle: { color: '#e2e8f0' } }
+  trendChart.setOption(
+    {
+      grid: { left: 36, right: 12, top: 16, bottom: 28 },
+      xAxis: {
+        type: 'category',
+        data: points.map((p) => String(p.timePoint || '').slice(11, 16)),
+        axisLabel: { color: '#94a3b8', fontSize: 11 },
+        axisLine: { lineStyle: { color: '#e2e8f0' } }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f1f5f9' } },
+        axisLabel: { color: '#94a3b8', fontSize: 11 }
+      },
+      tooltip: { trigger: 'axis' },
+      series: [
+        {
+          type: 'bar',
+          data: points.map((p) => Number(p.total || 0)),
+          itemStyle: { color: '#2563eb', borderRadius: [3, 3, 0, 0] },
+          barMaxWidth: 16
+        }
+      ]
     },
-    yAxis: {
-      type: 'value',
-      splitLine: { lineStyle: { color: '#f1f5f9' } },
-      axisLabel: { color: '#94a3b8', fontSize: 11 }
-    },
-    tooltip: { trigger: 'axis' },
-    series: [{
-      type: 'bar',
-      data: points.map((p) => Number(p.total || 0)),
-      itemStyle: { color: '#2563eb', borderRadius: [3, 3, 0, 0] },
-      barMaxWidth: 16
-    }]
-  }, true)
+    true
+  )
   nextTick(() => trendChart?.resize())
 }
 
@@ -734,7 +870,10 @@ function downloadLogs() {
 }
 
 watch(drawerOpen, (open) => {
-  if (!open) disposeTrendChart()
+  if (!open) {
+    disposeTrendChart()
+    fillHealth(emptyHealth())
+  }
 })
 watch(drawerTab, (t) => {
   if (t === 'stats') nextTick(() => renderTrend())
@@ -754,53 +893,195 @@ loadList()
   gap: 12px;
   flex-wrap: wrap;
 }
-.plugin-summary-text { color: #64748b; font-size: 13px; }
-.plugin-summary-text b { color: #0f172a; font-weight: 700; }
-.plugin-summary-text b.ok { color: #16a34a; }
-.plugin-summary-text b.err { color: #dc2626; }
-.plugin-summary-actions { display: flex; gap: 8px; }
+.plugin-summary-text {
+  color: #64748b;
+  font-size: 13px;
+}
+.plugin-summary-text b {
+  color: #0f172a;
+  font-weight: 700;
+}
+.plugin-summary-text b.ok {
+  color: #16a34a;
+}
+.plugin-summary-text b.err {
+  color: #dc2626;
+}
+.plugin-summary-actions {
+  display: flex;
+  gap: 8px;
+}
 
-.pc-main { flex: 1; min-width: 0; }
-.pc-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pc-main {
+  flex: 1;
+  min-width: 0;
+}
+.pc-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .pc-name {
-  font-size: 15px; color: #0f172a;
-  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: 15px;
+  color: #0f172a;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .pc-meta {
-  margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; line-height: 1.5;
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.5;
+}
+.pc-health {
+  margin-top: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.pc-health.err {
+  color: #dc2626;
 }
 .gw-tag {
-  display: inline-block; padding: 1px 8px; border-radius: 5px; font-size: 12px;
-  background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
-.cfg-hint { margin: 0 0 14px; color: #64748b; font-size: 13px; line-height: 1.5; }
+.cfg-hint {
+  margin: 0 0 14px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
 .cfg-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 4px 20px;
 }
-.cfg-grid :deep(.el-form-item) { margin-bottom: 14px; min-width: 0; }
-.cfg-grid :deep(.el-form-item__content) { min-width: 0; }
+.cfg-grid :deep(.el-form-item) {
+  margin-bottom: 14px;
+  min-width: 0;
+}
+.cfg-grid :deep(.el-form-item__content) {
+  min-width: 0;
+}
 .cfg-grid :deep(.el-input),
 .cfg-grid :deep(.el-select),
+.cfg-grid :deep(.el-select-v2),
 .cfg-grid :deep(.el-input-number),
-.cfg-grid :deep(.el-textarea) { width: 100%; }
-.cfg-grid :deep(.el-form-item.full), .cfg-grid .full { grid-column: 1 / -1; }
-.field-hint { margin-left: 4px;margin-top: 4px; font-size: 12px; color: #94a3b8; }
-.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.mini-stat {
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px;
+.cfg-grid :deep(.el-textarea) {
+  width: 100%;
 }
-.mini-stat .label { color: #64748b; font-size: 13px; margin-bottom: 8px; }
-.mini-stat .value { font-size: 24px; font-weight: 700; color: #0f172a; }
-.mt16 { margin-top: 16px; }
-.trend-chart { width: 100%; height: 180px; }
+.cfg-grid :deep(.el-form-item.full),
+.cfg-grid .full {
+  grid-column: 1 / -1;
+}
+.field-hint {
+  margin-left: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+:deep(.el-drawer__header) {
+  margin-bottom: 8px;
+  padding-bottom: 0;
+}
+:deep(.el-drawer__body) {
+  padding-top: 8px;
+}
+.drawer-health {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.drawer-health.is-running {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.drawer-health.is-abnormal {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.drawer-health.is-stopped,
+.drawer-health.is-installed {
+  background: #f8fafc;
+}
+.drawer-health-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.drawer-health-head b {
+  font-size: 14px;
+  color: #0f172a;
+}
+.drawer-health-reason {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+  word-break: break-all;
+}
+.drawer-health.is-abnormal .drawer-health-reason {
+  color: #dc2626;
+}
+.drawer-health-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.drawer-health-meta .err {
+  color: #dc2626;
+}
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.mini-stat {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.mini-stat .label {
+  color: #64748b;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.mini-stat .value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.mt16 {
+  margin-top: 16px;
+}
+.trend-chart {
+  width: 100%;
+  height: 180px;
+}
 .trend-empty {
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .plugin-pager {
   margin-top: 16px;
   background: #fff;
@@ -816,15 +1097,46 @@ loadList()
   border: none;
   background: transparent;
 }
-.log-filter { width: 100%; }
-.log-line { word-break: break-all; }
-.log-line .t { color: #64748b; margin-right: 6px; }
-.log-line .lv-info { color: #38bdf8; }
-.log-line .lv-debug { color: #94a3b8; }
-.log-line .lv-warn { color: #facc15; }
-.log-line .lv-error { color: #f87171; }
-.empty-log { color: #64748b; }
+.log-filter {
+  width: 100%;
+}
+.log-line {
+  word-break: break-all;
+}
+.log-line .t {
+  color: #64748b;
+  margin-right: 6px;
+}
+.log-line .lv-info {
+  color: #38bdf8;
+}
+.log-line .lv-debug {
+  color: #94a3b8;
+}
+.log-line .lv-warn {
+  color: #facc15;
+}
+.log-line .lv-error {
+  color: #f87171;
+}
+.empty-log {
+  color: #64748b;
+}
 @media (max-width: 900px) {
-  .cfg-grid, .stat-row { grid-template-columns: 1fr; }
+  .cfg-grid,
+  .stat-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<style>
+/* 抽屉 teleport 到 body 后，scoped 选择器可能打不到标题间距 */
+.plugin-drawer .el-drawer__header {
+  margin-bottom: 8px;
+  padding-bottom: 0;
+}
+.plugin-drawer .el-drawer__body {
+  padding-top: 8px;
 }
 </style>

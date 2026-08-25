@@ -18,14 +18,6 @@ import lombok.Data;
 @Data
 public class ZaSysPlatform extends BaseEntity {
     /**
-     * The constant STATE_RUNNING.
-     */
-    public static final String STATE_RUNNING = "1";
-    /**
-     * The constant STATE_STOP.
-     */
-    public static final String STATE_STOP = "0";
-    /**
      * 自增长主键
      */
     @ApiModelProperty("${comment}")
@@ -77,12 +69,6 @@ public class ZaSysPlatform extends BaseEntity {
     @Excel(name = "状态", dictType = "sys_status")
     @ApiModelProperty("状态")
     private String status;
-
-    /**
-     * 当前运行状态
-     */
-    @ApiModelProperty("运行状态")
-    private String running;
 
     /**
      * The Config object.

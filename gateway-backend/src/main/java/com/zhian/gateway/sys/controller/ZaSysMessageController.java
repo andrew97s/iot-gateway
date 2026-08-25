@@ -252,7 +252,11 @@ public class ZaSysMessageController extends BaseController
         for (ZaSysMessage msg : list) {
             List<ZaSysMessageLog> logs = zaSysMessageService.selectPushLogsByMessageId(msg.getId());
             // 列表不查推送日志，避免 N+1；徽标按 sendStatus + 上级平台数估算
-            MessageViewHelper.enrich(msg, upstreamTotal, logs);
+            try {
+                MessageViewHelper.enrich(msg, upstreamTotal, logs);
+            } catch (Exception e) {
+                // 忽略
+            }
         }
     }
 

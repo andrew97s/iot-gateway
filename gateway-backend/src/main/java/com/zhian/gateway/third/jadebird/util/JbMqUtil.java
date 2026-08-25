@@ -42,6 +42,15 @@ public class JbMqUtil {
         messsageChannel = null;
     }
 
+    public static boolean isAlive() {
+        return messsageChannel != null && messsageChannel.isOpen()
+                && heartChannel != null && heartChannel.isOpen();
+    }
+
+    public static String connectionInfo() {
+        return isAlive() ? "RabbitMQ订阅通道正常（" + mqConnectionKey + "）" : "RabbitMQ订阅通道已断开";
+    }
+
     private static Channel subscribe(ChannelCallback callback, ZaSysPlatform platform, String exchange, String queue) {
         // 连接参数
         String ip = platform.getConfigStr("ip");

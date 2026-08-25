@@ -2,12 +2,11 @@ package com.zhian.gateway.sys.controller;
 
 import com.zhian.gateway.common.core.controller.BaseController;
 import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.plugin.PluginInstanceView;
+import com.zhian.gateway.plugin.PluginManager;
 import com.zhian.gateway.sys.domain.ZaSysMessage;
-import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
 import com.zhian.gateway.sys.service.IZaSysMessageService;
-import com.zhian.gateway.sys.service.IZaSysPlatformService;
-import com.zhian.gateway.third.ThirdApplicationRunner;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,7 +37,7 @@ public class ZaOverviewController extends BaseController {
     private IZaSysMessageService messageService;
 
     @Autowired
-    private IZaSysPlatformService platformService;
+    private PluginManager pluginManager;
 
     @ApiOperation("首页概览聚合数据")
     @GetMapping
@@ -49,16 +47,11 @@ public class ZaOverviewController extends BaseController {
         // ---------- 设备统计（按平台 + 汇总） ----------
         List<Map<String, Object>> deviceByPlatform = deviceService.selectOnlineStats();
         long deviceTotal = 0, deviceOnline = 0;
-        Map<String, Long> deviceCountByPf = new HashMap<>();
         for (Map<String, Object> row : deviceByPlatform) {
             long total = toLong(row.get("total"));
             long online = toLong(row.get("onlineCount"));
             deviceTotal += total;
             deviceOnline += online;
-            Object pf = row.get("pfCode");
-            if (pf != null) {
-                deviceCountByPf.merge(pf.toString(), total, Long::sum);
-            }
         }
         Map<String, Object> device = new LinkedHashMap<>();
         device.put("total", deviceTotal);
@@ -74,43 +67,18 @@ public class ZaOverviewController extends BaseController {
         data.put("trend", messageService.selectHourlyTrend());
 
         // ---------- 插件（平台）运行状态 ----------
-        Map<String, Long> todayMsgByPf = new HashMap<>();
-        for (Map<String, Object> row : messageService.countTodayByPlatform()) {
-            Object pf = row.get("pfCode");
-            if (pf != null) {
-                todayMsgByPf.put(pf.toString(), toLong(row.get("total")));
-            }
-        }
-        List<ZaSysPlatform> platforms = platformService.selectZaSysPlatformList(new ZaSysPlatform());
-        List<Map<String, Object>> pluginList = new ArrayList<>();
-        int runningCount = 0, enabledCount = 0;
-        for (ZaSysPlatform pf : platforms) {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", pf.getId());
-            item.put("code", pf.getCode());
-            item.put("name", pf.getName());
-            item.put("status", pf.getStatus());
-            item.put("running", pf.getRunning());
-            item.put("deviceCount", deviceCountByPf.getOrDefault(pf.getCode(), 0L));
-            Map<String, Object> stats = ThirdApplicationRunner.getPlatformStats(pf.getCode());
-            item.put("alive", Boolean.TRUE.equals(stats.get("alive")));
-            item.put("protocol", stats.get("protocol"));
-            item.put("msgCount", stats.get("msgCount"));
-            item.put("todayMsgCount", todayMsgByPf.getOrDefault(pf.getCode(), 0L));
-            item.put("errCount", stats.get("errCount"));
-            item.put("lastStartTime", stats.get("lastStartTime"));
-            pluginList.add(item);
-            if ("1".equals(pf.getStatus())) {
-                enabledCount++;
-                if (Boolean.TRUE.equals(stats.get("alive"))) {
-                    runningCount++;
-                }
-            }
-        }
+        List<PluginInstanceView> pluginList = pluginManager.listInstances(null, null, null);
+        long runningCount = pluginList.stream().filter(p -> "running".equals(p.getState())).count();
+        long stoppedCount = pluginList.stream().filter(p -> "stopped".equals(p.getState())).count();
+        long installedCount = pluginList.stream().filter(p -> "installed".equals(p.getState())).count();
+        long abnormalCount = pluginList.stream().filter(p -> "abnormal".equals(p.getState())).count();
         Map<String, Object> plugin = new LinkedHashMap<>();
-        plugin.put("total", platforms.size());
-        plugin.put("enabled", enabledCount);
+        plugin.put("total", pluginList.size());
+        plugin.put("enabled", runningCount + abnormalCount);
         plugin.put("running", runningCount);
+        plugin.put("stopped", stoppedCount);
+        plugin.put("installed", installedCount);
+        plugin.put("abnormal", abnormalCount);
         plugin.put("list", pluginList);
         data.put("plugin", plugin);
 

@@ -7,17 +7,9 @@
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="filters.keyword" clearable placeholder="消息ID / 设备编码" style="width: 200px" @keyup.enter="handleQuery" />
-        <el-select v-model="filters.type" clearable placeholder="全部类型" style="width: 160px">
-          <el-option v-for="(meta, key) in MSG_TYPES" :key="key" :label="meta.label" :value="key" />
-        </el-select>
-        <el-select v-model="filters.pfCode" clearable filterable placeholder="全部插件" style="width: 160px">
-          <el-option v-for="pf in platformOptions" :key="pf.code" :label="pf.name" :value="pf.code" />
-        </el-select>
-        <el-select v-model="filters.sendStatus" clearable placeholder="同步状态（全部）" style="width: 150px">
-          <el-option label="全部成功" value="sent" />
-          <el-option label="失败" value="failed" />
-          <el-option label="待同步" value="pending" />
-        </el-select>
+        <el-select-v2 v-model="filters.type" :options="msgTypeOptions" clearable placeholder="全部类型" style="width: 160px" />
+        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 160px" />
+        <el-select-v2 v-model="filters.sendStatus" :options="SEND_STATUS_OPTIONS" clearable placeholder="同步状态（全部）" style="width: 150px" />
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
@@ -44,7 +36,7 @@
           </el-table-column>
           <el-table-column label="类型" width="280" align="left">
             <template #default="{ row }">
-              <span v-for="(tp) in  row.type.split(',')" class="gw-tag" :class="typeTagClass(tp)">{{ getMsgTypeLabel(tp) }}</span>
+              <span v-for="item in groupedTypes(row.type)" class="gw-tag" :class="typeTagClass(item.type)" :key="item.type">{{ typeTagText(item) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="设备编码" min-width="140" show-overflow-tooltip>
@@ -62,7 +54,7 @@
           <el-table-column label="时间" width="160" align="center">
             <template #default="{ row }"><span class="gw-mono gw-muted gw-small">{{ row.createTime }}</span></template>
           </el-table-column>
-          <el-table-column label="上级平台同步" width="150" align="center">
+          <el-table-column label="状态" width="150" align="center">
             <template #default="{ row }">
               <span class="gw-badge plain" :class="syncClass(row)">{{ row.syncLabel || syncFallback(row) }}</span>
             </template>
@@ -91,50 +83,45 @@
     <!-- 消息详情 -->
     <el-dialog v-model="detailOpen" :title="`消息详情 · ${shortId(detail.messageId || detail.id)}`" width="960px" append-to-body destroy-on-close class="msg-detail-dialog">
       <div class="detail-grid">
-        <div>
+        <div v-for="panel in detailPanels" :key="panel.key">
           <div class="detail-label">
-            <span>统一消息格式（推送上级平台）</span>
-            <el-button link type="primary" icon="DocumentCopy" @click="copyJson(detail.unifiedContent || detail.content, '统一消息')">复制</el-button>
+            <span>{{ panel.label }}</span>
+            <el-button link type="primary" icon="DocumentCopy" @click="copyJson(panel.data, panel.label)">复制</el-button>
           </div>
-          <div class="json-view"><JsonPretty :data="detail.unifiedContent || detail.content" show-icon /></div>
-        </div>
-        <div>
-          <div class="detail-label">
-            <span>厂商原始报文（转换前）</span>
-            <el-button link type="primary" icon="DocumentCopy" @click="copyJson(detail.content, '原始报文')">复制</el-button>
-          </div>
-          <div class="json-view"><JsonPretty :data="detail.content" show-icon /></div>
+          <div class="json-view"><JsonPretty :data="panel.data" show-icon /></div>
         </div>
       </div>
 
-      <div class="detail-label" style="margin-top: 16px">上级平台同步记录</div>
-      <div class="sync-table-wrap">
-        <el-table :data="pushLogs" size="small" v-loading="pushLogLoading" border max-height="220">
-          <el-table-column label="目标平台" min-width="140">
-            <template #default="{ row }">{{ platformFromTarget(row.target) }}</template>
-          </el-table-column>
-          <el-table-column label="推送方式" width="100" align="center">
-            <template #default="{ row }"><span class="gw-tag">{{ pushModeLabel(row.type) }}</span></template>
-          </el-table-column>
-          <el-table-column label="结果" width="90" align="center">
-            <template #default="{ row }">
-              <span class="gw-badge" :class="row.status === 'success' ? 'ok' : 'err'">{{ row.status === 'success' ? '成功' : '失败' }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="重试次数" width="90" align="center">
-            <template #default>-</template>
-          </el-table-column>
-          <el-table-column label="耗时" width="90" align="center">
-            <template #default>-</template>
-          </el-table-column>
-          <el-table-column label="时间" width="160" align="center">
-            <template #default="{ row }"><span class="gw-mono gw-small">{{ row.time }}</span></template>
-          </el-table-column>
-          <el-table-column label="失败原因" min-width="160" show-overflow-tooltip>
-            <template #default="{ row }"><span class="gw-muted gw-small">{{ row.failReason || '—' }}</span></template>
-          </el-table-column>
-        </el-table>
-      </div>
+      <template v-if="!isControlType(detail.type)">
+        <div class="detail-label" style="margin-top: 16px">上级平台同步记录</div>
+        <div class="sync-table-wrap">
+          <el-table :data="pushLogs" size="small" v-loading="pushLogLoading" border max-height="220">
+            <el-table-column label="目标平台" min-width="140">
+              <template #default="{ row }">{{ platformFromTarget(row.target) }}</template>
+            </el-table-column>
+            <el-table-column label="推送方式" width="100" align="center">
+              <template #default="{ row }"><span class="gw-tag">{{ pushModeLabel(row.type) }}</span></template>
+            </el-table-column>
+            <el-table-column label="结果" width="90" align="center">
+              <template #default="{ row }">
+                <span class="gw-badge" :class="row.status === 'success' ? 'ok' : 'err'">{{ row.status === 'success' ? '成功' : '失败' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="重试次数" width="90" align="center">
+              <template #default>-</template>
+            </el-table-column>
+            <el-table-column label="耗时" width="90" align="center">
+              <template #default>-</template>
+            </el-table-column>
+            <el-table-column label="时间" width="160" align="center">
+              <template #default="{ row }"><span class="gw-mono gw-small">{{ row.time }}</span></template>
+            </el-table-column>
+            <el-table-column label="失败原因" min-width="160" show-overflow-tooltip>
+              <template #default="{ row }"><span class="gw-muted gw-small">{{ row.failReason || '—' }}</span></template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </template>
 
       <template #footer>
         <el-button
@@ -160,24 +147,38 @@ import { selectPlatform } from '@/api/sys/platform'
 const { proxy } = getCurrentInstance()
 
 const MSG_TYPES = {
-  alarm: { label: '告警 ALARM', short: '告警', cls: 'red' },
-  telemetry: { label: '监测 TELEMETRY', short: '监测', cls: 'blue' },
-  device_add: { label: '设备事件 DEVICE_EVENT', short: '设备新增', cls: 'green' },
-  device_upd: { label: '设备事件 DEVICE_EVENT', short: '设备更新', cls: 'blue' },
-  device_del: { label: '设备事件 DEVICE_EVENT', short: '设备删除', cls: 'gray' },
-  device_online: { label: '设备事件 DEVICE_EVENT', short: '设备在线', cls: 'green' },
-  device_offline: { label: '设备事件 DEVICE_EVENT', short: '设备离线  ', cls: 'orange' },
-  control: { label: '反控指令 COMMAND', short: '反控指令', cls: 'purple' },
-  event: { label: '事件', short: '事件', cls: 'orange' },
-  heartbeat: { label: '心跳', short: '心跳', cls: '' }
+  alarm: { label: '告警', short: '告警', cls: 'red' },
+  telemetry: { label: '监测', short: '监测', cls: 'blue' },
+  device_add: { label: '设备新增', short: '设备新增', cls: 'green' },
+  device_upd: { label: '设备更新', short: '设备更新', cls: 'blue' },
+  device_del: { label: '设备删除', short: '设备删除', cls: 'gray' },
+  device_online: { label: '设备在线', short: '设备在线', cls: 'green' },
+  device_offline: { label: '设备离线', short: '设备离线  ', cls: 'orange' },
+  control: { label: '反控', short: '反控指令', cls: 'purple' }
 }
+const msgTypeOptions = Object.entries(MSG_TYPES).map(([value, meta]) => ({ value, label: meta.label }))
+const SEND_STATUS_OPTIONS = [
+  { value: 'sent', label: '全部成功' },
+  { value: 'failed', label: '失败' },
+  { value: 'pending', label: '待同步' }
+]
 
 const loading = ref(false)
 const messageList = ref([])
 const total = ref(0)
 const platformOptions = ref([])
+const platformSelectOptions = computed(() => {
+  const seen = new Set()
+  const options = []
+  for (const pf of platformOptions.value || []) {
+    if (!pf?.code || seen.has(pf.code)) continue
+    seen.add(pf.code)
+    options.push({ value: pf.code, label: pf.name || pf.code })
+  }
+  return options
+})
 const today = ref({ total: 0, successRate: 100, pendingCount: 0 })
-const filters = reactive({ keyword: '', type: '', pfCode: '', sendStatus: '' })
+const filters = reactive({ keyword: '', type: undefined, pfCode: undefined, sendStatus: undefined })
 const dateRange = ref([])
 const queryParams = reactive({ pageNum: 1, pageSize: 10, orderByColumn: 'id', isAsc: 'DESC' })
 const pushingMap = reactive({})
@@ -238,8 +239,41 @@ function shortId(id) {
 function isControlType(type) {
   return type === 'control'
 }
+const detailPanels = computed(() => {
+  const d = detail.value || {}
+  if (isControlType(d.type)) {
+    return [
+      { key: 'params', label: '控制参数', data: d.content },
+      { key: 'result', label: '控制结果', data: d.unifiedContent }
+    ]
+  }
+  return [
+    { key: 'unified', label: '统一消息格式（推送上级平台）', data: d.unifiedContent || d.content },
+    { key: 'raw', label: '厂商原始报文（转换前）', data: d.content }
+  ]
+})
 function getMsgTypeLabel(type) {
   return MSG_TYPES[type]?.short || type || '-'
+}
+function groupedTypes(type) {
+  const counts = new Map()
+  const order = []
+  String(type || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => {
+      if (!counts.has(item)) {
+        counts.set(item, 0)
+        order.push(item)
+      }
+      counts.set(item, counts.get(item) + 1)
+    })
+  return order.map((item) => ({ type: item, count: counts.get(item) }))
+}
+function typeTagText(item) {
+  const label = getMsgTypeLabel(item.type)
+  return item.count > 1 ? `${label} * ${item.count}` : label
 }
 function typeTagClass(type) {
   return MSG_TYPES[type]?.cls || ''
@@ -248,13 +282,19 @@ function platformName(code) {
   return platformOptions.value.find((p) => p.code === code)?.name || code || '-'
 }
 function syncFallback(row) {
-  if (isControlType(row.type)) return '— 下行消息'
+  if (isControlType(row.type)) {} return '— 下行消息'
   if (row.sendStatus === 'sent') return '已推送'
   if (row.sendStatus === 'failed') return '失败'
   return '待同步'
 }
 function syncClass(row) {
-  if (isControlType(row.type)) return 'off'
+  if (isControlType(row.type)) {
+    if (row.syncSuccess === 1){
+      return 'ok'
+    } else {
+      return 'err'
+    }
+  }
   if (row.sendStatus === 'sent') return 'ok'
   if (row.sendStatus === 'failed') return 'err'
   if (row.syncLabel && String(row.syncLabel).includes('部分')) return 'warn'
@@ -315,7 +355,7 @@ function handleQuery() {
   loadToday()
 }
 function resetQuery() {
-  Object.assign(filters, { keyword: '', type: '', pfCode: '', sendStatus: '' })
+  Object.assign(filters, { keyword: '', type: undefined, pfCode: undefined, sendStatus: undefined })
   dateRange.value = []
   handleQuery()
 }
@@ -331,8 +371,10 @@ async function openDetail(row) {
     try { d.content = d.content ? (typeof d.content === 'string' ? JSON.parse(d.content) : d.content) : d.content } catch { /* */ }
     try { d.unifiedContent = d.unifiedContent ? (typeof d.unifiedContent === 'string' ? JSON.parse(d.unifiedContent) : d.unifiedContent) : null } catch { /* */ }
     detail.value = d
-    const logs = await listMessagePushLogs(row.id)
-    pushLogs.value = logs.data || []
+    if (!isControlType(d.type || row.type)) {
+      const logs = await listMessagePushLogs(row.id)
+      pushLogs.value = logs.data || []
+    }
   } finally {
     pushLogLoading.value = false
   }

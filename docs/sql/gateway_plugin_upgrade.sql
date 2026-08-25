@@ -1,6 +1,12 @@
--- 接入插件框架说明（无需强制改表）
+-- 接入插件框架升级
 -- 实例仍使用 za_sys_platform；扩展元数据写入 config JSON：
 --   _pluginType / _vendor / _version / _capabilities
+--
+-- 运行状态改由进程内状态机维护，数据库只保留 status（1=期望启用，0=期望停止）。
+-- MySQL 8.0+ 与 SQLite 3.35+ 均可执行：
+ALTER TABLE za_sys_platform DROP COLUMN running;
+--
+-- 旧版 SQLite 不支持 DROP COLUMN 时，需要重建 za_sys_platform 表并复制除 running 外的字段。
 --
 -- 新 API 前缀：/sys/plugin
 --   GET  /sys/plugin/types

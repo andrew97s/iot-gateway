@@ -51,6 +51,11 @@ public class DevicePayload extends MessagePayload {
     private String online;
 
     /**
+     * 设备IP{@link ZaSysDevice#getIp()} ()}
+     */
+    private String ip;
+
+    /**
      * 执行原因
      */
     private String reason;

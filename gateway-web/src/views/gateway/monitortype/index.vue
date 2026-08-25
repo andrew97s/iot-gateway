@@ -5,14 +5,8 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="queryParams.name" clearable placeholder="类型名称" style="width: 160px" @keyup.enter="handleQuery" />
         <el-input v-model="queryParams.code" clearable placeholder="类型编码" style="width: 140px" @keyup.enter="handleQuery" />
-        <el-select v-model="queryParams.valueType" clearable placeholder="值类型（全部）" style="width: 130px" @change="handleQuery">
-          <el-option label="枚举值" value="enum" />
-          <el-option label="线性值" value="linear" />
-        </el-select>
-        <el-select v-model="queryParams.status" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery">
-          <el-option label="启用" value="1" />
-          <el-option label="停用" value="0" />
-        </el-select>
+        <el-select-v2 v-model="queryParams.valueType" :options="VALUE_TYPE_OPTIONS" clearable placeholder="值类型（全部）" style="width: 130px" @change="handleQuery" />
+        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
@@ -162,13 +156,22 @@ const rules = {
   name: [{ required: true, message: '请输入类型名称', trigger: 'blur' }]
 }
 
+const VALUE_TYPE_OPTIONS = [
+  { value: 'enum', label: '枚举值' },
+  { value: 'linear', label: '线性值' }
+]
+const STATUS_OPTIONS = [
+  { value: '1', label: '启用' },
+  { value: '0', label: '停用' }
+]
+
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   name: null,
   code: null,
-  valueType: null,
-  status: null
+  valueType: undefined,
+  status: undefined
 })
 
 function parseJsonArr(str) {
@@ -196,8 +199,8 @@ function handleQuery() {
 function resetQuery() {
   queryParams.name = null
   queryParams.code = null
-  queryParams.valueType = null
-  queryParams.status = null
+  queryParams.valueType = undefined
+  queryParams.status = undefined
   handleQuery()
 }
 

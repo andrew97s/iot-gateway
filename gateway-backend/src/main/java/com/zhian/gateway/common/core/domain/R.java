@@ -4,6 +4,7 @@ import com.zhian.gateway.common.constant.HttpStatus;
 import com.zhian.gateway.common.utils.StringUtils;
 
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  * 操作消息提醒
@@ -67,6 +68,11 @@ public class  R extends HashMap<String, Object>
     public static R success()
     {
         return R.success("操作成功");
+    }
+
+    public boolean isSuccess()
+    {
+        return Objects.equals(HttpStatus.SUCCESS , get(CODE_TAG));
     }
 
     public static R ok(Object data)

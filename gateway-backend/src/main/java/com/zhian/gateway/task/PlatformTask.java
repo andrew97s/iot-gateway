@@ -4,14 +4,11 @@ import com.github.pagehelper.PageHelper;
 import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.sys.domain.ZaSysError;
-import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysErrorService;
-import com.zhian.gateway.sys.service.IZaSysPlatformService;
 import com.zhian.gateway.third.ThirdApplicationRunner;
 import com.zhian.gateway.third.ThirdHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,67 +18,9 @@ import java.util.List;
 public class PlatformTask {
     public static final String ERROR_MQ_MAP = "error_mq";
     @Autowired
-    private IZaSysPlatformService zaSysPlatformService;
-    @Autowired
     private IZaSysErrorService zaSysErrorService;
     @Autowired
     private Cache cache;
-
-    /**
-     * 定时巡检各接入服务是否正常
-     */
-    @Scheduled(cron = "19 0/10 * * * ?")
-    public void alive(){
-        log.debug("定时巡检各接入服务是否正常");
-        // 「系统配置-核心参数」可关闭插件异常自动重启
-        try {
-            String autoRestart = com.zhian.gateway.common.utils.spring.SpringUtils
-                    .getBean(com.zhian.gateway.system.service.ISysConfigService.class)
-                    .selectConfigByKey("gateway.plugin.autorestart");
-            if ("false".equalsIgnoreCase(autoRestart)) {
-                log.debug("插件异常自动重启已关闭，跳过巡检重启");
-                return;
-            }
-        } catch (Exception ignore) {
-            // 配置不可用时默认开启
-        }
-        ZaSysPlatform pc = new ZaSysPlatform();
-        pc.setStatus("1");
-        pc.setRunning(ZaSysPlatform.STATE_RUNNING);
-        List<ZaSysPlatform> list = zaSysPlatformService.selectZaSysPlatformList(pc);
-        for(ZaSysPlatform platform:list){
-            ThirdHandler handler = ThirdApplicationRunner.getHandler(platform.getCode());
-            if(handler == null || handler.isAlive()){
-               continue;
-            }
-
-            // TODO 定期刷新插件接入的设备状态
-
-            //自动启动一次
-            try {
-                com.zhian.gateway.plugin.PluginManager pluginManager =
-                        com.zhian.gateway.common.utils.spring.SpringUtils.getBean(
-                                com.zhian.gateway.plugin.PluginManager.class);
-                pluginManager.bumpRestartCount(platform.getCode());
-                // 检查实例配置的最大重启次数
-                Integer max = platform.getConfigInt("maxRestart");
-                if (max != null && max >= 0 && pluginManager.getRestartCount(platform.getCode()) > max) {
-                    log.warn("{} 超过最大自动重启次数 {}，标记异常停止", platform.getName(), max);
-                    platform.setRunning(ZaSysPlatform.STATE_STOP);
-                    zaSysPlatformService.updateZaSysPlatform(platform);
-                    continue;
-                }
-            } catch (Exception ignore) {
-            }
-            if(!handler.start(platform)) {
-                zaSysErrorService.logWithPlatform(platform.getCode(), ZaSysError.TYPE_API_TIMEOUT,
-                        platform.getName() + "对接服务重启失败", "对接异常停止", null);
-
-                platform.setRunning(ZaSysPlatform.STATE_STOP);
-                zaSysPlatformService.updateZaSysPlatform(platform);
-            }
-        }
-    }
 
     /**
      * 重复处理未处置成功的消息，最多5次

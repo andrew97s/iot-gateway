@@ -3,6 +3,9 @@ package com.zhian.gateway.third;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.plugin.PluginCatalog;
+import com.zhian.gateway.plugin.runtime.PluginHealthMonitor;
+import com.zhian.gateway.plugin.runtime.PluginRuntimeRegistry;
+import com.zhian.gateway.plugin.runtime.PluginRuntimeSnapshot;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.domain.ZaPlatformLog;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 启动各平台对接插件，并维护运行时统计信息
@@ -50,6 +54,8 @@ public class ThirdApplicationRunner implements ApplicationRunner {
     private IZaPlatformLogService zaPlatformLogService;
     @Autowired(required = false)
     private PluginCatalog pluginCatalog;
+    @Autowired
+    private PluginRuntimeRegistry runtimeRegistry;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -68,21 +74,21 @@ public class ThirdApplicationRunner implements ApplicationRunner {
     }
 
     private void startAll() {
-        ZaSysPlatform pc = new ZaSysPlatform();
-        pc.setStatus("1");
-        List<ZaSysPlatform> list = zaSysPlatformService.selectZaSysPlatformList(pc);
+        List<ZaSysPlatform> list = zaSysPlatformService.selectZaSysPlatformList(new ZaSysPlatform());
         for (ZaSysPlatform platform : list) {
+            if (!"1".equals(platform.getStatus())) {
+                runtimeRegistry.markStopped(platform.getCode(), "实例未启用");
+                continue;
+            }
             try {
                 if (start(platform, START_REASON_AUTO)) {
                     log.info("{} 插件启动成功", platform.getName());
-                    platform.setRunning(ZaSysPlatform.STATE_RUNNING);
                 } else {
                     log.warn("{} 插件启动失败", platform.getName());
-                    platform.setRunning(ZaSysPlatform.STATE_STOP);
                 }
-                zaSysPlatformService.updateZaSysPlatform(platform);
             } catch (Exception e) {
                 log.error("{} 插件启动异常", platform.getName(), e);
+                runtimeRegistry.markAbnormal(platform.getCode(), "启动异常: " + e.getMessage());
                 zaSysErrorService.logWithPlatform(platform.getCode(), ZaSysError.TYPE_SERVER,
                         platform.getName() + "启动失败", e.getMessage(), platform.getConfig());
                 zaPlatformLogService.recordByCode(platform.getCode(), ZaPlatformLog.TYPE_START,
@@ -111,7 +117,6 @@ public class ThirdApplicationRunner implements ApplicationRunner {
         stats.put("registered", handlerMap.containsKey(platformCode));
         ThirdHandler handler = handlerMap.get(platformCode);
         if (handler != null) {
-            stats.put("alive", handler.isAlive());
             stats.put("protocol", handler.getProtocol());
             stats.put("description", handler.getDescription());
             stats.put("connectionInfo", handler.getConnectionInfo());
@@ -119,6 +124,20 @@ public class ThirdApplicationRunner implements ApplicationRunner {
         }
         stats.put("lastStartTime", lastStartTimeMap.get(platformCode));
         stats.put("lastStopTime",  lastStopTimeMap.get(platformCode));
+        PluginRuntimeSnapshot runtime = runtimeRegistry().get(platformCode);
+        if (runtime != null) {
+            stats.put("alive", runtime.getState() == com.zhian.gateway.plugin.runtime.PluginState.RUNNING);
+            stats.put("state", runtime.getState().getCode());
+            stats.put("healthReason", runtime.getHealthReason());
+            stats.put("lastHealthCheckTime", runtime.getLastHealthCheckTime());
+            stats.put("lastStateChangeTime", runtime.getLastStateChangeTime());
+            stats.put("consecutiveFailures", runtime.getConsecutiveFailures());
+            stats.put("consecutiveSuccesses", runtime.getConsecutiveSuccesses());
+            stats.put("restartCount", runtime.getRestartCount());
+            stats.put("nextRestartTime", runtime.getNextRestartTime());
+        } else {
+            stats.put("alive", false);
+        }
         AtomicLong msgCount = msgCountMap.get(platformCode);
         stats.put("msgCount", msgCount == null ? 0L : msgCount.get());
         AtomicLong errCount = errCountMap.get(platformCode);
@@ -162,30 +181,51 @@ public class ThirdApplicationRunner implements ApplicationRunner {
     public static boolean start(ZaSysPlatform zaSysPlatform, String startReason) {
         IZaPlatformLogService logService = SpringUtils.getBean(IZaPlatformLogService.class);
         String reasonLabel = StringUtils.isEmpty(startReason) ? START_REASON_MANUAL : startReason;
+        PluginRuntimeRegistry registry = runtimeRegistry();
+        ReentrantLock lock = registry.lifecycleLock(zaSysPlatform.getCode());
+        lock.lock();
+        try {
+            registry.markStarting(zaSysPlatform.getCode(), reasonLabel + "中");
 
-        if (!handlerMap.containsKey(zaSysPlatform.getCode())) {
-            SpringUtils.getBean(IZaSysErrorService.class).logWithPlatform(
-                    zaSysPlatform.getCode(), ZaSysError.TYPE_SERVER,
-                    "不支持平台" + zaSysPlatform.getName() + "的接入", null, null);
-            String content = buildStartLogContent(reasonLabel, false, "未注册对应处理器");
-            logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_START,
-                    zaSysPlatform.getName() + " 启动", content);
-            return false;
-        }
-        ThirdHandler handler = handlerMap.get(zaSysPlatform.getCode());
-        boolean ret = handler.start(zaSysPlatform);
-        String failMsg = ret ? null : "handler.start 返回 false";
-        String content = buildStartLogContent(reasonLabel, ret, failMsg);
-        logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_START,
-                zaSysPlatform.getName() + " 启动", content);
-        if (ret) {
-            lastStartTimeMap.put(zaSysPlatform.getCode(), new Date());
-            if (ZaSysPlatform.STATE_STOP.equalsIgnoreCase(zaSysPlatform.getRunning())) {
-                zaSysPlatform.setRunning(ZaSysPlatform.STATE_RUNNING);
-                SpringUtils.getBean(IZaSysPlatformService.class).updateZaSysPlatform(zaSysPlatform);
+            if (!handlerMap.containsKey(zaSysPlatform.getCode())) {
+                String failMsg = "未注册对应处理器";
+                SpringUtils.getBean(IZaSysErrorService.class).logWithPlatform(
+                        zaSysPlatform.getCode(), ZaSysError.TYPE_SERVER,
+                        "不支持平台" + zaSysPlatform.getName() + "的接入", null, null);
+                logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_START,
+                        zaSysPlatform.getName() + " 启动",
+                        buildStartLogContent(reasonLabel, false, failMsg));
+                registry.markAbnormal(zaSysPlatform.getCode(), failMsg);
+                return false;
             }
+            ThirdHandler handler = handlerMap.get(zaSysPlatform.getCode());
+            boolean ret = handler.start(zaSysPlatform);
+            String failMsg = ret ? null : "handler.start 返回 false";
+            if (ret) {
+                PluginHealthResult health = SpringUtils.getBean(PluginHealthMonitor.class)
+                        .probeNow(zaSysPlatform.getCode());
+                ret = health.isHealthy();
+                failMsg = ret ? null : health.getMessage();
+            }
+            logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_START,
+                    zaSysPlatform.getName() + " 启动",
+                    buildStartLogContent(reasonLabel, ret, failMsg));
+            if (ret) {
+                lastStartTimeMap.put(zaSysPlatform.getCode(), new Date());
+                registry.markRunning(zaSysPlatform.getCode(), "启动成功");
+            } else {
+                registry.markAbnormal(zaSysPlatform.getCode(), failMsg);
+            }
+            return ret;
+        } catch (Exception e) {
+            registry.markAbnormal(zaSysPlatform.getCode(), "启动异常: " + e.getMessage());
+            logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_START,
+                    zaSysPlatform.getName() + " 启动",
+                    buildStartLogContent(reasonLabel, false, e.getMessage()));
+            return false;
+        } finally {
+            lock.unlock();
         }
-        return ret;
     }
 
     private static String buildStartLogContent(String reasonLabel, boolean success, String failDetail) {
@@ -201,26 +241,72 @@ public class ThirdApplicationRunner implements ApplicationRunner {
     /** 停止 */
     public static boolean stop(ZaSysPlatform zaSysPlatform) {
         IZaPlatformLogService logService = SpringUtils.getBean(IZaPlatformLogService.class);
-        if (!handlerMap.containsKey(zaSysPlatform.getCode())) {
-            SpringUtils.getBean(IZaSysErrorService.class).logWithPlatform(
-                    zaSysPlatform.getCode(), ZaSysError.TYPE_SERVER,
-                    "不支持平台" + zaSysPlatform.getName() + "的接入", null, null);
-            return false;
-        }
-        ThirdHandler handler = handlerMap.get(zaSysPlatform.getCode());
-        boolean ret = handler.stop();
-        if (ret) {
-            lastStopTimeMap.put(zaSysPlatform.getCode(), new Date());
-            if (ZaSysPlatform.STATE_RUNNING.equalsIgnoreCase(zaSysPlatform.getRunning())) {
-                zaSysPlatform.setRunning(ZaSysPlatform.STATE_STOP);
-                SpringUtils.getBean(IZaSysPlatformService.class).updateZaSysPlatform(zaSysPlatform);
+        PluginRuntimeRegistry registry = runtimeRegistry();
+        ReentrantLock lock = registry.lifecycleLock(zaSysPlatform.getCode());
+        lock.lock();
+        try {
+            if (!handlerMap.containsKey(zaSysPlatform.getCode())) {
+                registry.markStopped(zaSysPlatform.getCode(), "实例已停止（处理器未注册）");
+                return true;
             }
-            logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_STOP,
-                    zaSysPlatform.getName() + " 已停止", null);
-        } else {
+            ThirdHandler handler = handlerMap.get(zaSysPlatform.getCode());
+            boolean ret = handler.stop();
+            if (ret) {
+                lastStopTimeMap.put(zaSysPlatform.getCode(), new Date());
+                registry.markStopped(zaSysPlatform.getCode(), "手动停止");
+                logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_STOP,
+                        zaSysPlatform.getName() + " 已停止", null);
+            } else {
+                registry.markAbnormal(zaSysPlatform.getCode(), "handler.stop 返回 false");
+                logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_ERROR,
+                        zaSysPlatform.getName() + " 停止失败", "handler.stop 返回 false");
+            }
+            return ret;
+        } catch (Exception e) {
+            registry.markAbnormal(zaSysPlatform.getCode(), "停止异常: " + e.getMessage());
             logService.recordByCode(zaSysPlatform.getCode(), ZaPlatformLog.TYPE_ERROR,
-                    zaSysPlatform.getName() + " 停止失败", "handler.stop 返回 false");
+                    zaSysPlatform.getName() + " 停止异常", e.getMessage());
+            return false;
+        } finally {
+            lock.unlock();
         }
-        return ret;
+    }
+
+    /**
+     * 健康巡检触发的自动重启。状态保持异常，直到连续健康检查达到恢复阈值。
+     */
+    public static boolean restartForHealth(ZaSysPlatform platform) {
+        PluginRuntimeRegistry registry = runtimeRegistry();
+        ReentrantLock lock = registry.lifecycleLock(platform.getCode());
+        lock.lock();
+        try {
+            ThirdHandler handler = handlerMap.get(platform.getCode());
+            if (handler == null) {
+                registry.markAbnormal(platform.getCode(), "未注册对应处理器");
+                return false;
+            }
+            try {
+                handler.stop();
+            } catch (Exception e) {
+                log.warn("{} 自动重启前停止异常: {}", platform.getName(), e.getMessage());
+            }
+            boolean started = handler.start(platform);
+            if (started) {
+                lastStartTimeMap.put(platform.getCode(), new Date());
+                registry.markRestarted(platform.getCode());
+            } else {
+                registry.markAbnormal(platform.getCode(), "自动重启失败");
+            }
+            return started;
+        } catch (Exception e) {
+            registry.markAbnormal(platform.getCode(), "自动重启异常: " + e.getMessage());
+            return false;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private static PluginRuntimeRegistry runtimeRegistry() {
+        return SpringUtils.getBean(PluginRuntimeRegistry.class);
     }
 }

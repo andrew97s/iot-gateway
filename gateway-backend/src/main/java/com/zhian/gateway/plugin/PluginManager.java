@@ -4,6 +4,10 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.exception.ServiceException;
 import com.zhian.gateway.common.utils.StringUtils;
+import com.zhian.gateway.plugin.runtime.PluginRuntimeRegistry;
+import com.zhian.gateway.plugin.runtime.PluginRuntimeSnapshot;
+import com.zhian.gateway.plugin.runtime.PluginState;
+import com.zhian.gateway.plugin.runtime.PluginHealthMonitor;
 import com.zhian.gateway.sys.domain.ZaPlatformLog;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaPlatformLogService;
@@ -12,12 +16,13 @@ import com.zhian.gateway.sys.service.IZaSysMessageService;
 import com.zhian.gateway.sys.service.IZaSysPlatformService;
 import com.zhian.gateway.third.ThirdApplicationRunner;
 import com.zhian.gateway.third.ThirdHandler;
+import com.zhian.gateway.third.PluginHealthResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -37,9 +42,10 @@ public class PluginManager {
     private IZaSysDeviceService deviceService;
     @Autowired
     private IZaSysMessageService messageService;
-
-    /** 实例异常自动重启计数 */
-    private final Map<String, Integer> restartCountMap = new ConcurrentHashMap<>();
+    @Autowired
+    private PluginRuntimeRegistry runtimeRegistry;
+    @Autowired
+    private PluginHealthMonitor healthMonitor;
 
     public List<PluginDescriptor> listTypes() {
         catalog.refresh();
@@ -59,10 +65,20 @@ public class PluginManager {
         List<ZaSysPlatform> all = platformService.selectZaSysPlatformList(new ZaSysPlatform());
         Map<String, Map<String, Object>> todayMap = indexByPf(messageService.countTodayByPlatform());
         Map<String, Map<String, Object>> deviceMap = indexDeviceStats();
-
-        return all.stream()
+        List<PluginInstanceView> views = all.stream()
                 .filter(p -> !catalog.isExcluded(resolvePluginId(p)))
                 .map(p -> toView(p, todayMap, deviceMap))
+                .collect(Collectors.toList());
+        Set<String> instantiatedTypes = all.stream()
+                .map(PluginManager::resolvePluginId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        for (PluginDescriptor descriptor : catalog.listTypes()) {
+            if (!instantiatedTypes.contains(descriptor.getId())) {
+                views.add(toInstalledView(descriptor));
+            }
+        }
+        return views.stream()
                 .filter(v -> matchKeyword(v, keyword))
                 .filter(v -> StringUtils.isEmpty(state) || state.equals(v.getState()))
                 .filter(v -> StringUtils.isEmpty(protocol) || protocol.equalsIgnoreCase(v.getProtocol()))
@@ -110,7 +126,6 @@ public class PluginManager {
         platform.setIp(ip);
         platform.setPort(port);
         platform.setStatus("0");
-        platform.setRunning(ZaSysPlatform.STATE_STOP);
         platform.setConfig(config.toJSONString());
         platform.setRemark("由插件管理安装");
         platformService.insertZaSysPlatform(platform);
@@ -118,6 +133,7 @@ public class PluginManager {
         platformLogService.recordByCode(code, ZaPlatformLog.TYPE_OTHER,
                 platform.getName() + " 已安装",
                 "pluginId=" + pluginId + ", version=" + type.getVersion());
+        runtimeRegistry.markStopped(code, "实例已创建，尚未启用");
         return getInstance(code);
     }
 
@@ -173,11 +189,7 @@ public class PluginManager {
                 JSON.toJSONString(config));
 
         if (wasEnabled) {
-            ThirdApplicationRunner.stop(platform);
-            boolean ok = ThirdApplicationRunner.start(platform, ThirdApplicationRunner.START_REASON_MANUAL);
-            platform.setRunning(ok ? ZaSysPlatform.STATE_RUNNING : ZaSysPlatform.STATE_STOP);
-            platform.setStatus("1");
-            platformService.updateZaSysPlatform(platform);
+            restartRuntime(platform);
         }
         return getInstance(instanceId);
     }
@@ -186,9 +198,8 @@ public class PluginManager {
         ZaSysPlatform platform = requireInstance(instanceId);
         ensureRunnable(platform);
         platform.setStatus("1");
-        boolean ok = ThirdApplicationRunner.start(platform, ThirdApplicationRunner.START_REASON_MANUAL);
-        platform.setRunning(ok ? ZaSysPlatform.STATE_RUNNING : ZaSysPlatform.STATE_STOP);
         platformService.updateZaSysPlatform(platform);
+        boolean ok = ThirdApplicationRunner.start(platform, ThirdApplicationRunner.START_REASON_MANUAL);
         if (!ok) {
             throw new ServiceException("插件启动失败，请查看运行日志");
         }
@@ -197,31 +208,26 @@ public class PluginManager {
 
     public PluginInstanceView stop(String instanceId) {
         ZaSysPlatform platform = requireInstance(instanceId);
-        ThirdApplicationRunner.stop(platform);
         platform.setStatus("0");
-        platform.setRunning(ZaSysPlatform.STATE_STOP);
         platformService.updateZaSysPlatform(platform);
+        if (!ThirdApplicationRunner.stop(platform)) {
+            throw new ServiceException("插件停止失败，请查看运行日志");
+        }
         return getInstance(instanceId);
     }
 
     public PluginInstanceView restart(String instanceId) {
         ZaSysPlatform platform = requireInstance(instanceId);
         ensureRunnable(platform);
-        ThirdApplicationRunner.stop(platform);
         platform.setStatus("1");
-        boolean ok = ThirdApplicationRunner.start(platform, ThirdApplicationRunner.START_REASON_MANUAL);
-        platform.setRunning(ok ? ZaSysPlatform.STATE_RUNNING : ZaSysPlatform.STATE_STOP);
         platformService.updateZaSysPlatform(platform);
-        restartCountMap.merge(instanceId, 1, Integer::sum);
-        if (!ok) {
-            throw new ServiceException("插件重启失败，请查看运行日志");
-        }
+        restartRuntime(platform);
         return getInstance(instanceId);
     }
 
     public void uninstall(String instanceId) {
         ZaSysPlatform platform = requireInstance(instanceId);
-        if ("1".equals(platform.getStatus()) || ZaSysPlatform.STATE_RUNNING.equals(platform.getRunning())) {
+        if ("1".equals(platform.getStatus())) {
             try {
                 ThirdApplicationRunner.stop(platform);
             } catch (Exception ignored) {
@@ -231,7 +237,7 @@ public class PluginManager {
         platformLogService.recordByPlatformId(platform.getId(), ZaPlatformLog.TYPE_OTHER,
                 platform.getName() + " 已卸载", "instanceId=" + instanceId);
         platformService.deleteZaSysPlatformById(platform.getId());
-        restartCountMap.remove(instanceId);
+        runtimeRegistry.remove(instanceId);
     }
 
     public Map<String, Object> testConnection(String instanceId) {
@@ -245,12 +251,15 @@ public class PluginManager {
             result.put("message", "未注册对应处理器");
             return result;
         }
-        boolean alive = handler.isAlive() && instanceId.equals(platform.getCode());
-        // 若未运行，尝试用当前配置做一次轻量探测：临时 start 再读 isAlive（仅当已停止）
-        if (!alive && !"1".equals(platform.getStatus())) {
+        PluginHealthResult health;
+        if (!"1".equals(platform.getStatus())) {
+            ReentrantLock lock = runtimeRegistry.lifecycleLock(instanceId);
+            lock.lock();
             try {
                 boolean started = handler.start(platform);
-                alive = started && handler.isAlive();
+                health = started
+                        ? healthMonitor.probeNow(resolvePluginId(platform))
+                        : PluginHealthResult.unhealthy("临时启动失败");
                 handler.stop();
                 result.put("probed", true);
             } catch (Exception e) {
@@ -258,14 +267,16 @@ public class PluginManager {
                 result.put("message", "连接探测失败: " + e.getMessage());
                 result.put("probed", true);
                 return result;
+            } finally {
+                lock.unlock();
             }
         } else {
-            alive = handler.isAlive();
+            health = healthMonitor.probeNow(resolvePluginId(platform));
         }
-        result.put("success", alive);
-        result.put("alive", alive);
+        result.put("success", health.isHealthy());
+        result.put("alive", health.isHealthy());
         result.put("connectionInfo", handler.getConnectionInfo());
-        result.put("message", alive ? "连接正常" : "未连接或探测失败");
+        result.put("message", health.getMessage());
         return result;
     }
 
@@ -274,17 +285,16 @@ public class PluginManager {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("total", list.size());
         map.put("running", list.stream().filter(v -> "running".equals(v.getState())).count());
-        map.put("stopped", list.stream().filter(v -> "stopped".equals(v.getState()) || "installed".equals(v.getState()) || "configured".equals(v.getState())).count());
+        map.put("stopped", list.stream().filter(v -> "stopped".equals(v.getState())).count());
+        map.put("installed", list.stream().filter(v -> "installed".equals(v.getState())).count());
         map.put("abnormal", list.stream().filter(v -> "abnormal".equals(v.getState())).count());
+        map.put("enabled", list.stream().filter(v -> "running".equals(v.getState()) || "abnormal".equals(v.getState())).count());
         return map;
     }
 
     public int getRestartCount(String instanceId) {
-        return restartCountMap.getOrDefault(instanceId, 0);
-    }
-
-    public void bumpRestartCount(String instanceId) {
-        restartCountMap.merge(instanceId, 1, Integer::sum);
+        PluginRuntimeSnapshot snapshot = runtimeRegistry.get(instanceId);
+        return snapshot == null ? 0 : snapshot.getRestartCount();
     }
 
     // ---------- helpers ----------
@@ -340,7 +350,6 @@ public class PluginManager {
         v.setApis(p.getApis());
         v.setRemark(p.getRemark());
         v.setStatus(p.getStatus());
-        v.setRunning(p.getRunning());
         v.setConfig(p.getConfigObject() != null ? new LinkedHashMap<>(p.getConfigObject()) : new LinkedHashMap<>());
 
         if (type != null) {
@@ -365,9 +374,14 @@ public class PluginManager {
             v.setProtocol(String.valueOf(runtime.get("protocol")));
         }
 
-        boolean registered = Boolean.TRUE.equals(runtime.get("registered"));
-        boolean alive = Boolean.TRUE.equals(runtime.get("alive"));
-        v.setAlive(alive && "1".equals(p.getStatus()));
+        PluginRuntimeSnapshot snapshot = runtimeRegistry.get(p.getCode());
+        PluginState state;
+        if (snapshot != null) {
+            state = snapshot.getState();
+        } else {
+            state = "1".equals(p.getStatus()) ? PluginState.ABNORMAL : PluginState.STOPPED;
+        }
+        v.setAlive(state == PluginState.RUNNING);
         v.setConnectionInfo(runtime.get("connectionInfo") != null ? String.valueOf(runtime.get("connectionInfo")) : null);
         v.setMsgCount(toLong(runtime.get("msgCount")));
         v.setErrCount(toLong(runtime.get("errCount")));
@@ -376,23 +390,60 @@ public class PluginManager {
         v.setDeviceCount(toLong(device.get("total")));
         v.setTodayMsgCount(toLong(today.get("total")));
         v.setTodayFailCount(toLong(today.get("failedCount")));
-        v.setRestartCount(getRestartCount(p.getCode()));
-        v.setState(resolveState(p, registered, alive));
+        applyRuntime(v, snapshot, state);
         return v;
     }
 
-    private String resolveState(ZaSysPlatform p, boolean registered, boolean alive) {
-        if (!"1".equals(p.getStatus())) {
-            boolean configured = StringUtils.isNotEmpty(p.getIp()) || (p.getConfigObject() != null && p.getConfigObject().size() > 3);
-            return configured ? "stopped" : "installed";
+    private PluginInstanceView toInstalledView(PluginDescriptor type) {
+        PluginInstanceView view = new PluginInstanceView();
+        view.setPluginId(type.getId());
+        view.setName(type.getName());
+        view.setVendor(type.getVendor());
+        view.setProtocol(type.getProtocol());
+        view.setVersion(type.getVersion());
+        view.setCapabilities(type.getCapabilities());
+        view.setConfigSchema(type.getConfigSchema());
+        view.setState(PluginState.INSTALLED.getCode());
+        view.setStatus("0");
+        view.setAlive(false);
+        view.setHealthReason(type.isRunnable() ? "插件类型已安装，尚未创建实例" : "插件包已安装，但未注册可运行处理器");
+        view.setConfig(new LinkedHashMap<>());
+        return view;
+    }
+
+    private void applyRuntime(PluginInstanceView view, PluginRuntimeSnapshot snapshot, PluginState fallback) {
+        view.setState((snapshot == null ? fallback : snapshot.getState()).getCode());
+        if (snapshot == null) {
+            view.setHealthReason(fallback == PluginState.STOPPED ? "实例未启用" : "等待运行时初始化");
+            view.setRestartCount(0);
+            view.setConsecutiveFailures(0);
+            view.setConsecutiveSuccesses(0);
+            return;
         }
-        if (!registered) {
-            return "abnormal";
+        view.setHealthReason(snapshot.getHealthReason());
+        view.setLastHealthCheckTime(snapshot.getLastHealthCheckTime());
+        view.setLastStateChangeTime(snapshot.getLastStateChangeTime());
+        view.setNextRestartTime(snapshot.getNextRestartTime());
+        view.setRestartCount(snapshot.getRestartCount());
+        view.setConsecutiveFailures(snapshot.getConsecutiveFailures());
+        view.setConsecutiveSuccesses(snapshot.getConsecutiveSuccesses());
+        view.setLastStartTime(snapshot.getLastStartTime());
+        view.setLastStopTime(snapshot.getLastStopTime());
+    }
+
+    private void restartRuntime(ZaSysPlatform platform) {
+        try {
+            ThirdApplicationRunner.stop(platform);
+            platform.setStatus("1");
+            boolean ok = ThirdApplicationRunner.start(platform, ThirdApplicationRunner.START_REASON_MANUAL);
+            if (!ok) {
+                throw new ServiceException("插件重启失败，请查看运行日志");
+            }
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("插件重启异常，请查看运行日志").setDetailMessage(e.getMessage());
         }
-        if (alive && ZaSysPlatform.STATE_RUNNING.equals(p.getRunning())) {
-            return "running";
-        }
-        return "abnormal";
     }
 
     private boolean matchKeyword(PluginInstanceView v, String keyword) {

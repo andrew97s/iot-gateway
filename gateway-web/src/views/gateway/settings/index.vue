@@ -6,15 +6,15 @@
         <el-tab-pane label="网络 / IP 配置" name="network">
           <div class="tab-body" v-loading="netLoading">
             <el-alert
-              type="info"
+              class="mb14"
               :closable="false"
               show-icon
-              class="mb14"
               title="下方展示网关宿主机的实时网卡信息；修改后的 IP 配置将保存至网关配置库，实际写入操作系统需配合部署环境的网络管理工具（netplan / nmcli）。"
+              type="info"
             />
-            <el-empty v-if="!netLoading && nics.length === 0" description="未识别到可配置网卡" />
+            <el-empty description="未识别到可配置网卡" v-if="!netLoading && nics.length === 0" />
             <el-row :gutter="14">
-              <el-col :xs="24" :lg="12" v-for="nic in nics" :key="nic.name">
+              <el-col v-for="nic in nics" :lg="12" :xs="24" :key="nic.name">
                 <div class="gw-card nic-card">
                   <div class="gw-card-head">
                     <h2>网卡 {{ nic.name }}</h2>
@@ -45,7 +45,9 @@
                       <el-form-item label=" ">
                         <div class="gw-muted gw-small">
                           MAC：<span class="gw-mono">{{ nic.mac || '-' }}</span>
-                          <template v-if="currentAddr(nic)"> · 当前地址 <span class="gw-mono">{{ currentAddr(nic) }}</span></template>
+                          <template v-if="currentAddr(nic)">
+                            · 当前地址 <span class="gw-mono">{{ currentAddr(nic) }}</span>
+                          </template>
                         </div>
                       </el-form-item>
                     </el-form>
@@ -55,7 +57,7 @@
             </el-row>
             <div class="tab-foot" v-if="nics.length > 0">
               <el-button icon="Refresh" @click="loadNetwork">重新读取网卡</el-button>
-              <el-button type="primary" :loading="netSaving" v-hasPermi="['system:config:edit']" @click="saveNetwork">保存网络配置</el-button>
+              <el-button :loading="netSaving" type="primary" v-hasPermi="['system:config:edit']" @click="saveNetwork">保存网络配置</el-button>
             </div>
           </div>
         </el-tab-pane>
@@ -64,7 +66,7 @@
         <el-tab-pane label="系统核心参数" name="core">
           <div class="tab-body" v-loading="coreLoading">
             <el-row :gutter="14">
-              <el-col :xs="24" :lg="12">
+              <el-col :lg="12" :xs="24">
                 <div class="gw-card">
                   <div class="gw-card-head"><h2>网关标识</h2></div>
                   <div class="gw-card-body">
@@ -80,30 +82,53 @@
                   </div>
                 </div>
               </el-col>
-              <el-col :xs="24" :lg="12">
+              <el-col :lg="12" :xs="24">
                 <div class="gw-card">
                   <div class="gw-card-head"><h2>数据与存储</h2></div>
                   <div class="gw-card-body">
                     <el-form label-width="170px">
                       <el-form-item label="数据保留天数">
-                        <el-input-number v-model="coreNumbers.preservedDays" :min="1" :max="3650" />
+                        <el-input-number v-model="coreNumbers.preservedDays" :max="3650" :min="1" />
                         <div class="gw-muted gw-small">消息/错误日志超期后每日凌晨自动清理</div>
                       </el-form-item>
                       <el-form-item label="设备离线判定阈值（秒）">
-                        <el-input-number v-model="coreNumbers.offlineThreshold" :min="10" :max="86400" />
+                        <el-input-number v-model="coreNumbers.offlineThreshold" :max="86400" :min="10" />
+                      </el-form-item>
+                      <el-form-item label="临时文件目录">
+                        <el-input v-model="coreForm['gateway.temp.dir']" placeholder="留空则使用上传目录/temp" />
+                        <div class="gw-muted gw-small">截图等临时文件存放路径；可填绝对路径，或相对上传目录的子路径</div>
+                      </el-form-item>
+                      <el-form-item label="临时文件保留时长（小时）">
+                        <el-input-number v-model="coreNumbers.tempRetainHours" :max="8760" :min="1" />
+                        <div class="gw-muted gw-small">超时文件由定时任务自动删除</div>
                       </el-form-item>
                     </el-form>
                   </div>
                 </div>
               </el-col>
-              <el-col :xs="24" :lg="12">
+              <el-col :lg="12" :xs="24">
                 <div class="gw-card">
                   <div class="gw-card-head"><h2>插件与同步策略</h2></div>
                   <div class="gw-card-body">
                     <el-form label-width="170px">
                       <el-form-item label="插件异常自动重启">
                         <el-switch v-model="coreSwitches.autorestart" />
-                        <div class="gw-muted gw-small">网关每 10 分钟巡检插件存活并自动拉起异常插件</div>
+                        <div class="gw-muted gw-small">按下方阈值巡检真实连接并自动恢复异常插件</div>
+                      </el-form-item>
+                      <el-form-item label="巡检间隔（秒）">
+                        <el-input-number v-model="coreNumbers.healthInterval" :max="3600" :min="2" />
+                      </el-form-item>
+                      <el-form-item label="检查超时（秒）">
+                        <el-input-number v-model="coreNumbers.healthTimeout" :max="60" :min="1" />
+                      </el-form-item>
+                      <el-form-item label="失败 / 恢复阈值">
+                        <el-input-number v-model="coreNumbers.failureThreshold" :max="20" :min="1" />
+                        <span class="threshold-separator">/</span>
+                        <el-input-number v-model="coreNumbers.recoveryThreshold" :max="20" :min="1" />
+                      </el-form-item>
+                      <el-form-item label="最大自动重启次数">
+                        <el-input-number v-model="coreNumbers.maxRestarts" :max="20" :min="0" />
+                        <div class="gw-muted gw-small">重启按 10 / 20 / 40 秒指数退避，0 表示不重启</div>
                       </el-form-item>
                       <el-form-item label="新设备自动同步上级平台">
                         <el-switch v-model="coreSwitches.autosync" />
@@ -115,7 +140,7 @@
               </el-col>
             </el-row>
             <div class="tab-foot">
-              <el-button type="primary" :loading="coreSaving" v-hasPermi="['system:config:edit']" @click="saveCore">保存核心参数</el-button>
+              <el-button :loading="coreSaving" type="primary" v-hasPermi="['system:config:edit']" @click="saveCore">保存核心参数</el-button>
             </div>
           </div>
         </el-tab-pane>
@@ -127,17 +152,21 @@
             <div class="gw-card mb14">
               <div class="gw-card-head">
                 <h2>上级平台（消息推送）</h2>
-                <el-button size="small" type="primary" icon="Plus" v-hasPermi="['sys:upstream:add']" @click="openUpstreamDialog()">新增上级平台</el-button>
+                <el-button icon="Plus" size="small" type="primary" v-hasPermi="['sys:upstream:add']" @click="openUpstreamDialog()">
+                  新增上级平台
+                </el-button>
               </div>
               <div class="gw-card-body no-pad">
                 <el-table :data="upstreamList" size="default">
-                  <el-table-column label="平台名称" prop="name" min-width="130" />
-                  <el-table-column label="平台代码" prop="code" width="130" align="center">
-                    <template #default="scope"><span class="gw-mono">{{ scope.row.code }}</span></template>
-                  </el-table-column>
-                  <el-table-column label="推送方式" width="110" align="center">
+                  <el-table-column label="平台名称" min-width="130" prop="name" />
+                  <el-table-column align="center" label="平台代码" prop="code" width="130">
                     <template #default="scope">
-                      <el-tag size="small" :type="PUSH_TYPE_META[scope.row.pushType]?.tag || 'info'" effect="plain">
+                      <span class="gw-mono">{{ scope.row.code }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column align="center" label="推送方式" width="110">
+                    <template #default="scope">
+                      <el-tag effect="plain" size="small" :type="PUSH_TYPE_META[scope.row.pushType]?.tag || 'info'">
                         {{ PUSH_TYPE_META[scope.row.pushType]?.label || scope.row.pushType }}
                       </el-tag>
                     </template>
@@ -147,15 +176,15 @@
                       <span class="gw-mono gw-small">{{ upstreamTarget(scope.row) }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="通道状态" width="100" align="center">
+                  <el-table-column align="center" label="通道状态" width="100">
                     <template #default="scope">
-                      <span v-if="scope.row.status !== '1'" class="gw-badge off">已停用</span>
-                      <span v-else class="gw-badge" :class="upstreamAliveMap[scope.row.code] ? 'ok' : 'err'">
+                      <span class="gw-badge off" v-if="scope.row.status !== '1'">已停用</span>
+                      <span class="gw-badge" :class="upstreamAliveMap[scope.row.code] ? 'ok' : 'err'" v-else>
                         {{ upstreamAliveMap[scope.row.code] ? '在线' : '断开' }}
                       </span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="启用" width="80" align="center">
+                  <el-table-column align="center" label="启用" width="80">
                     <template #default="scope">
                       <el-switch
                         v-model="scope.row.status"
@@ -166,10 +195,18 @@
                       />
                     </template>
                   </el-table-column>
-                  <el-table-column label="操作" width="170" align="center">
+                  <el-table-column align="center" label="操作" width="170">
                     <template #default="scope">
                       <el-button link type="primary" v-hasPermi="['sys:upstream:edit']" @click="openUpstreamDialog(scope.row)">编辑</el-button>
-                      <el-button link type="primary" :loading="testingMap[scope.row.id]" v-hasPermi="['sys:upstream:edit']" @click="handleTestUpstream(scope.row)">测试</el-button>
+                      <el-button
+                        link
+                        :loading="testingMap[scope.row.id]"
+                        type="primary"
+                        v-hasPermi="['sys:upstream:edit']"
+                        @click="handleTestUpstream(scope.row)"
+                      >
+                        测试
+                      </el-button>
                       <el-button link type="danger" v-hasPermi="['sys:upstream:remove']" @click="deleteUpstream(scope.row)">删除</el-button>
                     </template>
                   </el-table-column>
@@ -180,8 +217,8 @@
               </div>
               <div class="gw-card-body" style="border-top: 1px solid #f1f5f9">
                 <span class="gw-muted gw-small">
-                  支持同时对接多个上级平台；推送方式支持 HTTP/HTTPS 直推、Redis 队列、RabbitMQ 消息队列。
-                  消息按统一格式（含全局唯一 messageId，上级按其去重保证幂等）推送，失败自动标记并支持重推；配置保存后热生效。
+                  支持同时对接多个上级平台；推送方式支持 HTTP/HTTPS 直推、Redis 队列、RabbitMQ 消息队列。 消息按统一格式（含全局唯一
+                  messageId，上级按其去重保证幂等）推送，失败自动标记并支持重推；配置保存后热生效。
                 </span>
               </div>
             </div>
@@ -190,25 +227,29 @@
             <div class="gw-card">
               <div class="gw-card-head">
                 <h2>级联上级平台（WebSocket 级联）</h2>
-                <el-button size="small" type="primary" icon="Plus" v-hasPermi="['sys:cascade:add']" @click="openCascadeDialog()">新增平台</el-button>
+                <el-button icon="Plus" size="small" type="primary" v-hasPermi="['sys:cascade:add']" @click="openCascadeDialog()">新增平台</el-button>
               </div>
               <div class="gw-card-body no-pad">
                 <el-table :data="cascadeList" size="default">
-                  <el-table-column label="平台名称" prop="name" min-width="140" />
-                  <el-table-column label="平台代码" prop="code" width="140" align="center">
-                    <template #default="scope"><span class="gw-mono">{{ scope.row.code }}</span></template>
+                  <el-table-column label="平台名称" min-width="140" prop="name" />
+                  <el-table-column align="center" label="平台代码" prop="code" width="140">
+                    <template #default="scope">
+                      <span class="gw-mono">{{ scope.row.code }}</span>
+                    </template>
                   </el-table-column>
-                  <el-table-column label="平台地址" prop="ip" min-width="180">
-                    <template #default="scope"><span class="gw-mono">{{ scope.row.ip }}</span></template>
+                  <el-table-column label="平台地址" min-width="180" prop="ip">
+                    <template #default="scope">
+                      <span class="gw-mono">{{ scope.row.ip }}</span>
+                    </template>
                   </el-table-column>
-                  <el-table-column label="连接状态" width="110" align="center">
+                  <el-table-column align="center" label="连接状态" width="110">
                     <template #default="scope">
                       <span class="gw-badge" :class="scope.row.online === '1' ? 'ok' : 'off'">
                         {{ scope.row.online === '1' ? '已连接' : '未连接' }}
                       </span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="启用" width="90" align="center">
+                  <el-table-column align="center" label="启用" width="90">
                     <template #default="scope">
                       <el-switch
                         v-model="scope.row.status"
@@ -219,7 +260,7 @@
                       />
                     </template>
                   </el-table-column>
-                  <el-table-column label="操作" width="140" align="center">
+                  <el-table-column align="center" label="操作" width="140">
                     <template #default="scope">
                       <el-button link type="primary" v-hasPermi="['sys:cascade:edit']" @click="openCascadeDialog(scope.row)">编辑</el-button>
                       <el-button link type="danger" v-hasPermi="['sys:cascade:remove']" @click="deleteCascade(scope.row)">删除</el-button>
@@ -237,8 +278,8 @@
     </div>
 
     <!-- 上级平台编辑对话框 -->
-    <el-dialog v-model="upstreamOpen" :title="upstreamForm.id ? '编辑上级平台' : '新增上级平台'" width="720px" append-to-body>
-      <el-form :model="upstreamForm" label-width="110px" ref="upstreamFormRef" class="dialog-form">
+    <el-dialog v-model="upstreamOpen" append-to-body :title="upstreamForm.id ? '编辑上级平台' : '新增上级平台'" width="720px">
+      <el-form class="dialog-form" label-width="110px" :model="upstreamForm" ref="upstreamFormRef">
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="平台名称" prop="name" :rules="[{ required: true, message: '请输入平台名称' }]">
@@ -247,7 +288,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="平台代码" prop="code" :rules="[{ required: true, message: '请输入平台代码' }]">
-              <el-input v-model="upstreamForm.code" placeholder="唯一代码，如 city-pf" :disabled="!!upstreamForm.id" />
+              <el-input v-model="upstreamForm.code" :disabled="!!upstreamForm.id" placeholder="唯一代码，如 city-pf" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -262,7 +303,12 @@
 
         <template v-if="upstreamForm.pushType === 'url'">
           <el-form-item label="推送地址列表">
-            <el-input v-model="upstreamCfg.pushUrls" type="textarea" :rows="4" placeholder="每行一个 URL，或英文逗号分隔；网关将统一消息 JSON 以 POST 推送" />
+            <el-input
+              v-model="upstreamCfg.pushUrls"
+              placeholder="每行一个 URL，或英文逗号分隔；网关将统一消息 JSON 以 POST 推送"
+              :rows="4"
+              type="textarea"
+            />
           </el-form-item>
         </template>
 
@@ -275,7 +321,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="端口">
-                <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+                <el-input-number v-model="upstreamCfg.port" controls-position="right" :max="65535" :min="1" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -287,7 +333,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="密码">
-                <el-input v-model="upstreamCfg.password" type="password" show-password placeholder="密码" />
+                <el-input v-model="upstreamCfg.password" placeholder="密码" show-password type="password" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -326,14 +372,14 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="端口">
-                <el-input-number v-model="upstreamCfg.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+                <el-input-number v-model="upstreamCfg.port" controls-position="right" :max="65535" :min="1" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="密码">
-                <el-input v-model="upstreamCfg.password" type="password" show-password placeholder="密码" />
+                <el-input v-model="upstreamCfg.password" placeholder="密码" show-password type="password" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -348,19 +394,19 @@
           <el-switch v-model="upstreamForm.status" active-value="1" inactive-value="0" />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="upstreamForm.remark" type="textarea" :rows="2" />
+          <el-input v-model="upstreamForm.remark" :rows="2" type="textarea" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button :loading="upstreamTesting" @click="testUpstreamForm">测试连接</el-button>
         <el-button @click="upstreamOpen = false">取 消</el-button>
-        <el-button type="primary" :loading="upstreamSaving" @click="saveUpstream">保存并生效</el-button>
+        <el-button :loading="upstreamSaving" type="primary" @click="saveUpstream">保存并生效</el-button>
       </template>
     </el-dialog>
 
     <!-- 级联平台编辑对话框 -->
-    <el-dialog v-model="cascadeOpen" :title="cascadeForm.id ? '编辑级联平台' : '新增级联平台'" width="480px" append-to-body>
-      <el-form :model="cascadeForm" label-width="90px" ref="cascadeFormRef">
+    <el-dialog v-model="cascadeOpen" append-to-body :title="cascadeForm.id ? '编辑级联平台' : '新增级联平台'" width="480px">
+      <el-form label-width="90px" :model="cascadeForm" ref="cascadeFormRef">
         <el-form-item label="平台名称" prop="name" :rules="[{ required: true, message: '请输入平台名称' }]">
           <el-input v-model="cascadeForm.name" placeholder="如：市级物联平台" />
         </el-form-item>
@@ -376,20 +422,15 @@
       </el-form>
       <template #footer>
         <el-button @click="cascadeOpen = false">取 消</el-button>
-        <el-button type="primary" :loading="cascadeSaving" @click="saveCascade">保 存</el-button>
+        <el-button :loading="cascadeSaving" type="primary" @click="saveCascade">保 存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup name="GatewaySettings">
-import {
-  getCoreParams, saveCoreParams,
-  listNetworkInterfaces, getNetworkConfig, saveNetworkConfig
-} from '@/api/sys/setting'
-import {
-  selectUpstream, addUpstream, updateUpstream, delUpstream, testUpstream, getUpstreamStatus
-} from '@/api/sys/upstream'
+import { getCoreParams, saveCoreParams, listNetworkInterfaces, getNetworkConfig, saveNetworkConfig } from '@/api/sys/setting'
+import { selectUpstream, addUpstream, updateUpstream, delUpstream, testUpstream, getUpstreamStatus } from '@/api/sys/upstream'
 import { listCascade, addCascade, updateCascade, delCascade } from '@/api/sys/cascade'
 
 const { proxy } = getCurrentInstance()
@@ -410,14 +451,13 @@ function currentAddr(nic) {
 async function loadNetwork() {
   netLoading.value = true
   try {
-    const [nicRes, cfgRes] = await Promise.all([
-      listNetworkInterfaces(),
-      getNetworkConfig().catch(() => ({ data: '{}' }))
-    ])
+    const [nicRes, cfgRes] = await Promise.all([listNetworkInterfaces(), getNetworkConfig().catch(() => ({ data: '{}' }))])
     nics.value = nicRes.data || []
     let saved = {}
-    try { saved = JSON.parse(cfgRes.data || '{}') } catch {}
-    nics.value.forEach(nic => {
+    try {
+      saved = JSON.parse(cfgRes.data || '{}')
+    } catch {}
+    nics.value.forEach((nic) => {
       const s = saved[nic.name] || {}
       const cur = (nic.addresses || [])[0] || {}
       netForm[nic.name] = {
@@ -436,11 +476,15 @@ async function loadNetwork() {
 async function saveNetwork() {
   try {
     await proxy.$modal.confirm('确认保存网络配置？错误的 IP 配置可能导致网关管理页面无法访问。')
-  } catch (e) { return }
+  } catch (e) {
+    return
+  }
   netSaving.value = true
   try {
     const payload = {}
-    nics.value.forEach(nic => { payload[nic.name] = netForm[nic.name] })
+    nics.value.forEach((nic) => {
+      payload[nic.name] = netForm[nic.name]
+    })
     await saveNetworkConfig(JSON.stringify(payload))
     proxy.$modal.msgSuccess('网络配置已保存')
   } catch (e) {
@@ -454,7 +498,16 @@ async function saveNetwork() {
 const coreLoading = ref(false)
 const coreSaving = ref(false)
 const coreForm = reactive({})
-const coreNumbers = reactive({ preservedDays: 30, offlineThreshold: 300 })
+const coreNumbers = reactive({
+  preservedDays: 30,
+  offlineThreshold: 300,
+  tempRetainHours: 24,
+  healthInterval: 10,
+  healthTimeout: 3,
+  failureThreshold: 3,
+  recoveryThreshold: 2,
+  maxRestarts: 3
+})
 const coreSwitches = reactive({ autorestart: true, autosync: false })
 
 async function loadCore() {
@@ -464,6 +517,12 @@ async function loadCore() {
     Object.assign(coreForm, res.data || {})
     coreNumbers.preservedDays = Number(coreForm['data_preserved_day_count'] || 30)
     coreNumbers.offlineThreshold = Number(coreForm['gateway.offline.threshold'] || 300)
+    coreNumbers.tempRetainHours = Number(coreForm['gateway.temp.retain.hours'] || 24)
+    coreNumbers.healthInterval = Number(coreForm['gateway.plugin.health.interval.seconds'] || 10)
+    coreNumbers.healthTimeout = Number(coreForm['gateway.plugin.health.timeout.seconds'] || 3)
+    coreNumbers.failureThreshold = Number(coreForm['gateway.plugin.health.failure.threshold'] || 3)
+    coreNumbers.recoveryThreshold = Number(coreForm['gateway.plugin.health.recovery.threshold'] || 2)
+    coreNumbers.maxRestarts = Number(coreForm['gateway.plugin.restart.maxAttempts'] || 3)
     coreSwitches.autorestart = String(coreForm['gateway.plugin.autorestart']) !== 'false'
     coreSwitches.autosync = String(coreForm['gateway.device.autosync']) === 'true'
   } finally {
@@ -477,9 +536,16 @@ async function saveCore() {
     await saveCoreParams({
       'gateway.name': coreForm['gateway.name'] || '',
       'gateway.code': coreForm['gateway.code'] || '',
-      'data_preserved_day_count': String(coreNumbers.preservedDays),
+      data_preserved_day_count: String(coreNumbers.preservedDays),
       'gateway.offline.threshold': String(coreNumbers.offlineThreshold),
+      'gateway.temp.dir': coreForm['gateway.temp.dir'] || '',
+      'gateway.temp.retain.hours': String(coreNumbers.tempRetainHours),
       'gateway.plugin.autorestart': String(coreSwitches.autorestart),
+      'gateway.plugin.health.interval.seconds': String(coreNumbers.healthInterval),
+      'gateway.plugin.health.timeout.seconds': String(coreNumbers.healthTimeout),
+      'gateway.plugin.health.failure.threshold': String(coreNumbers.failureThreshold),
+      'gateway.plugin.health.recovery.threshold': String(coreNumbers.recoveryThreshold),
+      'gateway.plugin.restart.maxAttempts': String(coreNumbers.maxRestarts),
       'gateway.device.autosync': String(coreSwitches.autosync)
     })
     proxy.$modal.msgSuccess('核心参数已保存')
@@ -509,7 +575,11 @@ const PUSH_TYPE_META = {
 
 function parseCfg(row) {
   if (!row?.config) return {}
-  try { return JSON.parse(row.config) } catch { return {} }
+  try {
+    return JSON.parse(row.config)
+  } catch {
+    return {}
+  }
 }
 
 function upstreamTarget(row) {
@@ -536,7 +606,9 @@ async function loadUpstream() {
     ])
     upstreamList.value = upRes.data || []
     const aliveMap = {}
-    ;(statusRes.data || []).forEach(s => { aliveMap[s.code] = s.alive })
+    ;(statusRes.data || []).forEach((s) => {
+      aliveMap[s.code] = s.alive
+    })
     upstreamAliveMap.value = aliveMap
     cascadeList.value = cascadeRes.rows || []
   } finally {
@@ -550,7 +622,18 @@ function openUpstreamDialog(row) {
     upstreamCfg.value = { vhost: '/', ...parseCfg(row) }
   } else {
     upstreamForm.value = { id: null, name: '', code: '', pushType: 'url', status: '1', remark: '' }
-    upstreamCfg.value = { pushUrls: '', ip: '', port: null, username: '', password: '', vhost: '/', queue: 'za_monitor', exchange: 'za', key: 'za', db: '6' }
+    upstreamCfg.value = {
+      pushUrls: '',
+      ip: '',
+      port: null,
+      username: '',
+      password: '',
+      vhost: '/',
+      queue: 'za_monitor',
+      exchange: 'za',
+      key: 'za',
+      db: '6'
+    }
   }
   upstreamOpen.value = true
 }
@@ -561,7 +644,16 @@ function buildUpstreamPayload() {
   if (upstreamForm.value.pushType === 'url') {
     cfg = { pushUrls: c.pushUrls || '' }
   } else if (upstreamForm.value.pushType === 'mq') {
-    cfg = { ip: c.ip, port: c.port, username: c.username, password: c.password, vhost: c.vhost || '/', queue: c.queue || 'za_monitor', exchange: c.exchange || 'za', key: c.key || 'za' }
+    cfg = {
+      ip: c.ip,
+      port: c.port,
+      username: c.username,
+      password: c.password,
+      vhost: c.vhost || '/',
+      queue: c.queue || 'za_monitor',
+      exchange: c.exchange || 'za',
+      key: c.key || 'za'
+    }
   } else if (upstreamForm.value.pushType === 'redis') {
     cfg = { ip: c.ip || '127.0.0.1', port: String(c.port || 6379), password: c.password, db: String(c.db || 6) }
   }
@@ -571,7 +663,9 @@ function buildUpstreamPayload() {
 async function saveUpstream() {
   try {
     await proxy.$refs['upstreamFormRef'].validate()
-  } catch (e) { return }
+  } catch (e) {
+    return
+  }
   upstreamSaving.value = true
   try {
     const payload = buildUpstreamPayload()
@@ -622,7 +716,8 @@ async function testUpstreamForm() {
 }
 
 function deleteUpstream(row) {
-  proxy.$modal.confirm(`确认删除上级平台「${row.name}」？删除后消息不再同步至该平台。`)
+  proxy.$modal
+    .confirm(`确认删除上级平台「${row.name}」？删除后消息不再同步至该平台。`)
     .then(() => delUpstream(row.id))
     .then(() => {
       proxy.$modal.msgSuccess('删除成功')
@@ -647,7 +742,9 @@ function openCascadeDialog(row) {
 async function saveCascade() {
   try {
     await proxy.$refs['cascadeFormRef'].validate()
-  } catch (e) { return }
+  } catch (e) {
+    return
+  }
   cascadeSaving.value = true
   try {
     if (cascadeForm.value.id) {
@@ -675,7 +772,8 @@ async function toggleCascade(row) {
 }
 
 function deleteCascade(row) {
-  proxy.$modal.confirm(`确认删除级联平台「${row.name}」？`)
+  proxy.$modal
+    .confirm(`确认删除级联平台「${row.name}」？`)
     .then(() => delCascade(row.id))
     .then(() => {
       proxy.$modal.msgSuccess('删除成功')
@@ -691,18 +789,38 @@ loadUpstream()
 </script>
 
 <style scoped>
-.settings-tabs { padding: 0 18px; }
-.settings-tabs :deep(.el-tabs__content) { padding-bottom: 16px; }
-.tab-body { padding-top: 4px; }
+.settings-tabs {
+  padding: 0 18px;
+}
+.settings-tabs :deep(.el-tabs__content) {
+  padding-bottom: 16px;
+}
+.tab-body {
+  padding-top: 4px;
+}
 .tab-foot {
   margin-top: 14px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
-.nic-card { margin-bottom: 14px; }
-.mb14 { margin-bottom: 14px; }
-.mt12 { margin-top: 12px; }
-.dialog-form :deep(.el-form-item__content) { min-width: 0; }
-.dialog-form :deep(.el-col .el-form-item) { width: 100%; }
+.nic-card {
+  margin-bottom: 14px;
+}
+.mb14 {
+  margin-bottom: 14px;
+}
+.mt12 {
+  margin-top: 12px;
+}
+.threshold-separator {
+  margin: 0 8px;
+  color: #94a3b8;
+}
+.dialog-form :deep(.el-form-item__content) {
+  min-width: 0;
+}
+.dialog-form :deep(.el-col .el-form-item) {
+  width: 100%;
+}
 </style>

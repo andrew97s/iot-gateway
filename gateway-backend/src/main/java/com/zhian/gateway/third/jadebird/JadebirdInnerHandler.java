@@ -12,6 +12,7 @@ import com.zhian.gateway.core.message.Message;
 import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.third.PluginHealthResult;
 import com.zhian.gateway.sys.utils.MessageUtil;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
@@ -64,6 +65,7 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
     public boolean start(ZaSysPlatform platform) {
         super.start(platform);
         if (StrUtil.equals(platform.getConfigStr("useMQ") , "false")) {
+            useMQ = false;
             log.info("未配置RabbitMQ，将等待青鸟网关通过HTTP推送过来的数据");
         }
         else {
@@ -111,6 +113,19 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
         }
     }
 
+    @Override
+    public PluginHealthResult checkHealth() {
+        if (!running) {
+            return PluginHealthResult.unhealthy("插件未运行");
+        }
+        if (!useMQ) {
+            return PluginHealthResult.healthy("HTTP被动接收端已就绪");
+        }
+        return JbMqUtil.isAlive()
+                ? PluginHealthResult.healthy(JbMqUtil.connectionInfo())
+                : PluginHealthResult.unhealthy(JbMqUtil.connectionInfo());
+    }
+
     private static String truncate(String msg) {
         if (msg == null || msg.length() <= LOG_BODY_LIMIT) {
             return msg;
@@ -122,6 +137,7 @@ public class JadebirdInnerHandler extends BasePlatformHandler {
     public boolean stop() {
         super.stop();
         JbMqUtil.closeChannel();
+        useMQ = false;
         return true;
     }
 

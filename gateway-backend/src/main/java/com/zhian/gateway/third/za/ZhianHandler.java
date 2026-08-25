@@ -6,6 +6,7 @@ import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.http.HttpUtils;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.third.PluginHealthResult;
 import com.zhian.gateway.third.ThirdApplicationRunner;
 import com.zhian.gateway.third.ThirdHandler;
 import com.zhian.gateway.third.common.BasePlatformHandler;
@@ -106,11 +107,16 @@ public class ZhianHandler extends BasePlatformHandler implements MqttCallback {
      *
      * @return
      */
+    @Override
     public boolean isAlive() {
-//        ZaObject object = ZaObject.get(zaSysPlatform.getConfigStr("clientId"));
-//        R ret =  sendRequest("/api/proxy/heart", object.toJSON());
-
         return client != null && client.isConnected();
+    }
+
+    @Override
+    public PluginHealthResult checkHealth() {
+        return isAlive()
+                ? PluginHealthResult.healthy("MQTT 连接正常")
+                : PluginHealthResult.unhealthy("MQTT 未连接");
     }
 
     @Override

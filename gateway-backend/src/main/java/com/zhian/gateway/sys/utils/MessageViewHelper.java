@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.consts.MessageConstants;
 import com.zhian.gateway.sys.domain.ZaSysMessage;
@@ -15,7 +16,8 @@ import java.util.List;
  * 消息列表/详情展示字段填充（messageId / 摘要 / 同步徽标）
  */
 public final class MessageViewHelper {
-    private MessageViewHelper() {}
+    private MessageViewHelper() {
+    }
 
     public static void enrich(ZaSysMessage msg, int upstreamTotal, List<ZaSysMessageLog> latestLogs) {
         if (msg == null) {
@@ -29,7 +31,7 @@ public final class MessageViewHelper {
         String unified = msg.getUnifiedContent();
         String content = msg.getContent();
         JSONObject obj = firstObject(unified);
-        if (obj == null) {
+        if (obj == null || StrUtil.equals(msg.getType() , "control")) {
             obj = firstObject(content);
         }
         if (obj != null) {
@@ -54,8 +56,15 @@ public final class MessageViewHelper {
     private static void fillSyncBadge(ZaSysMessage msg, int upstreamTotal, List<ZaSysMessageLog> latestLogs) {
         if ("control".equalsIgnoreCase(msg.getType())) {
             msg.setSyncTotal(0);
-            msg.setSyncSuccess(0);
-            msg.setSyncLabel("— 下行消息");
+
+            int syncSuccess = 0;
+            String content = msg.getUnifiedContent();
+            if (StrUtil.isNotBlank(content)) {
+                R result = JSON.parseObject(content, R.class);
+                syncSuccess = result.isSuccess() ? 1 : 0;
+            }
+            msg.setSyncSuccess(syncSuccess);
+            msg.setSyncLabel(syncSuccess == 1 ? "反控成功" : "反控失败");
             return;
         }
         int total = Math.max(upstreamTotal, 0);
@@ -93,7 +102,7 @@ public final class MessageViewHelper {
         if (payload == null) {
             payload = obj;
         }
-        if (StrUtil.contains(type , MessageConstants.MSG_TYPE_ALARM)) {
+        if (StrUtil.contains(type, MessageConstants.MSG_TYPE_ALARM)) {
             String desc = firstNonEmpty(
                     payload.getString("desc"),
                     payload.getString("name")
@@ -104,7 +113,7 @@ public final class MessageViewHelper {
             }
             return StringUtils.isNotEmpty(desc) ? desc : "告警事件";
         }
-        if (StrUtil.contains(type , MessageConstants.MSG_TYPE_TELEMETRY)) {
+        if (StrUtil.contains(type, MessageConstants.MSG_TYPE_TELEMETRY)) {
             JSONObject metrics = payload.getJSONObject("metrics");
             if (metrics != null && !metrics.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
@@ -122,7 +131,7 @@ public final class MessageViewHelper {
             }
             return firstNonEmpty(payload.getString("description"), "监测数据");
         }
-        if (StrUtil.contains(type , "device")) {
+        if (StrUtil.contains(type, "device")) {
             String event = firstNonEmpty(
                     payload.getString("event"),
                     payload.getString("eventType"),
@@ -130,7 +139,7 @@ public final class MessageViewHelper {
             );
             return StringUtils.isNotEmpty(event) ? event : "设备事件";
         }
-        if (StrUtil.startWith(type , MessageConstants.MSG_TYPE_CONTROL)) {
+        if (StrUtil.startWith(type, MessageConstants.MSG_TYPE_CONTROL)) {
             String cmd = firstNonEmpty(payload.getString("command"), payload.getString("action"));
             return StringUtils.isNotEmpty(cmd) ? cmd : "反控指令";
         }

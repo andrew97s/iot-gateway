@@ -7,9 +7,16 @@
     </div>
     <div class="alias-row" v-for="(row, idx) in rows" :key="idx">
       <div class="col-pf">
-        <el-select v-model="row.pfCode" clearable filterable placeholder="全部插件（通用）" style="width: 100%">
-          <el-option v-for="pf in platformOptions" :key="pf.code" :label="pf.name" :value="pf.code" />
-        </el-select>
+        <el-select-v2
+          :model-value="row.pfCode || undefined"
+          :options="platformSelectOptions"
+          clearable
+          filterable
+          :teleported="false"
+          placeholder="全部插件（通用）"
+          style="width: 100%"
+          @update:model-value="(v) => onPluginChange(row, v)"
+        />
       </div>
       <div class="col-alias">
         <el-input v-model="row.alias" placeholder="厂商告警码 / 类型码 / 监测项码" @input="emitChange" />
@@ -37,6 +44,16 @@ const emit = defineEmits(['update:modelValue'])
 
 const rows = ref([])
 const platformOptions = ref([])
+const platformSelectOptions = computed(() => {
+  const seen = new Set()
+  const options = []
+  for (const pf of platformOptions.value || []) {
+    if (!pf?.code || seen.has(pf.code)) continue
+    seen.add(pf.code)
+    options.push({ value: pf.code, label: pf.name || pf.code })
+  }
+  return options
+})
 
 selectPlatform().then(res => {
   platformOptions.value = (res.data || []).filter(p => !['gateway', 'cascade', 'cascade-server'].includes(p.code))
@@ -69,6 +86,11 @@ function currentValue() {
 function emitChange() {
   const v = currentValue()
   emit('update:modelValue', v.length > 0 ? JSON.stringify(v) : '')
+}
+
+function onPluginChange(row, value) {
+  row.pfCode = value ?? ''
+  emitChange()
 }
 
 function addRow() {

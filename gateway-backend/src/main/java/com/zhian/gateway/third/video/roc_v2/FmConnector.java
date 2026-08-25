@@ -129,6 +129,10 @@ public class FmConnector {
         }
     }
 
+    public static boolean isOpen() {
+        return serialPort != null && serialPort.isOpen();
+    }
+
     /**
      * 读取串口数据
      *

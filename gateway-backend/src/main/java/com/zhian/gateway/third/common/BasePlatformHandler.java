@@ -9,7 +9,9 @@ import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.core.message.AlarmPayload;
 import com.zhian.gateway.core.message.Message;
+import com.zhian.gateway.core.message.MessageDevice;
 import com.zhian.gateway.core.message.MsgProcessContext;
+import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
@@ -17,6 +19,7 @@ import com.zhian.gateway.sys.service.IZaSysErrorService;
 import com.zhian.gateway.sys.service.IZaSysMessageService;
 import com.zhian.gateway.sys.service.TypeMappingService;
 import com.zhian.gateway.sys.utils.MessageUtil;
+import com.zhian.gateway.third.PluginHealthResult;
 import com.zhian.gateway.third.ThirdHandler;
 import com.zhian.gateway.third.cascade.CascadeHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
@@ -36,6 +39,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 默认的对接处理器基类
@@ -97,10 +101,30 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
      * The Platform.
      */
     protected volatile ZaSysPlatform platform;
+    /** 最近一次收到厂商消息的时间，仅用于健康状态说明。 */
+    protected volatile long lastActivityTime;
 
     @Override
     public boolean isAlive() {
-        return running;
+        return running && platform != null;
+    }
+
+    @Override
+    public PluginHealthResult checkHealth() {
+        if (!isAlive()) {
+            return PluginHealthResult.unhealthy("插件运行资源未就绪");
+        }
+        return PluginHealthResult.healthy(getConnectionInfo());
+    }
+
+    @Override
+    public String getConnectionInfo() {
+        if (!isAlive()) {
+            return "插件已停止";
+        }
+        return lastActivityTime > 0
+                ? "接收端正常，最近通信时间 " + new Date(lastActivityTime)
+                : "接收端已就绪，等待厂商消息";
     }
 
     @Override
@@ -115,8 +139,14 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
         log.info("停止插件:{}", getPlatform());
         this.platform = null;
         running = false;
-        return running;
+        return true;
     }
+
+    @Override
+    public void syncDevice() {
+
+    }
+
 
     /**
      * 检查设备状态, 子类通过{@link DeviceUtil#syncDevice(SyncDevice)}方法同步设备在线状态&通讯时间
@@ -192,20 +222,20 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
     public R control(ControlVo controlVo) {
         R result = null;
         try {
+            MsgProcessContext.start(controlVo,platform);
             result = doControl(controlVo);
         } catch (Exception e) {
             log.error("反控失败:{}", e.getMessage());
             result = R.error(e.getMessage());
         } finally {
-            ZaSysDevice device = MessageUtil.getDevice();
-            if (device == null) {
-                device = deviceService.selectZaSysDeviceById(controlVo.getDeviceId());
-            }
-            if (device == null) {
-                device = new ZaSysDevice();
-                device.setPfCode(getPlatform());
-            }
-            MessageUtil.clear();
+            MsgProcessContext.getProcessInfo().setDevice(controlVo.getDevice());
+
+            MsgProcessContext.addMsg(MessageBuilder.buildControl(controlVo.getDevice() , controlVo));
+            // 处理结果
+            MsgProcessContext.getProcessInfo().setUnifiedContent(JSON.toJSONString(result));
+            // 控制参数
+            MsgProcessContext.getProcessInfo().setContent(JSON.toJSONString(controlVo));
+            logMessage(MsgProcessContext.finishAndGet());
         }
 
         return result;
@@ -232,6 +262,7 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
         if (Objects.isNull(msgObject)) {
             return;
         }
+        lastActivityTime = System.currentTimeMillis();
         // 记录操作日志
         ProcessInfo info = null;
         try {
@@ -302,7 +333,14 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
 
     private void postProcess(ProcessInfo info) {
         List<Message> msgList = info.getMsgList();
+        msgList = msgList.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
         if (CollUtil.isNotEmpty(msgList)) {
+            // 设备设备信息
+            if (info.getDevice() == null) {
+                info.setDevice(deviceService.selectZaSysDeviceById(msgList.get(0).getDevice().getDeviceId()));
+            }
+
             msgList.forEach(msg -> {
                 if (msg.getPayload() instanceof AlarmPayload) {
                     AlarmPayload payload = (AlarmPayload) msg.getPayload();

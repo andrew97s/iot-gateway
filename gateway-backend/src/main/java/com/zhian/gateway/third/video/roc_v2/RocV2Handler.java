@@ -6,6 +6,7 @@ import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.common.exception.base.BaseException;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.third.PluginHealthResult;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.utils.SerialPortUtil;
@@ -71,7 +72,14 @@ public class RocV2Handler extends BasePlatformHandler<Object> {
 
     @Override
     public boolean isAlive() {
-        return running;
+        return running && FmConnector.isOpen();
+    }
+
+    @Override
+    public PluginHealthResult checkHealth() {
+        return isAlive()
+                ? PluginHealthResult.healthy("串口连接正常，设备序列号 " + FmConnector.getSn())
+                : PluginHealthResult.unhealthy("串口连接已断开");
     }
 
     /**

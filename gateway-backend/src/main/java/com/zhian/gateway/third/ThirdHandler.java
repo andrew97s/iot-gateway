@@ -34,6 +34,28 @@ public interface ThirdHandler {
     boolean isAlive();
 
     /**
+     * 主动同步设备
+     */
+    default void syncDevice() {
+
+    };
+
+    /**
+     * 返回带原因的健康检查结果。连接型插件应覆盖此方法并检查真实连接资源。
+     *
+     * @return the plugin health result
+     */
+    default PluginHealthResult checkHealth() {
+        try {
+            return isAlive()
+                    ? PluginHealthResult.healthy(getConnectionInfo())
+                    : PluginHealthResult.unhealthy(getConnectionInfo());
+        } catch (Exception e) {
+            return PluginHealthResult.unhealthy(e.getMessage());
+        }
+    }
+
+    /**
      * 插件对接的平台代码
      *
      * @return platform code
@@ -66,6 +88,8 @@ public interface ThirdHandler {
 
     /**
      * 插件的协议描述，例如："海康威视 ISAPI 协议"
+     *
+     * @return the description
      */
     default String getDescription() {
         return getProtocol();
@@ -73,6 +97,8 @@ public interface ThirdHandler {
 
     /**
      * 返回当前连接状态描述，例如："已连接 192.168.1.100:8080"
+     *
+     * @return the connection info
      */
     default String getConnectionInfo() {
         return isAlive() ? "运行中" : "已断开";
@@ -97,23 +123,31 @@ public interface ThirdHandler {
      *   <li>{@code format} / {@code valueFormat} — 日期类控件的展示与绑定格式（可选）</li>
      *   <li>{@code rows} — textarea 行数</li>
      * </ul>
+     *
+     * @return the config schema
      */
     default List<java.util.Map<String, Object>> getConfigSchema() {
         return Collections.emptyList();
     }
 
-    /** 厂商名称 */
+    /**
+     * 厂商名称  @return  the vendor
+     */
     default String getVendor() {
         return "";
     }
 
-    /** 插件版本 */
+    /**
+     * 插件版本  @return  the version
+     */
     default String getVersion() {
         return "1.0.0";
     }
 
     /**
      * 能力声明：alarm / monitor / device / control 等
+     *
+     * @return the capabilities
      */
     default List<String> getCapabilities() {
         return java.util.Arrays.asList("alarm", "monitor", "device", "control");

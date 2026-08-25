@@ -12,6 +12,7 @@ import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysError;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.third.PluginHealthResult;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
@@ -63,6 +64,18 @@ public class RocHandler extends BasePlatformHandler {
         closeServerSession();
         running = false;
         return true;
+    }
+
+    @Override
+    public boolean isAlive() {
+        return running && commSession != null && commSession.isOpen();
+    }
+
+    @Override
+    public PluginHealthResult checkHealth() {
+        return isAlive()
+                ? PluginHealthResult.healthy("WebSocket连接正常: " + TARGET_WS_URL)
+                : PluginHealthResult.unhealthy("WebSocket会话未连接: " + TARGET_WS_URL);
     }
 
     @Override

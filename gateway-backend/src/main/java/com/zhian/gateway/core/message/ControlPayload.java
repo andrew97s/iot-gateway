@@ -22,4 +22,6 @@ public class ControlPayload extends MessagePayload {
      * 设备反控参数
      */
     private String params;
+
+    private String result;
 }

@@ -10,6 +10,7 @@ import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.core.message.builder.MessageBuilder;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.third.PluginHealthResult;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
@@ -54,6 +55,9 @@ public class MkHandler extends BasePlatformHandler<MkCanMsg> {
         try {
             // 启动MkServer
             MkServer.start(this);
+            if (!MkServer.isActive()) {
+                return false;
+            }
             // 异步检查设备状态
             CompletableFuture.runAsync(this::checkDeviceStatus);
         } catch (Exception e) {
@@ -62,6 +66,18 @@ public class MkHandler extends BasePlatformHandler<MkCanMsg> {
         }
 
         return true;
+    }
+
+    @Override
+    public boolean isAlive() {
+        return super.isAlive() && MkServer.isActive();
+    }
+
+    @Override
+    public PluginHealthResult checkHealth() {
+        return isAlive()
+                ? PluginHealthResult.healthy("TCP监听端口 " + MkServer.PORT + " 正常")
+                : PluginHealthResult.unhealthy("TCP监听端口 " + MkServer.PORT + " 未运行");
     }
 
     @Override
@@ -96,11 +112,6 @@ public class MkHandler extends BasePlatformHandler<MkCanMsg> {
         super.stop();
         MkServer.stop();
         return true;
-    }
-
-    @Override
-    public boolean isAlive() {
-        return running && MkServer.isActive();
     }
 
     @Override

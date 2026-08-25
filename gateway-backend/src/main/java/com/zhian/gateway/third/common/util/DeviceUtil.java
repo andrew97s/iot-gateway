@@ -43,6 +43,14 @@ public class DeviceUtil {
         // 设备不为空 - 尝试更新部分字段
         if (device != null) {
             isUpdate = true;
+            // 设备名称
+            if (
+                    syncDevice.getName() != null && (device.getName() == null ||
+                            !device.getName().equalsIgnoreCase(syncDevice.getName()))
+            ) {
+                device.setName(syncDevice.getName());
+                updated = true;
+            }
             // 设备IP
             if (
                     syncDevice.getId() != null && (device.getIp() == null ||

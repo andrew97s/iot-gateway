@@ -157,21 +157,13 @@ public class ZaSysPlatformServiceImpl extends ServiceImpl<ZaSysPlatformMapper , 
             throw new ServiceException("非法请求，平台不存在");
         }
 
+        zaSysPlatform.setStatus(start ? "1" : "0");
+        int rows = updateZaSysPlatform(zaSysPlatform);
         if(start){
-            //启动
-            if(ThirdApplicationRunner.start(zaSysPlatform, ThirdApplicationRunner.START_REASON_MANUAL)){
-                zaSysPlatform.setRunning(ZaSysPlatform.STATE_RUNNING);
-            }else{
-                zaSysPlatform.setRunning(ZaSysPlatform.STATE_STOP);
-            }
+            ThirdApplicationRunner.start(zaSysPlatform, ThirdApplicationRunner.START_REASON_MANUAL);
         }else{
-            //停止
-            if(ThirdApplicationRunner.stop(zaSysPlatform)){
-                zaSysPlatform.setRunning(ZaSysPlatform.STATE_STOP);
-            }else{
-                zaSysPlatform.setRunning(ZaSysPlatform.STATE_RUNNING);
-            }
+            ThirdApplicationRunner.stop(zaSysPlatform);
         }
-        return updateZaSysPlatform(zaSysPlatform);
+        return rows;
     }
 }

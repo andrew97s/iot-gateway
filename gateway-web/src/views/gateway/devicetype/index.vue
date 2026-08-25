@@ -5,10 +5,7 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="queryParams.name" clearable placeholder="类型名称" style="width: 170px" @keyup.enter="handleQuery" />
         <el-input v-model="queryParams.code" clearable placeholder="类型编码" style="width: 150px" @keyup.enter="handleQuery" />
-        <el-select v-model="queryParams.status" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery">
-          <el-option label="启用" value="1" />
-          <el-option label="停用" value="0" />
-        </el-select>
+        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
@@ -106,12 +103,17 @@ const rules = {
   name: [{ required: true, message: '请输入类型名称', trigger: 'blur' }]
 }
 
+const STATUS_OPTIONS = [
+  { value: '1', label: '启用' },
+  { value: '0', label: '停用' }
+]
+
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   name: null,
   code: null,
-  status: null
+  status: undefined
 })
 
 function parseAliases(str) {
@@ -139,7 +141,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.name = null
   queryParams.code = null
-  queryParams.status = null
+  queryParams.status = undefined
   handleQuery()
 }
 

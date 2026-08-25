@@ -8,20 +8,10 @@
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="filters.keyword" clearable placeholder="设备编码 / 名称" style="width: 200px" @keyup.enter="handleQuery" />
-        <el-select v-model="filters.type" clearable filterable placeholder="全部类型" style="width: 140px">
-          <el-option v-for="t in deviceTypes" :label="t.name" :value="t.code" :key="t.code" />
-        </el-select>
-        <el-select v-model="filters.pfCode" clearable filterable placeholder="全部插件" style="width: 160px">
-          <el-option v-for="pf in platformOptions" :label="pf.name" :value="pf.code" :key="pf.code" />
-        </el-select>
-        <el-select v-model="filters.online" clearable placeholder="全部状态" style="width: 120px">
-          <el-option label="在线" value="1" />
-          <el-option label="离线" value="0" />
-        </el-select>
-        <el-select v-model="filters.sync" clearable placeholder="同步状态（全部）" style="width: 150px">
-          <el-option label="已同步" value="synced" />
-          <el-option label="未同步" value="unsynced" />
-        </el-select>
+        <el-select-v2 v-model="filters.type" :options="deviceTypeOptions" clearable filterable placeholder="全部类型" style="width: 140px" />
+        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 160px" />
+        <el-select-v2 v-model="filters.online" :options="ONLINE_OPTIONS" clearable placeholder="全部状态" style="width: 120px" />
+        <el-select-v2 v-model="filters.sync" :options="SYNC_OPTIONS" clearable placeholder="同步状态（全部）" style="width: 150px" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
@@ -112,9 +102,14 @@
           <el-input v-model="editForm.displayName" placeholder="显示名称（写入扩展属性）" />
         </el-form-item>
         <el-form-item label="设备类型" required>
-          <el-select v-model="editForm.type" allow-create filterable style="width: 100%">
-            <el-option v-for="t in deviceTypes" :label="t.name" :value="t.code" :key="t.code" />
-          </el-select>
+          <el-select-v2
+            v-model="editForm.type"
+            :options="deviceTypeEditOptions"
+            filterable
+            :teleported="false"
+            placeholder="请选择设备类型"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="型号">
           <el-input v-model="editForm.model" />
@@ -153,6 +148,7 @@
                 <el-descriptions-item label="设备编码">
                   <span class="gw-mono">{{ detailDevice?.code || '-' }}</span>
                 </el-descriptions-item>
+                <el-descriptions-item label="网关编码">{{ detailDevice?.net || '-' }}</el-descriptions-item>
                 <el-descriptions-item label="设备名称">{{ displayName(detailDevice) }}</el-descriptions-item>
                 <el-descriptions-item label="设备类型">{{ typeName(detailDevice?.type) }}</el-descriptions-item>
                 <el-descriptions-item label="设备型号">{{ detailDevice?.model || '-' }}</el-descriptions-item>
@@ -161,7 +157,6 @@
                   <span class="gw-badge" :class="isOnline(detailDevice) ? 'ok' : 'off'">{{ isOnline(detailDevice) ? '在线' : '离线' }}</span>
                 </el-descriptions-item>
                 <el-descriptions-item label="IP 地址">{{ detailDevice?.ip || '-' }}</el-descriptions-item>
-                <el-descriptions-item label="设备网络">{{ detailDevice?.net || '-' }}</el-descriptions-item>
                 <el-descriptions-item label="业务 ID">{{ detailDevice?.bizId || '-' }}</el-descriptions-item>
                 <el-descriptions-item label="无线设备">{{ detailDevice?.wireless === '1' ? '是' : '否' }}</el-descriptions-item>
                 <el-descriptions-item label="创建时间">{{ formatTime(detailDevice?.createTime) }}</el-descriptions-item>
@@ -334,7 +329,16 @@ const onlineStatsMap = ref({})
 const upstreamList = ref([])
 const upstreamStatusMap = ref({})
 
-const filters = reactive({ keyword: '', type: '', pfCode: '', online: '', sync: '' })
+const ONLINE_OPTIONS = [
+  { value: '1', label: '在线' },
+  { value: '0', label: '离线' }
+]
+const SYNC_OPTIONS = [
+  { value: 'synced', label: '已同步' },
+  { value: 'unsynced', label: '未同步' }
+]
+
+const filters = reactive({ keyword: '', type: undefined, pfCode: undefined, online: undefined, sync: undefined })
 const queryParams = reactive({ pageNum: 1, pageSize: 10, orderByColumn: 'id', isAsc: 'DESC' })
 
 const editOpen = ref(false)
@@ -396,6 +400,31 @@ const filteredList = computed(() => {
   })
 })
 
+function toSelectOptions(list, valueKey, labelKey) {
+  const seen = new Set()
+  const options = []
+  for (const item of list || []) {
+    const value = item?.[valueKey]
+    if (value == null || value === '') continue
+    const key = String(value)
+    if (seen.has(key)) continue
+    seen.add(key)
+    options.push({ value: key, label: item[labelKey] || key })
+  }
+  return options
+}
+
+const deviceTypeOptions = computed(() => toSelectOptions(deviceTypes.value, 'code', 'name'))
+const platformSelectOptions = computed(() => toSelectOptions(platformOptions.value, 'code', 'name'))
+const deviceTypeEditOptions = computed(() => {
+  const opts = deviceTypeOptions.value
+  const current = editForm.value?.type
+  if (current != null && current !== '' && !opts.some((o) => o.value === String(current))) {
+    return [...opts, { value: String(current), label: typeName(current) }]
+  }
+  return opts
+})
+
 function isOnline(row) {
   return row && (row.online === 1 || row.online === '1' || row.online === true)
 }
@@ -403,7 +432,7 @@ function platformName(code) {
   return platformOptions.value.find((p) => p.code === code)?.name || code || '-'
 }
 function typeName(code) {
-  return deviceTypes.value.find((t) => t.code === code)?.name || code || '-'
+  return deviceTypes.value.find((t) => String(t.code) === String(code))?.name || code || '-'
 }
 function displayName(row) {
   if (!row) return '-'
@@ -672,7 +701,7 @@ function handleQuery() {
   getList()
 }
 function resetQuery() {
-  Object.assign(filters, { keyword: '', type: '', pfCode: '', online: '', sync: '' })
+  Object.assign(filters, { keyword: '', type: undefined, pfCode: undefined, online: undefined, sync: undefined })
   handleQuery()
 }
 
@@ -693,7 +722,7 @@ function openEdit(row) {
     code: row.code,
     name: row.name,
     displayName: remark.displayName || row.name,
-    type: row.type,
+    type: row.type == null || row.type === '' ? undefined : String(row.type),
     model: row.model,
     pfCode: row.pfCode,
     online: row.online,
@@ -838,6 +867,7 @@ onBeforeUnmount(() => {
 }
 .edit-grid :deep(.el-input),
 .edit-grid :deep(.el-select),
+.edit-grid :deep(.el-select-v2),
 .edit-grid :deep(.el-textarea) {
   width: 100%;
 }

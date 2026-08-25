@@ -8,6 +8,7 @@ import com.zhian.gateway.sys.domain.ZaAlarmType;
 import com.zhian.gateway.sys.domain.ZaMonitorType;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.third.common.constants.MsgConstants;
+import com.zhian.gateway.third.vo.ControlVo;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +33,7 @@ public class MessageBuilder {
         payload.setTypeCode(device.getType());
         payload.setName(device.getName());
         payload.setOnline(device.getOnline());
+        payload.setIp(device.getIp());
         payload.setReason(reason);
         message.setPayload(payload);
 
@@ -66,6 +68,21 @@ public class MessageBuilder {
         payload.setName(alarm.getName());
         payload.setDesc(desc);
         payload.setPicUrl(picUrl);
+        message.setPayload(payload);
+
+        return message;
+    }
+
+    public static Message buildControl(
+            ZaSysDevice device, ControlVo controlVo
+    ) {
+        Message message = buildBasic(device, MessageConstants.MSG_TYPE_CONTROL);
+        ControlPayload payload = new ControlPayload();
+
+        // 告警
+        payload.setCmd(controlVo.getCommand());
+        payload.setParams(controlVo.getValue());
+        payload.setResult("result");
         message.setPayload(payload);
 
         return message;

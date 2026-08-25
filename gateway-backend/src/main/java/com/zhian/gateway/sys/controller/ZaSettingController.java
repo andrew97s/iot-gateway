@@ -35,7 +35,14 @@ public class ZaSettingController extends BaseController {
         DEFAULTS.put("gateway.code",              new String[]{"GW-0001", "网关编码（同步上级平台时的网关标识）"});
         DEFAULTS.put("data_preserved_day_count",  new String[]{"30", "消息/错误数据保留天数"});
         DEFAULTS.put("gateway.offline.threshold", new String[]{"300", "设备离线判定阈值（秒）"});
+        DEFAULTS.put("gateway.temp.dir",          new String[]{"", "临时文件目录（留空则使用上传目录/temp）"});
+        DEFAULTS.put("gateway.temp.retain.hours", new String[]{"24", "临时文件保留时长（小时）"});
         DEFAULTS.put("gateway.plugin.autorestart", new String[]{"true", "插件异常自动重启"});
+        DEFAULTS.put("gateway.plugin.health.interval.seconds", new String[]{"10", "插件健康巡检间隔（秒）"});
+        DEFAULTS.put("gateway.plugin.health.timeout.seconds", new String[]{"3", "插件单次健康检查超时（秒）"});
+        DEFAULTS.put("gateway.plugin.health.failure.threshold", new String[]{"3", "插件异常连续失败阈值"});
+        DEFAULTS.put("gateway.plugin.health.recovery.threshold", new String[]{"2", "插件恢复连续成功阈值"});
+        DEFAULTS.put("gateway.plugin.restart.maxAttempts", new String[]{"3", "插件单次异常最大自动重启次数"});
         DEFAULTS.put("gateway.device.autosync",   new String[]{"false", "新设备自动同步上级平台"});
     }
 

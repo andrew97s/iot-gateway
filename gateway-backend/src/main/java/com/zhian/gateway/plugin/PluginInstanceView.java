@@ -24,10 +24,9 @@ public class PluginInstanceView {
     private Integer port;
     private String apis;
     private String remark;
-    /** installed / configured / running / stopped / abnormal */
+    /** installed（类型存在但无实例）/ stopped（实例未启用）/ running / abnormal */
     private String state;
     private String status;
-    private String running;
     private Map<String, Object> config;
     private List<Map<String, Object>> configSchema;
     private boolean alive;
@@ -38,6 +37,12 @@ public class PluginInstanceView {
     private Long msgCount;
     private Long errCount;
     private Integer restartCount;
+    private Integer consecutiveFailures;
+    private Integer consecutiveSuccesses;
+    private String healthReason;
+    private Date lastHealthCheckTime;
+    private Date lastStateChangeTime;
+    private Date nextRestartTime;
     private Date lastStartTime;
     private Date lastStopTime;
 }

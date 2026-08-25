@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.third.PluginHealthResult;
 import com.zhian.gateway.third.common.BasePlatformHandler;
 import com.zhian.gateway.third.utils.SerialPortUtil;
 import com.zhian.gateway.third.video.roc_v2.FmConnector;
@@ -42,6 +43,13 @@ public class CrHandler extends BasePlatformHandler<Object> {
     public boolean isAlive() {
         // 校验串口供电是否正常,长时间供电需要主动切断供电
         return connector != null  && connector.isOpen();
+    }
+
+    @Override
+    public PluginHealthResult checkHealth() {
+        return isAlive()
+                ? PluginHealthResult.healthy("读卡器串口已打开")
+                : PluginHealthResult.unhealthy("读卡器串口未连接");
     }
 
     @Override

@@ -2,15 +2,15 @@ package com.zhian.gateway.core.message;
 
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson2.JSON;
+import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
+import com.zhian.gateway.sys.service.IZaSysDeviceService;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.units.qual.A;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 消息处置上下文对象 , 每个插件从消息处置开始阶段，调用当前start
@@ -43,9 +43,17 @@ public class MsgProcessContext {
             log.error("添加消息失败,context未初始化!");
             return;
         }
+
         List<Message> msg = getMsg();
         msg = CollUtil.isEmpty(msg) ? new ArrayList<>() : msg;
+        msgList = msgList.stream().filter(Objects::nonNull).collect(Collectors.toList());
         msg.addAll(msgList);
+
+        // 填充设备信息
+        if (processInfo.getDevice() == null && CollUtil.isNotEmpty(msgList)) {
+            IZaSysDeviceService deviceService = SpringUtils.getBean(IZaSysDeviceService.class);
+            processInfo.setDevice(deviceService.selectZaSysDeviceById(msgList.get(0).getDevice().getDeviceId()));
+        }
 
         processInfo.setMsgList(msg);
     }

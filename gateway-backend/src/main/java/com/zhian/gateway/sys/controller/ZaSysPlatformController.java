@@ -311,7 +311,6 @@ public class ZaSysPlatformController extends BaseController
         root.put("port", platform.getPort());
         root.put("apis", platform.getApis());
         root.put("status", platform.getStatus());
-        root.put("running", platform.getRunning());
         root.put("remark", platform.getRemark());
         if (StringUtils.isNotEmpty(platform.getConfig())) {
             try {

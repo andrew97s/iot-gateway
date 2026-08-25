@@ -5,10 +5,7 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="queryParams.name" clearable placeholder="类型名称" style="width: 170px" @keyup.enter="handleQuery" />
         <el-input v-model="queryParams.code" clearable placeholder="类型编码" style="width: 150px" @keyup.enter="handleQuery" />
-        <el-select v-model="queryParams.status" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery">
-          <el-option label="启用" value="1" />
-          <el-option label="停用" value="0" />
-        </el-select>
+        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
@@ -107,12 +104,7 @@
           <el-input v-model="form.name" placeholder="如：火警" />
         </el-form-item>
         <el-form-item label="告警类别">
-          <el-select v-model="form.level" style="width: 200px">
-            <el-option label="1 - 火警" :value="1" />
-            <el-option label="2 - 预警" :value="2" />
-            <el-option label="3 - 故障" :value="3" />
-            <el-option label="4 - 事件" :value="4" />
-          </el-select>
+          <el-select-v2 v-model="form.level" :options="LEVEL_OPTIONS" :teleported="false" style="width: 200px" />
         </el-form-item>
         <el-form-item label="恢复事件">
           <el-select-v2
@@ -121,6 +113,7 @@
             multiple
             filterable
             clearable
+            :teleported="false"
             placeholder="当前告警可恢复的告警事件"
             style="width: 100%"
           />
@@ -132,6 +125,7 @@
             multiple
             filterable
             clearable
+            :teleported="false"
             placeholder="可恢复当前告警的告警事件"
             style="width: 100%"
           />
@@ -205,12 +199,23 @@ const rules = {
   name: [{ required: true, message: '请输入类型名称', trigger: 'blur' }]
 }
 
+const STATUS_OPTIONS = [
+  { value: '1', label: '启用' },
+  { value: '0', label: '停用' }
+]
+const LEVEL_OPTIONS = [
+  { value: 1, label: '1 - 火警' },
+  { value: 2, label: '2 - 预警' },
+  { value: 3, label: '3 - 故障' },
+  { value: 4, label: '4 - 事件' }
+]
+
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   name: null,
   code: null,
-  status: null
+  status: undefined
 })
 
 const LEVELS = { 1: { label: '火警', tag: 'danger' }, 2: { label: '预警', tag: 'warning' }, 3: { label: '故障', tag: 'info' }, 4: { label: '事件', tag: 'primary' } }
@@ -270,13 +275,19 @@ function handleQuery() {
 function resetQuery() {
   queryParams.name = null
   queryParams.code = null
-  queryParams.status = null
+  queryParams.status = undefined
   handleQuery()
 }
 
 function openDialog(row) {
   form.value = row
-    ? { ...emptyForm(), ...row, cancelCodes: parseCodes(row.cancelCode), recoveryCodes: parseCodes(row.recoveryCode) }
+    ? {
+        ...emptyForm(),
+        ...row,
+        level: Number(row.level) || 2,
+        cancelCodes: parseCodes(row.cancelCode),
+        recoveryCodes: parseCodes(row.recoveryCode)
+      }
     : emptyForm()
   open.value = true
 }
