@@ -246,19 +246,6 @@ public class JadebirdCloudV3Handler extends BasePlatformHandler {
         return null;
     }
 
-    private ZaMonitorType fetchMonitorType(String code) {
-        TypeMappingService typeMapping = SpringUtils.getBean(TypeMappingService.class);
-        Optional<ZaMonitorType> type = typeMapping.resolveMonitorType(getPlatform(), code);
-        if (!type.isPresent()) {
-            log.error("获取青鸟监测值类型失败:{}未注册!" , code);
-
-            return null;
-        }
-
-        return type.get();
-    }
-
-
     /**
      * 同步设备信息,不包括网关
      *

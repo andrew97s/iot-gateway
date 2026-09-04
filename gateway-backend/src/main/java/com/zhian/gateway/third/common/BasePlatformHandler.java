@@ -7,11 +7,13 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.cache.Cache;
 import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.core.message.AlarmPayload;
 import com.zhian.gateway.core.message.Message;
 import com.zhian.gateway.core.message.MessageDevice;
 import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.core.message.builder.MessageBuilder;
+import com.zhian.gateway.sys.domain.ZaMonitorType;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
@@ -101,7 +103,9 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
      * The Platform.
      */
     protected volatile ZaSysPlatform platform;
-    /** 最近一次收到厂商消息的时间，仅用于健康状态说明。 */
+    /**
+     * 最近一次收到厂商消息的时间，仅用于健康状态说明。
+     */
     protected volatile long lastActivityTime;
 
     @Override
@@ -222,7 +226,7 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
     public R control(ControlVo controlVo) {
         R result = null;
         try {
-            MsgProcessContext.start(controlVo,platform);
+            MsgProcessContext.start(controlVo, platform);
             result = doControl(controlVo);
         } catch (Exception e) {
             log.error("反控失败:{}", e.getMessage());
@@ -230,7 +234,7 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
         } finally {
             MsgProcessContext.getProcessInfo().setDevice(controlVo.getDevice());
 
-            MsgProcessContext.addMsg(MessageBuilder.buildControl(controlVo.getDevice() , controlVo));
+            MsgProcessContext.addMsg(MessageBuilder.buildControl(controlVo.getDevice(), controlVo));
             // 处理结果
             MsgProcessContext.getProcessInfo().setUnifiedContent(JSON.toJSONString(result));
             // 控制参数
@@ -313,7 +317,7 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
      * @param fetchDevice 提取设备逻辑
      * @param rawDevice   设备原始消息
      */
-    protected void manualSyncDevice(Callable<ZaSysDevice> fetchDevice , String rawDevice) {
+    protected void manualSyncDevice(Callable<ZaSysDevice> fetchDevice, String rawDevice) {
         try {
             MsgProcessContext.start(rawDevice, platform);
 
@@ -322,8 +326,7 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
             MsgProcessContext.getProcessInfo().setDevice(device);
 
             convertAndPush(MsgProcessContext.getProcessInfo());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("手动同步设备失败:{}", e.getMessage());
             MsgProcessContext.failed(e.getMessage());
         } finally {
@@ -361,6 +364,16 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
                 }
             });
         }
+    }
+
+    public ZaMonitorType fetchMonitorType(String code) {
+        TypeMappingService typeMapping = SpringUtils.getBean(TypeMappingService.class);
+        Optional<ZaMonitorType> type = typeMapping.resolveMonitorType(getPlatform(), code);
+        if (!type.isPresent()) {
+            throw new IllegalArgumentException("获取(" + getPlatform() + ")监测值类型失败:" + code + "未注册!");
+        }
+
+        return type.get();
     }
 
     /**

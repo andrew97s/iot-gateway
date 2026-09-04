@@ -442,16 +442,6 @@ public class JbProtocolParser {
         );
     }
 
-    private static ZaMonitorType fetchMonitorType(String code) {
-        TypeMappingService typeMapping = SpringUtils.getBean(TypeMappingService.class);
-        Optional<ZaMonitorType> type = typeMapping.resolveMonitorType("jb", code);
-        if (!type.isPresent()) {
-            throw new IllegalArgumentException("获取青鸟监测值类型失败:" + code + "未注册!");
-        }
-
-        return type.get();
-    }
-
     private static Message processElectric(ZaSysDevice device, Facility mf) {
         Cache cache = SpringUtils.getBean(Cache.class);
         if (mf.getChannel() != null && mf.getChannelType() != null) {
@@ -533,5 +523,15 @@ public class JbProtocolParser {
         }
 
         return MessageBuilder.buildTelemetry(device, telemetries);
+    }
+
+    public static ZaMonitorType fetchMonitorType(String code) {
+        TypeMappingService typeMapping = SpringUtils.getBean(TypeMappingService.class);
+        Optional<ZaMonitorType> type = typeMapping.resolveMonitorType("jb", code);
+        if (!type.isPresent()) {
+            throw new IllegalArgumentException("获取青鸟监测值类型失败:" + code + "未注册!");
+        }
+
+        return type.get();
     }
 }
