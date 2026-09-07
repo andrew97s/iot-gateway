@@ -1,0 +1,7 @@
+id: jinzhi
+name: 视频网关
+vendor: 金智
+protocol: jinzhi
+version: 1.1.0
+capabilities: [alarm, device, control]
+description: 金智视频网关接入

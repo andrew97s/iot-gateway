@@ -1,0 +1,4 @@
+[
+  {"code": "ptzDelay", "name": "PTZ延时","desc" : "PTZ控制延时时间(秒)" , "type": "integer", "required": true,"defaultValue":3},
+  {"code": "useSsl", "name": "是否使用SSL同步","desc" : "默认使用WS拉流，使用SSL后通过WSS拉流" , "type": "boolean", "required": true,"defaultValue":false}
+]

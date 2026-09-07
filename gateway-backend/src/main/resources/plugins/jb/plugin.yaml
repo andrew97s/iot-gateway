@@ -1,0 +1,7 @@
+id: jb
+name: 青鸟云接入插件
+vendor: Jadebird
+protocol: Cloud API
+version: 1.3.0
+capabilities: [alarm, monitor, device, control]
+description: 青鸟云平台接入

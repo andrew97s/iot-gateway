@@ -1,0 +1,7 @@
+[
+  {"code": "loginName", "name": "账号", "type": "string", "required": true,"defaultValue":""},
+  {"code": "password", "name": "密码", "type": "string", "required": true,"defaultValue":""},
+  {"code": "ticket", "name": "票据", "type": "string", "required": true,"defaultValue":""},
+  {"code": "fireUnitId", "name": "防火单位ID", "type": "string", "required": true,"defaultValue":""},
+  {"code": "syncAllDevice", "name": "是否主动同步云平台设备数据", "type": "boolean", "required": true,"defaultValue":false}
+]

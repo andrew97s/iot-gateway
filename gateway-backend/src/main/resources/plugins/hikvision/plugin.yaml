@@ -1,0 +1,7 @@
+id: hikvision
+name: 海康威视接入插件
+vendor: Hikvision
+protocol: ISAPI/SDK
+version: 1.2.0
+capabilities: [alarm, monitor, device, control]
+description: 海康威视安防设备统一接入（ISAPI/SDK）

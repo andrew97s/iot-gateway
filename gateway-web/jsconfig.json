@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      // 文件跳转
+      "@public/*": ["public/*"],
+      "@/*": ["src/*"],
+      "@/views/*": ["src/views/*"]
+    }
+  },
+  //提高 IDE 性能
+  "exclude": ["node_modules", "dist"]
+}

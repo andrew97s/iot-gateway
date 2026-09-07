@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhian.gateway.sys.mapper.ZaSysErrorMapper">
+    
+    <resultMap type="ZaSysError" id="ZaSysErrorResult">
+        <result property="id"       column="id"       />
+        <result property="pfCode"   column="pf_code"  />
+        <result property="type"     column="type"     />
+        <result property="title"    column="title"    />
+        <result property="content"  column="content"  />
+        <result property="error"    column="error"    />
+        <result property="logTime"  column="log_time" />
+    </resultMap>
+
+    <sql id="selectZaSysErrorVo">
+        select id, pf_code, type, title, content, error, log_time from za_sys_error t
+    </sql>
+
+    <select id="selectZaSysErrorList" parameterType="ZaSysError" resultMap="ZaSysErrorResult">
+        <include refid="selectZaSysErrorVo"/>
+        <where>
+            <if test="pfCode != null and pfCode != ''"> and t.pf_code = #{pfCode}</if>
+            <if test="type != null  and type != ''"> and t.type = #{type}</if>
+            <if test="title != null  and title != ''"> and t.title like ('%' ||  #{title} || '%' )</if>
+            <if test="params.beginLogTime != null and params.beginLogTime != '' and params.endLogTime != null and params.endLogTime != ''"> and t.log_time between #{params.beginLogTime} and #{params.endLogTime}</if>
+        </where>
+    </select>
+
+    <select id="selectByPlatform" resultMap="ZaSysErrorResult">
+        select id, pf_code, type, title, content, error, log_time
+        from za_sys_error
+        where pf_code = #{pfCode}
+        order by log_time desc
+        limit #{limit}
+    </select>
+    
+    <select id="selectZaSysErrorById" parameterType="Long" resultMap="ZaSysErrorResult">
+        <include refid="selectZaSysErrorVo"/>
+        where t.id = #{id}
+    </select>
+        
+    <insert id="insertZaSysError" parameterType="ZaSysError">
+        insert into za_sys_error
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="pfCode != null and pfCode != ''">pf_code,</if>
+            <if test="type != null and type != ''">type,</if>
+            <if test="title != null and title != ''">title,</if>
+            <if test="content != null">content,</if>
+            <if test="error != null and error != ''">error,</if>
+            <if test="logTime != null">log_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="pfCode != null and pfCode != ''">#{pfCode},</if>
+            <if test="type != null and type != ''">#{type},</if>
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="content != null">#{content},</if>
+            <if test="error != null and error != ''">#{error},</if>
+            <if test="logTime != null">#{logTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateZaSysError" parameterType="ZaSysError">
+        update za_sys_error
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="type != null and type != ''">type = #{type},</if>
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="error != null and error != ''">error = #{error},</if>
+            <if test="logTime != null">log_time = #{logTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="cleanZaSysError" parameterType="Date">
+        delete from za_sys_error where log_time &lt; #{logTime}
+    </delete>
+
+    <delete id="deleteZaSysErrorById" parameterType="Long">
+        delete from za_sys_error where id = #{id}
+    </delete>
+
+    <delete id="deleteZaSysErrorByIds" parameterType="String">
+        delete from za_sys_error where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="purge">
+        delete from za_sys_error
+    </delete>
+</mapper>

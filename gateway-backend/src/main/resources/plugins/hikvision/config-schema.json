@@ -1,0 +1,11 @@
+[
+  {"code": "username", "name": "用户名", "type": "string", "required": true, "defaultValue": "admin"},
+  {"code": "password", "name": "密码", "type": "password", "required": true},
+  {"code": "heartbeatInterval", "name": "心跳间隔（秒）", "type": "integer", "defaultValue": 30, "min": 5},
+  {"code": "reconnectInterval", "name": "断线重连间隔（秒）", "type": "integer", "defaultValue": 10, "min": 1},
+  {"code": "logLevel", "name": "日志级别", "type": "select", "defaultValue": "INFO",
+   "options": [{"label": "DEBUG", "value": "DEBUG"}, {"label": "INFO", "value": "INFO"}, {"label": "WARN", "value": "WARN"}, {"label": "ERROR", "value": "ERROR"}]},
+  {"code": "autoRestart", "name": "异常自动重启", "type": "boolean", "defaultValue": true},
+  {"code": "maxRestart", "name": "最大重启次数", "type": "integer", "defaultValue": 5, "min": 0},
+  {"code": "restartBackoff", "name": "重启退避（秒）", "type": "integer", "defaultValue": 10, "min": 1}
+]

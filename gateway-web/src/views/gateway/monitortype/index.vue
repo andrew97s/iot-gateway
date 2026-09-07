@@ -1,0 +1,270 @@
+<template>
+  <div class="gw-page">
+    <!-- 筛选栏 -->
+    <div class="gw-card">
+      <div class="gw-card-body gw-filter-bar">
+        <el-input v-model="queryParams.name" clearable placeholder="类型名称" style="width: 160px" @keyup.enter="handleQuery" />
+        <el-input v-model="queryParams.code" clearable placeholder="类型编码" style="width: 140px" @keyup.enter="handleQuery" />
+        <el-select-v2 v-model="queryParams.valueType" :options="VALUE_TYPE_OPTIONS" clearable placeholder="值类型（全部）" style="width: 130px" @change="handleQuery" />
+        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery" />
+        <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
+        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        <div class="spacer" />
+        <span class="gw-muted gw-small">枚举值：在线/离线、开关量等；线性值：压力、液位、电流、电压、信号强度、电量等</span>
+        <el-button type="primary" icon="Plus" v-hasPermi="['sys:monitortype:add']" @click="openDialog()">新增监测类型</el-button>
+      </div>
+    </div>
+
+    <!-- 类型表格 -->
+    <div class="gw-card">
+      <div class="gw-card-body no-pad">
+        <el-table :data="list" v-loading="loading">
+          <el-table-column label="类型编码" width="250">
+            <template #default="scope">
+              <span class="gw-mono" style="font-weight: 600">{{ scope.row.code }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="类型名称" prop="name" min-width="110" />
+          <el-table-column label="值类型" width="120" align="center">
+            <template #default="scope">
+              <el-tag :type="scope.row.valueType === 'enum' ? 'warning' : 'primary'" size="small" effect="plain">
+                {{ scope.row.valueType === 'enum' ? '枚举值' : '线性值' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="单位" width="120" align="center">
+            <template #default="scope">
+              <span v-if="scope.row.valueType === 'linear'">{{ scope.row.unit || '-' }}</span>
+              <span v-else class="gw-muted">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="枚举值 / 取值" min-width="120">
+            <template #default="scope">
+              <template v-if="scope.row.valueType === 'enum'">
+                <el-tag v-for="(o, i) in parseJsonArr(scope.row.enumOptions)" :key="i" size="small" class="alias-tag" effect="plain">
+                  {{ o.value }}={{ o.label }}
+                </el-tag>
+              </template>
+              <span v-else class="gw-muted gw-small">连续数值</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="插件别名映射" min-width="200">
+            <template #default="scope">
+              <template v-if="parseJsonArr(scope.row.aliases).length > 0">
+                <el-tag v-for="(a, i) in parseJsonArr(scope.row.aliases)" :key="i" size="small" type="info" effect="plain" class="alias-tag">
+                  {{ a.pfCode || '通用' }} · {{ a.alias }}
+                </el-tag>
+              </template>
+              <span v-else class="gw-muted gw-small">未配置</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="90" align="center">
+            <template #default="scope">
+              <span class="gw-badge" :class="scope.row.status === '1' ? 'ok' : 'off'">
+                {{ scope.row.status === '1' ? '启用' : '停用' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="130" align="center" fixed="right">
+            <template #default="scope">
+              <el-button link type="primary" v-hasPermi="['sys:monitortype:edit']" @click="openDialog(scope.row)">修改</el-button>
+              <el-button link type="danger" v-hasPermi="['sys:monitortype:remove']" @click="handleDelete(scope.row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :total="total" @pagination="getList" v-show="total > 0" />
+      </div>
+    </div>
+
+    <!-- 编辑对话框 -->
+    <el-dialog v-model="open" :title="form.id ? '修改监测类型' : '新增监测类型'" width="760px" append-to-body>
+      <el-form :model="form" label-width="90px" ref="formRef" :rules="rules" class="type-form">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="类型编码" prop="code">
+              <el-input v-model="form.code" placeholder="如 pressure、signal" :disabled="!!form.id" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="类型名称" prop="name">
+              <el-input v-model="form.name" placeholder="如：压力" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="值类型" prop="valueType">
+              <el-radio-group v-model="form.valueType">
+                <el-radio label="linear">线性值</el-radio>
+                <el-radio label="enum">枚举值</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="form.valueType === 'linear'">
+            <el-form-item label="监测单位">
+              <el-input v-model="form.unit" placeholder="如 MPa / V / A / % / dBm / ℃" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 枚举值编辑器 -->
+        <el-form-item label="枚举值" v-if="form.valueType === 'enum'" class="alias-item">
+          <div class="enum-editor">
+            <div class="enum-row" v-for="(row, idx) in enumRows" :key="idx">
+              <el-input v-model="row.value" placeholder="值（如 1）" class="enum-val" />
+              <el-input v-model="row.label" placeholder="含义（如 在线）" class="enum-label" />
+              <el-button link type="danger" icon="Delete" @click="enumRows.splice(idx, 1)" />
+            </div>
+            <el-button size="small" plain icon="Plus" @click="enumRows.push({ value: '', label: '' })">添加枚举值</el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="别名映射" class="alias-item">
+          <AliasEditor v-model="form.aliases" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="form.status" active-value="1" inactive-value="0" active-text="启用" inactive-text="停用" inline-prompt />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="form.remark" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="open = false">取 消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitForm">保 存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup name="MonitorType">
+import AliasEditor from '@/components/business/AliasEditor/index.vue'
+import { monitorTypeApi } from '@/api/sys/businessType'
+
+const { proxy } = getCurrentInstance()
+
+const loading = ref(true)
+const saving = ref(false)
+const open = ref(false)
+const list = ref([])
+const total = ref(0)
+const form = ref({})
+const enumRows = ref([])
+
+const rules = {
+  code: [{ required: true, message: '请输入类型编码', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入类型名称', trigger: 'blur' }]
+}
+
+const VALUE_TYPE_OPTIONS = [
+  { value: 'enum', label: '枚举值' },
+  { value: 'linear', label: '线性值' }
+]
+const STATUS_OPTIONS = [
+  { value: '1', label: '启用' },
+  { value: '0', label: '停用' }
+]
+
+const queryParams = reactive({
+  pageNum: 1,
+  pageSize: 10,
+  name: null,
+  code: null,
+  valueType: undefined,
+  status: undefined
+})
+
+function parseJsonArr(str) {
+  if (!str) return []
+  try {
+    const arr = JSON.parse(str)
+    return Array.isArray(arr) ? arr : []
+  } catch { return [] }
+}
+
+function getList() {
+  loading.value = true
+  monitorTypeApi.list(queryParams).then(res => {
+    list.value = res.rows
+    total.value = res.total
+    loading.value = false
+  })
+}
+
+function handleQuery() {
+  queryParams.pageNum = 1
+  getList()
+}
+
+function resetQuery() {
+  queryParams.name = null
+  queryParams.code = null
+  queryParams.valueType = undefined
+  queryParams.status = undefined
+  handleQuery()
+}
+
+function openDialog(row) {
+  form.value = row
+    ? { ...row }
+    : { id: null, code: '', name: '', valueType: 'linear', unit: '', enumOptions: '', aliases: '', status: '1', remark: '' }
+  enumRows.value = parseJsonArr(form.value.enumOptions).map(o => ({ value: o.value ?? '', label: o.label ?? '' }))
+  open.value = true
+}
+
+async function submitForm() {
+  try {
+    await proxy.$refs['formRef'].validate()
+  } catch (e) { return }
+  // 序列化枚举值
+  if (form.value.valueType === 'enum') {
+    const opts = enumRows.value.filter(r => r.value !== '' && r.label !== '')
+    form.value.enumOptions = opts.length > 0 ? JSON.stringify(opts) : ''
+    form.value.unit = ''
+  } else {
+    form.value.enumOptions = ''
+  }
+  saving.value = true
+  try {
+    if (form.value.id) {
+      await monitorTypeApi.update(form.value)
+    } else {
+      await monitorTypeApi.add(form.value)
+    }
+    proxy.$modal.msgSuccess('保存成功')
+    open.value = false
+    getList()
+  } finally {
+    saving.value = false
+  }
+}
+
+function handleDelete(row) {
+  proxy.$modal.confirm(`确认删除监测类型「${row.name}」？`)
+    .then(() => monitorTypeApi.remove(row.id))
+    .then(() => {
+      proxy.$modal.msgSuccess('删除成功')
+      getList()
+    })
+    .catch(() => {})
+}
+
+getList()
+</script>
+
+<style scoped>
+.alias-tag { margin: 2px 4px 2px 0; }
+.type-form :deep(.el-form-item__content) { min-width: 0; }
+.type-form :deep(.alias-item .el-form-item__content) { display: block; width: 100%; }
+.enum-editor { width: 100%; min-width: 0; }
+.enum-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  width: 100%;
+  min-width: 0;
+}
+.enum-row > * + * { margin-left: 12px; }
+.enum-val { width: 140px; flex: 0 0 140px; }
+.enum-label { flex: 1 1 auto; min-width: 0; }
+</style>
