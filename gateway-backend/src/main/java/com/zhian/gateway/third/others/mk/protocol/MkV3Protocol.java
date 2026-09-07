@@ -2,10 +2,12 @@ package com.zhian.gateway.third.others.mk.protocol;
 
 import com.zhian.gateway.third.others.mk.constants.MkV3Type;
 import com.zhian.gateway.third.others.mk.vo.MkV3Msg;
+import com.zhian.gateway.third.others.mk.vo.MkV3Value;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
@@ -80,8 +82,10 @@ public final class MkV3Protocol {
 
         ByteBuf buf = Unpooled.wrappedBuffer(bytes);
         try {
+            // 帧头 A55A
             buf.skipBytes(2);
             int command = buf.readUnsignedByte();
+            // 帧长度
             buf.skipBytes(2);
             MkV3Msg msg = new MkV3Msg();
             // 指令类型
@@ -90,7 +94,6 @@ public final class MkV3Protocol {
             msg.setDeviceCode(readAscii(buf, 12));
             // 电量
             int battery = buf.readUnsignedByte();
-            msg.setBatteryRaw(battery);
             msg.setExternalPower((battery & 0x80) != 0);
             msg.setBatteryPercent((battery & 0x1F) * 5);
             // 信号强度
@@ -112,7 +115,6 @@ public final class MkV3Protocol {
             }
             msg.setDeviceTypeName(type.getName());
             msg.setKind(type.getKind());
-            msg.setUnit(type.getUnit());
 
             int remainBeforeCrc = buf.readableBytes() - 4;
             int expected = type.getAlarmBytes() + type.getDataBytes() + 4 + msg.getRecordCount() * type.getDataBytes();
@@ -124,25 +126,12 @@ public final class MkV3Protocol {
 
             // 阈值&当前监测值
             parseThresholds(buf, type, msg);
-            List<String> current = readRecord(buf, type);
+            List<MkV3Value> current = readRecord(buf, type);
+            applyThresholds(current, msg);
             msg.setCurrentValues(current);
-            if (!current.isEmpty()) {
-                msg.setValue(current.get(0));
-            }
             // 记录时间
-            long utc = buf.readUnsignedInt();
-            msg.setUtc(utc);
-            msg.setTime(new Date(utc * 1000L));
+            msg.setTime(new Date(buf.readUnsignedInt() * 1000L));
 
-            // 历史记录
-            List<String> history = new ArrayList<>();
-            for (int i = 0; i < msg.getRecordCount(); i++) {
-                List<String> record = readRecord(buf, type);
-                if (!record.isEmpty()) {
-                    history.add(record.get(0));
-                }
-            }
-            msg.setHistoryValues(history);
             return msg;
         } catch (Exception e) {
             log.error("铭控V3协议解析失败,msg:{}", e.getMessage());
@@ -190,51 +179,93 @@ public final class MkV3Protocol {
     }
 
     private static void parseThresholds(ByteBuf buf, MkV3Type type, MkV3Msg msg) {
+        // 报警阈值根据报警长度变化
         int alarmBytes = type.getAlarmBytes();
-        if (alarmBytes < 4) {
-            buf.skipBytes(alarmBytes);
+        if (alarmBytes <= 0) {
             return;
         }
-        if (alarmBytes == 4) {
-            msg.setThresholdLow(scale(buf.readShort(), type.getLsb()));
-            msg.setThresholdHigh(scale(buf.readShort(), type.getLsb()));
-            return;
+        ByteBuf alarmBuf = buf.readSlice(alarmBytes);
+        List<String> lows = new ArrayList<>();
+        List<String> highs = new ArrayList<>();
+        for (int i = 0; i < type.getAlarmGroups(); i++) {
+            MkV3Type.Field field = type.fieldAt(i);
+            if (field == null || alarmBuf.readableBytes() < field.byteLength() * 2) {
+                break;
+            }
+            lows.add(readNumber(alarmBuf, field));
+            highs.add(readNumber(alarmBuf, field));
         }
-        msg.setThresholdLow(scale(buf.readShort(), type.getLsb()));
-        msg.setThresholdHigh(scale(buf.readShort(), type.getLsb()));
-        buf.skipBytes(alarmBytes - 4);
+        msg.setThresholdLows(lows);
+        msg.setThresholdHighs(highs);
     }
 
-    private static List<String> readRecord(ByteBuf buf, MkV3Type type) {
-        List<String> values = new ArrayList<>();
-        // 数据记录
-        int dataBytes = type.getDataBytes();
-        if (dataBytes == 4 && type.getAlarmGroups() == 1 && type.getAlarmBytes() == 8) {
-            values.add(scale(buf.readInt(), type.getLsb()));
-            return values;
+    private static void applyThresholds(List<MkV3Value> values, MkV3Msg msg) {
+        List<String> lows = msg.getThresholdLows();
+        List<String> highs = msg.getThresholdHighs();
+        if (values == null || lows == null) {
+            return;
         }
-        // 数据位 2-8 （2位一个监测数据）
-        if (dataBytes >= 2 && dataBytes % 2 == 0 && dataBytes <= 8) {
-            int shorts = dataBytes / 2;
-            for (int i = 0; i < shorts; i++) {
-                values.add(scale(buf.readShort(), i == 0 ? type.getLsb() : 1));
+        int n = Math.min(values.size(), Math.min(lows.size(), highs.size()));
+        for (int i = 0; i < n; i++) {
+            values.get(i).setThresholdLow(lows.get(i));
+            values.get(i).setThresholdHigh(highs.get(i));
+        }
+    }
+
+    private static List<MkV3Value> readRecord(ByteBuf buf, MkV3Type type) {
+        List<MkV3Value> values = new ArrayList<>();
+        int start = buf.readerIndex();
+        List<MkV3Type.Field> fields = type.getFields();
+        if (fields != null) {
+            for (int i = 0; i < fields.size(); i++) {
+                MkV3Type.Field field = fields.get(i);
+                if (buf.readableBytes() < field.byteLength()) {
+                    break;
+                }
+                values.add(MkV3Value.builder()
+                        .channel(i + 1)
+                        .name(field.getName())
+                        .unit(field.getUnit())
+                        .monitorAlias(field.getMonitorAlias())
+                        .value(readNumber(buf, field))
+                        .build());
             }
-            return values;
         }
-        // 大于八位
-        if (dataBytes >= 2) {
-            values.add(scale(buf.getShort(buf.readerIndex()), type.getLsb()));
+        int consumed = buf.readerIndex() - start;
+        int remain = type.getDataBytes() - consumed;
+        if (remain > 0 && buf.readableBytes() >= remain) {
+            buf.skipBytes(remain);
         }
-        buf.skipBytes(dataBytes);
         return values;
     }
 
-    private static String scale(int raw, double lsb) {
-        double value = raw * lsb;
+    private static String readNumber(ByteBuf buf, MkV3Type.Field field) {
+        switch (field.getKind()) {
+            case INT16_U:
+                return scale(buf.readUnsignedShort(), field.getLsb());
+            case INT32_S:
+                return scale(buf.readInt(), field.getLsb());
+            case INT32_U:
+                return scale(buf.readUnsignedInt(), field.getLsb());
+            case FLOAT32:
+                return formatDecimal(buf.readFloat());
+            case FLOAT64:
+                return formatDecimal(buf.readDouble());
+            case INT16_S:
+            default:
+                return scale(buf.readShort(), field.getLsb());
+        }
+    }
+
+    private static String scale(long raw, double lsb) {
         if (Math.abs(lsb - 1) < 0.0000001) {
             return String.valueOf(raw);
         }
-        return String.valueOf(value);
+        return BigDecimal.valueOf(raw).multiply(BigDecimal.valueOf(lsb)).stripTrailingZeros().toPlainString();
+    }
+
+    private static String formatDecimal(double value) {
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
     private static String readAscii(ByteBuf buf, int len) {

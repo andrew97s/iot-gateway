@@ -53,7 +53,7 @@ public class DeviceUtil {
             }
             // 设备IP
             if (
-                    syncDevice.getId() != null && (device.getIp() == null ||
+                    syncDevice.getIp() != null && (device.getIp() == null ||
                             !device.getIp().equalsIgnoreCase(syncDevice.getIp()))
             ) {
                 device.setIp(syncDevice.getIp());
@@ -104,6 +104,7 @@ public class DeviceUtil {
             device.setIp(syncDevice.getIp());
             device.setRemark(syncDevice.getRemark());
             device.setBizId(syncDevice.getId() + "");
+            device.setOnline(syncDevice.getOnline());
         }
 
         // 推送设备变化消息

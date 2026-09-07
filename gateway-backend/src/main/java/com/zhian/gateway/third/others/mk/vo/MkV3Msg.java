@@ -14,25 +14,35 @@ import java.util.List;
  */
 @Data
 public class MkV3Msg {
+    // IP
     private String sourceIp;
+    // 指令 默认上传数据命令类型为 0x00
     private int command;
+    // 12位设备编码
     private String deviceCode;
+    // 设备类型code
     private int deviceType;
+    // 设备类型名称
     private String deviceTypeName;
+    // 数据类型
     private String kind;
-    private String unit;
-    private int batteryRaw;
+    // 是否外接供电
     private boolean externalPower;
+    // 电量百分比
     private int batteryPercent;
+    // 信号强度
     private int rssi;
+    // 采集间隔
     private int intervalSec;
+    // 记录数量
     private int recordCount;
+    // 告警状态
     private int alarmStatus;
-    private String thresholdLow;
-    private String thresholdHigh;
-    private String value;
-    private List<String> currentValues = new ArrayList<>();
-    private List<String> historyValues = new ArrayList<>();
-    private long utc;
+    // 阈值
+    private List<String> thresholdLows = new ArrayList<>();
+    private List<String> thresholdHighs = new ArrayList<>();
+    // 当前监测值
+    private List<MkV3Value> currentValues = new ArrayList<>();
+    // 记录时间
     private Date time;
 }
