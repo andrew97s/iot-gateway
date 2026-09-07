@@ -7,8 +7,8 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.constant.Constants;
 import com.zhian.gateway.common.core.domain.R;
-import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.consts.DictValue;
+import com.zhian.gateway.core.message.AlarmPayload;
 import com.zhian.gateway.core.message.Message;
 import com.zhian.gateway.core.message.MsgProcessContext;
 import com.zhian.gateway.core.message.TelemetryPayload;
@@ -17,15 +17,16 @@ import com.zhian.gateway.sys.domain.ZaAlarmType;
 import com.zhian.gateway.sys.domain.ZaMonitorType;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
-import com.zhian.gateway.sys.service.TypeMappingService;
+import com.zhian.gateway.sys.utils.MessageUtil;
 import com.zhian.gateway.third.common.BasePlatformHandler;
+import com.zhian.gateway.third.common.bo.DeviceSyncInfo;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.common.bo.SyncDevice;
 import com.zhian.gateway.third.common.util.DeviceUtil;
-import com.zhian.gateway.third.others.mk.constants.MkConsts;
 import com.zhian.gateway.third.others.mk.protocol.MkJBProtocol;
 import com.zhian.gateway.third.others.mk.vo.MkV3Msg;
 import com.zhian.gateway.third.others.mk.constants.MkV3Type;
+import com.zhian.gateway.third.others.mk.vo.MkV3Value;
 import com.zhian.gateway.third.vo.ControlVo;
 import com.zhian.gateway.third.vo.MqMessage;
 import com.zhian.gateway.third.others.mk.vo.MkJBMsg;
@@ -33,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.zhian.gateway.third.others.mk.constants.MkConsts.*;
 
@@ -49,7 +51,9 @@ public class MkHandler extends BasePlatformHandler<Object> {
 
     public static String CODE = "mk";
 
-    private HashMap<String, Long> alarmTimeMap = new HashMap<>();
+    private final HashMap<String, Long> alarmTimeMap = new HashMap<>();
+    /** 设备最近一次报警状态字节，用于边沿检测产生 / 恢复 */
+    private final Map<String, Integer> alarmStatusMap = new ConcurrentHashMap<>();
 
     @Override
     public boolean start(ZaSysPlatform platform) {
@@ -123,117 +127,205 @@ public class MkHandler extends BasePlatformHandler<Object> {
         return null;
     }
 
+    @Override
+    public DeviceSyncInfo syncDeviceStatus() {
+        int count = checkOfflineDevices();
+        return DeviceSyncInfo.success(count);
+    }
+
     private void processV3Msg(MkV3Msg msg) {
         if (msg.getCommand() != 0x00) {
             log.info("收到铭控V3非上发帧, cmd={}, code={}", msg.getCommand(), msg.getDeviceCode());
             return;
         }
         ZaSysDevice device = syncV3Device(msg);
+        MessageUtil.setDevice(device);
+        if (MsgProcessContext.getProcessInfo() != null) {
+            MsgProcessContext.getProcessInfo().setDevice(device);
+        }
+        if (device.getId() != null) {
+            statusMap.put(device.getId(), System.currentTimeMillis());
+        }
         String raw = JSON.toJSONString(msg);
 
-        TypeMappingService mappingService = SpringUtils.getBean(TypeMappingService.class);
-        Optional<ZaMonitorType> type = mappingService.resolveMonitorType(getPlatform(), msg.getUnit());
-        if (type.isPresent()) {
-            // 电池电量
-            TelemetryPayload.Telemetry battery = MessageBuilder.builderTelemetry(
-                    fetchMonitorType("battery"), msg.getBatteryPercent() + "", "电池电量"
-            );
-            TelemetryPayload.Telemetry rssi = MessageBuilder.builderTelemetry(
-                    fetchMonitorType("rssi"), msg.getRssi() + "", "信号强度"
-            );
-            // 监测数据
-            List<String> values = msg.getCurrentValues();
-            for (String value : values) {
-
-            }
-            Message message = MessageBuilder.buildTelemetry(device, Arrays.asList(battery, rssi));
-        }
-
-        consumeMsg(MqMessage.createBusiness(device, raw));
-        pushV3Alarms(device, msg, raw);
+        // 监测数据
+        extractV3Telemetry(device, msg);
+        // 告警
+        extractV3Alarms(device, msg, raw);
     }
 
-    private void pushV3Alarms(ZaSysDevice device, MkV3Msg msg, String raw) {
-        int status = msg.getAlarmStatus();
-        if (status == 0) {
+    private void extractV3Telemetry(ZaSysDevice device, MkV3Msg msg) {
+        List<TelemetryPayload.Telemetry> telemetries = new ArrayList<>();
+        addTelemetry(
+                telemetries,
+                "battery",
+                String.valueOf(msg.getBatteryPercent()),
+                "电池电量", 0, null, null, "%"
+        );
+        addTelemetry(
+                telemetries,
+                "rssi",
+                String.valueOf(msg.getRssi()),
+                "信号强度", 0, null, null, "dBm"
+        );
+
+        List<MkV3Value> values = msg.getCurrentValues();
+        if (values != null) {
+            for (MkV3Value value : values) {
+                if (value == null || StrUtil.isBlank(value.getValue())) {
+                    continue;
+                }
+                String alias = StrUtil.blankToDefault(value.getMonitorAlias(), value.getName());
+                String desc = StrUtil.blankToDefault(value.getName(), alias);
+                addTelemetry(
+                        telemetries, alias, value.getValue(), desc,
+                        value.getChannel(), value.getThresholdLow(), value.getThresholdHigh(), value.getUnit()
+                );
+            }
+        }
+        if (telemetries.isEmpty()) {
             return;
         }
-        int type = msg.getDeviceType();
-        // 消火栓（压力） 、 消火栓（压力、倾角）、消火栓（压力、倾角、流量、温度）
-        if (type == 34 || type == 24 || type == 58) {
-            if ((status & 0x80) != 0) {
-                pushAlarmIfNeeded(device, ALARM_WATER_DISCHARGE, raw);
+        Message message = MessageBuilder.buildTelemetry(device, telemetries);
+        if (msg.getTime() != null) {
+            message.setTimestamp(msg.getTime().getTime());
+            for (TelemetryPayload.Telemetry telemetry : telemetries) {
+                telemetry.setTimestamp(msg.getTime().getTime());
             }
         }
-        // 消火栓（压力、倾角）、消火栓（压力、倾角、流量、温度）
-        if (type == 24 || type == 58) {
-            if ((status & 0x40) != 0) {
-                pushAlarmIfNeeded(device, ALARM_TILT, raw);
-            }
-            if ((status & 0x20) != 0) {
-                pushAlarmIfNeeded(device, ALARM_SHOCK, raw);
-            }
+        MsgProcessContext.addMsg(message);
+    }
+
+    private void addTelemetry(
+            List<TelemetryPayload.Telemetry> telemetries, String alias, String value, String desc,
+            int channel, String thresholdLow, String thresholdHigh, String unit
+    ) {
+        Optional<ZaMonitorType> type = typeMappingService.resolveMonitorType(getPlatform(), alias);
+        if (!type.isPresent() && StrUtil.isNotBlank(unit)) {
+            type = typeMappingService.resolveMonitorType(getPlatform(), unit);
         }
-        // 消防栓闷盖（①水浸状态、②闷盖状态）
-        if (type == 36) {
-            if ((status & 0x01) != 0) {
-                pushAlarmIfNeeded(device, ALARM_LOW, raw);
-            }
-            if ((status & 0x40) != 0) {
-                pushAlarmIfNeeded(device, ALARM_COVER_OPEN, raw);
-            }
-            if ((status & 0x20) != 0) {
-                pushAlarmIfNeeded(device, ALARM_SHOCK, raw);
-            }
+        if (!type.isPresent()) {
+            log.debug("铭控监测类型未注册, alias={}, unit={}", alias, unit);
             return;
         }
-        // 井盖液位
-        if (type == 40 && (status & 0x80) != 0) {
-            pushAlarmIfNeeded(device, ALARM_WELL_OPEN, raw);
+        TelemetryPayload.Telemetry telemetry = MessageBuilder.builderTelemetry(
+                type.get(), value, desc, channel, thresholdLow, thresholdHigh, unit
+        );
+        if (telemetry != null) {
+            telemetries.add(telemetry);
         }
-        // 智能井盖监测终端
-        if (type == 67) {
-            if ((status & 0x01) != 0) {
-                pushAlarmIfNeeded(device, ALARM_LOW, raw);
-            }
-            if ((status & 0x40) != 0) {
-                pushAlarmIfNeeded(device, ALARM_TILT, raw);
-            }
-            if ((status & 0x20) != 0) {
-                pushAlarmIfNeeded(device, ALARM_SHOCK, raw);
-            }
+    }
+
+    /**
+     * 按表三报警状态字节做边沿检测：位 0→1 产生，1→0 恢复。
+     */
+    private void extractV3Alarms(ZaSysDevice device, MkV3Msg msg, String raw) {
+        int current = msg.getAlarmStatus() & 0xFF;
+        int previous = alarmStatusMap.getOrDefault(device.getCode(), 0);
+        alarmStatusMap.put(device.getCode(), current);
+        int changed = previous ^ current;
+        if (changed == 0) {
             return;
         }
-        // 温度&异动（①温度、②异动）
-        if (type == 39 && (status & 0x20) != 0) {
-            pushAlarmIfNeeded(device, ALARM_SHOCK, raw);
+        String[] codes = v3AlarmCodes(msg.getDeviceType());
+        for (int bit = 0; bit < 8; bit++) {
+            if ((changed & (1 << bit)) == 0) {
+                continue;
+            }
+            String alarmCode = codes[bit];
+            if (StrUtil.isBlank(alarmCode)) {
+                continue;
+            }
+            boolean active = (current & (1 << bit)) != 0;
+            pushAlarmState(device, alarmCode, active, raw);
         }
-        if ((status & 0x01) != 0) {
-            pushAlarmIfNeeded(device, ALARM_LOW, raw);
+    }
+
+    /**
+     * 表三默认位 + 文档注 1~8 的类型覆盖。
+     */
+    private String[] v3AlarmCodes(int type) {
+        String[] codes = new String[]{
+                ALARM_LOW, ALARM_HIGH, ALARM_LOW_BATTERY, ALARM_SENSOR_FAULT,
+                ALARM_DEVICE_FAULT, ALARM_LOW, ALARM_HIGH, null
+        };
+        switch (type) {
+            // 消火栓
+            case 24:
+                codes[4] = ALARM_DEVICE_FAULT;
+                codes[5] = ALARM_SHOCK;
+                codes[6] = ALARM_TILT;
+                codes[7] = ALARM_WATER_DISCHARGE;
+                break;
+            // 消火栓压力
+            case 34:
+                codes[7] = ALARM_WATER_DISCHARGE;
+                break;
+            // 消火栓闷盖设备
+            case 36:
+                codes[0] = ALARM_LOW;
+                codes[1] = null;
+                codes[5] = ALARM_SHOCK;
+                codes[6] = ALARM_COVER_OPEN;
+                break;
+            // 温度异动设备
+            case 39:
+                codes[5] = ALARM_SHOCK;
+                break;
+            // 井盖液位设备
+            case 40:
+                codes[7] = ALARM_WELL_OPEN;
+                break;
+            // 消火栓流量
+            case 58:
+                codes[5] = ALARM_SHOCK;
+                codes[6] = ALARM_TILT;
+                codes[7] = ALARM_WATER_DISCHARGE;
+                break;
+            // 智能井盖监测终端
+            case 67:
+                codes[0] = ALARM_LOW;
+                codes[1] = null;
+                codes[5] = ALARM_SHOCK;
+                codes[6] = ALARM_TILT;
+                break;
+            // 智能空气质量监测终端
+            case 79:
+            case 96:
+            case 105:
+                codes[2] = ALARM_DEVICE_FAULT;
+                codes[3] = ALARM_SENSOR_FAULT;
+                codes[7] = ALARM_COVER_OPEN;
+                break;
+            default:
+                break;
         }
-        if ((status & 0x02) != 0) {
-            pushAlarmIfNeeded(device, ALARM_HIGH, raw);
+        return codes;
+    }
+
+    private void pushAlarmState(ZaSysDevice device, String alarmCode, boolean active, String raw) {
+        if (device == null) {
+            return;
         }
-        if ((status & 0x04) != 0) {
-            pushAlarmIfNeeded(device, ALARM_LOW_BATTERY, raw);
+        Optional<ZaAlarmType> type = typeMappingService.resolveAlarmType(getPlatform(), alarmCode);
+        if (!type.isPresent()) {
+            log.error("铭控告警类型{}未注册!", alarmCode);
+            return;
         }
-        if ((status & 0x08) != 0) {
-            pushAlarmIfNeeded(device, ALARM_SENSOR_FAULT, raw);
-        }
-        if ((status & 0x10) != 0) {
-            pushAlarmIfNeeded(device, ALARM_DEVICE_FAULT, raw);
-        }
-        if ((status & 0x20) != 0 && type != 24 && type != 58 && type != 39) {
-            pushAlarmIfNeeded(device, ALARM_LOW, raw);
-        }
-        if ((status & 0x40) != 0 && type != 24 && type != 58) {
-            pushAlarmIfNeeded(device, ALARM_HIGH, raw);
-        }
+
+        // TODO 告警产生 & 恢复对应 两个事件
+        String state = active ? AlarmPayload.STATE_ACTIVE : AlarmPayload.STATE_RECOVERED;
+        String desc = type.get().getName() + (active ? " 产生" : " 恢复");
+        MsgProcessContext.addMsg(
+                MessageBuilder.buildAlarm(device, type.get(), desc, "", state)
+        );
+        log.info("铭控设备({})告警{} {}", device.getCode(), alarmCode, state);
     }
 
     private ZaSysDevice syncV3Device(MkV3Msg msg) {
         MkV3Type type = MkV3Type.of(msg.getDeviceType());
         String typeCode = type == null ? DEVICE_TYPE_PRESSURE : type.getTypeCode();
+        String typeName = type == null ? "MK-V3" : type.getName();
         String model = type == null ? "MK-V3" : "MK-" + type.getCode();
         return DeviceUtil.syncDevice(
                 SyncDevice.builder()
@@ -243,8 +335,9 @@ public class MkHandler extends BasePlatformHandler<Object> {
                         .typeCode(typeCode)
                         .model(model)
                         .wireless(Constants.YES)
-                        .name(msg.getDeviceCode())
-                        .remark(JSON.toJSONString(msg))
+                        .online(DictValue.DEVICE_ONLINE)
+                        .name(typeName + "-" + msg.getDeviceCode())
+                        .remark(typeName)
                         .build()
         );
     }
@@ -255,7 +348,6 @@ public class MkHandler extends BasePlatformHandler<Object> {
             return;
         }
         ZaSysDevice device = syncJbDevice(msg);
-//        autoOnline(device);
         String raw = JSON.toJSONString(msg);
         int dataType = msg.getDataType();
         switch (dataType) {
@@ -272,7 +364,6 @@ public class MkHandler extends BasePlatformHandler<Object> {
             case JB_TYPE_PERIOD_CM:
             case JB_TYPE_CHANGE_CM:
                 consumeMsg(MqMessage.createBusiness(device, raw));
-//                pushJbValueAlarmIfNeeded(device, msg, raw);
                 break;
             default:
                 consumeMsg(MqMessage.createBusiness(device, raw));
@@ -313,7 +404,7 @@ public class MkHandler extends BasePlatformHandler<Object> {
         // 同一设备 2小时内不允许出现重复的告警
         if (lastAlarmTime < DateUtil.offsetHour(new Date(), -2).getTime()) {
             alarmTimeMap.put(alarmKey, new Date().getTime());
-            Optional<ZaAlarmType> type = SpringUtils.getBean(TypeMappingService.class).resolveAlarmType(getPlatform(), alarmCode);
+            Optional<ZaAlarmType> type = typeMappingService.resolveAlarmType(getPlatform(), alarmCode);
             if (type.isPresent()) {
                 MsgProcessContext.addMsg(
                         MessageBuilder.buildAlarm(device, type.get(), type.get().getName(), "")
@@ -378,26 +469,39 @@ public class MkHandler extends BasePlatformHandler<Object> {
     }
 
     /**
-     * 超过 60 分钟无报文则离线，由平台定时任务调用 {@link #isAlive()} 巡检
+     * 超过 60 分钟无报文则离线，由平台定时任务调用 {@link #isAlive()} / {@link #syncDeviceStatus()} 巡检
      */
-    private void checkOfflineDevices() {
+    private int checkOfflineDevices() {
         ZaSysDevice query = new ZaSysDevice();
         query.setPfCode(getPlatform());
         query.setOnline(DictValue.DEVICE_ONLINE);
         List<ZaSysDevice> deviceList = deviceService.selectZaSysDeviceList(query);
         if (deviceList == null || deviceList.isEmpty()) {
-            return;
+            return 0;
         }
+        int offlineCount = 0;
         Date now = new Date();
         for (ZaSysDevice device : deviceList) {
-            long lastHeartTime = statusMap.getOrDefault(device.getId(), System.currentTimeMillis());
+            Long lastHeartTime = DeviceUtil.getCommTime(device.getId());
+            if (lastHeartTime == null) {
+                lastHeartTime = statusMap.get(device.getId());
+            }
+            if (lastHeartTime == null) {
+                continue;
+            }
             if (DateUtil.between(now, new Date(lastHeartTime), DateUnit.MINUTE) > 60) {
                 log.info("铭控设备({})超过60分钟无通讯, 标记为离线", device.getCode());
                 device.setOnline(DictValue.DEVICE_OFFLINE);
                 deviceService.updateZaSysDevice(device);
-//                pushState(device, AlarmType.JB_OFFLINE.getCode());
+                if (MsgProcessContext.getProcessInfo() != null) {
+                    MsgProcessContext.addMsg(
+                            MessageBuilder.buildDeviceState(device, DictValue.DEVICE_OFFLINE, "超过60分钟无通讯")
+                    );
+                }
+                offlineCount++;
             }
         }
+        return offlineCount;
     }
 
     private Integer parseInt(String value) {

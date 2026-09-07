@@ -29,8 +29,13 @@ public class AlarmPayload extends  MessagePayload {
      */
     private String name;
 
+    /** 告警产生 */
+    public static final String STATE_ACTIVE = "active";
+    /** 告警恢复 */
+    public static final String STATE_RECOVERED = "recovered";
+
     /**
-     * 告警状态： 产生 active 、 恢复 recovered
+     * 告警状态： 产生 {@link #STATE_ACTIVE} 、 恢复 {@link #STATE_RECOVERED}
      */
     private String state;
 

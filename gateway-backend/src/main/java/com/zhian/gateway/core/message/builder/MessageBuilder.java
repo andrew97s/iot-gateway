@@ -58,16 +58,22 @@ public class MessageBuilder {
     public static Message buildAlarm(
             ZaSysDevice device, ZaAlarmType alarm, String desc, String picUrl
     ) {
+        return buildAlarm(device, alarm, desc, picUrl, AlarmPayload.STATE_ACTIVE);
+    }
+
+    public static Message buildAlarm(
+            ZaSysDevice device, ZaAlarmType alarm, String desc, String picUrl, String state
+    ) {
         Message message = buildBasic(device, MessageConstants.MSG_TYPE_ALARM);
         AlarmPayload payload = new AlarmPayload();
 
-        // 告警
         payload.setTimestamp(System.currentTimeMillis());
         payload.setType(alarm.getType());
         payload.setCode(alarm.getCode());
         payload.setName(alarm.getName());
         payload.setDesc(desc);
         payload.setPicUrl(picUrl);
+        payload.setState(StrUtil.isBlank(state) ? AlarmPayload.STATE_ACTIVE : state);
         message.setPayload(payload);
 
         return message;
@@ -114,17 +120,25 @@ public class MessageBuilder {
     }
 
     public static TelemetryPayload.Telemetry builderTelemetry(ZaMonitorType monitorType, String value, String desc) {
+        return builderTelemetry(monitorType, value, desc, 1, null, null, null);
+    }
+
+    public static TelemetryPayload.Telemetry builderTelemetry(
+            ZaMonitorType monitorType, String value, String desc,
+            int channel, String thresholdLow, String thresholdHigh, String unit
+    ) {
         if (monitorType == null) {
             return null;
         }
 
-        // 监测值
         TelemetryPayload.Telemetry.TelemetryBuilder builder = TelemetryPayload.Telemetry.builder();
-
         builder.code(monitorType.getCode());
         builder.name(monitorType.getName());
         builder.value(value);
-        builder.unit(monitorType.getUnit());
+        builder.unit(StrUtil.isNotBlank(unit) ? unit : monitorType.getUnit());
+        builder.channel(channel);
+        builder.thresholdLow(thresholdLow);
+        builder.thresholdHigh(thresholdHigh);
         builder.timestamp(System.currentTimeMillis());
         builder.desc(StrUtil.isNotBlank(desc) ? desc : monitorType.getName());
 
