@@ -1,6 +1,7 @@
 package com.zhian.gateway.third.common;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
@@ -127,7 +128,7 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
             return "插件已停止";
         }
         return lastActivityTime > 0
-                ? "接收端正常，最近通信时间 " + new Date(lastActivityTime)
+                ? "接收端正常，最近通信时间 " + DateUtil.formatTime(new Date(lastActivityTime))
                 : "接收端已就绪，等待厂商消息";
     }
 
@@ -193,6 +194,10 @@ public abstract class BasePlatformHandler<T> implements ThirdHandler {
      */
     protected void convertAndPush(ProcessInfo info) {
         List<Message> msgList = info.getMsgList();
+
+        if (CollUtil.isEmpty(msgList)) {
+            return;
+        }
 
         // 统一消息
         String unifiedJson = JSON.toJSONString(msgList.size() == 1 ? msgList.get(0) : msgList);

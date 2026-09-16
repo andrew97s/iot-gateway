@@ -487,8 +487,8 @@
             <groupId>com.hikvision.ga</groupId>
             <artifactId>artemis-http-client</artifactId>
             <version>1.1.12.RELEASE</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/java/artemis-http-client-1.1.12.RELEASE.jar</systemPath>
+<!--            <scope>system</scope>-->
+<!--            <systemPath>${project.basedir}/lib/java/artemis-http-client-1.1.12.RELEASE.jar</systemPath>-->
         </dependency>
 
         <!-- 大华 SDK -->
@@ -542,7 +542,9 @@
                 </configuration>
             </plugin>
 
-            <!-- Spring Boot 打包插件 -->
+            <!-- Spring Boot 打包插件。
+                 本工程未继承 spring-boot-starter-parent，必须显式绑定 repackage，
+                 否则 package 只生成普通 jar，MANIFEST 没有 Main-Class，java -jar 会报“没有主清单属性”。 -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -550,6 +552,14 @@
                 <configuration>
                     <mainClass>com.zhian.ZhianApplication</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>repackage</id>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

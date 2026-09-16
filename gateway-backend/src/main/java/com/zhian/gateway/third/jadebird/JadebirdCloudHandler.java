@@ -149,7 +149,7 @@ public class JadebirdCloudHandler extends BasePlatformHandler {
 
         HashMap<String, Object> params = new HashMap<>();
         params.put("pageNum", currentPage);
-        params.put("pageSize", 1000);
+        params.put("pageSize", 400);
         JSONObject result = JB_API.get(JBApiUtil.AuthType.TOKEN, "/api/facilities/list", params);
 
         if (result != null && result.getInteger("code") == 1) {

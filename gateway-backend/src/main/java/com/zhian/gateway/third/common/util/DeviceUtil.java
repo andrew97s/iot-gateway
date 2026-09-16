@@ -48,6 +48,7 @@ public class DeviceUtil {
                     syncDevice.getName() != null && (device.getName() == null ||
                             !device.getName().equalsIgnoreCase(syncDevice.getName()))
             ) {
+                log.debug("设备名称发生变更");
                 device.setName(syncDevice.getName());
                 updated = true;
             }
@@ -57,14 +58,6 @@ public class DeviceUtil {
                             !device.getIp().equalsIgnoreCase(syncDevice.getIp()))
             ) {
                 device.setIp(syncDevice.getIp());
-                updated = true;
-            }
-            // 设备备注
-            if (
-                    syncDevice.getRemark() != null && (device.getRemark() == null ||
-                            !device.getRemark().equalsIgnoreCase(syncDevice.getRemark()))
-            ) {
-                device.setRemark(syncDevice.getRemark());
                 updated = true;
             }
             // 设备业务ID

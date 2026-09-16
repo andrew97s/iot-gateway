@@ -28,11 +28,11 @@ import com.zhian.gateway.third.others.mk.vo.MkV3Msg;
 import com.zhian.gateway.third.others.mk.constants.MkV3Type;
 import com.zhian.gateway.third.others.mk.vo.MkV3Value;
 import com.zhian.gateway.third.vo.ControlVo;
-import com.zhian.gateway.third.vo.MqMessage;
 import com.zhian.gateway.third.others.mk.vo.MkJBMsg;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -54,6 +54,14 @@ public class MkHandler extends BasePlatformHandler<Object> {
     private final HashMap<String, Long> alarmTimeMap = new HashMap<>();
     /** 设备最近一次报警状态字节，用于边沿检测产生 / 恢复 */
     private final Map<String, Integer> alarmStatusMap = new ConcurrentHashMap<>();
+    /** 青鸟定制：低/高/欠压/故障/水泵运行 标志，用于产生 / 恢复 */
+    private final Map<String, Integer> jbAlarmFlags = new ConcurrentHashMap<>();
+
+    private static final int JB_FLAG_LOW = 1;
+    private static final int JB_FLAG_HIGH = 2;
+    private static final int JB_FLAG_BATTERY = 4;
+    private static final int JB_FLAG_FAULT = 8;
+    private static final int JB_FLAG_PUMP = 16;
 
     @Override
     public boolean start(ZaSysPlatform platform) {
@@ -76,11 +84,17 @@ public class MkHandler extends BasePlatformHandler<Object> {
 
     @Override
     public boolean isAlive() {
-        if (!MkServer.isActive()) {
-            return false;
+        return MkServer.isActive();
+    }
+
+    @Override
+    public String getConnectionInfo() {
+        if (!isAlive()) {
+            return "插件已停止";
         }
-        checkOfflineDevices();
-        return true;
+        return lastActivityTime > 0
+                ? "接收端(TCP服务9210)正常，最近通信时间 " + DateUtil.formatTime(new Date(lastActivityTime))
+                : "接收端已就绪，等待厂商消息";
     }
 
     @Override
@@ -347,52 +361,156 @@ public class MkHandler extends BasePlatformHandler<Object> {
             log.info("收到铭控青鸟协议设备应答, code={}", msg.getCode());
             return;
         }
+        refineJbKind(msg);
         ZaSysDevice device = syncJbDevice(msg);
-        String raw = JSON.toJSONString(msg);
-        int dataType = msg.getDataType();
-        switch (dataType) {
-            case JB_TYPE_HEARTBEAT:
-                break;
-            case JB_TYPE_LOW_BATTERY:
-                pushAlarmIfNeeded(device, ALARM_LOW_BATTERY, raw);
-                break;
-            case JB_TYPE_FAULT:
-                pushAlarmIfNeeded(device, ALARM_DEVICE_FAULT, raw);
-                break;
-            case JB_TYPE_PERIOD:
-            case JB_TYPE_CHANGE:
-            case JB_TYPE_PERIOD_CM:
-            case JB_TYPE_CHANGE_CM:
-                consumeMsg(MqMessage.createBusiness(device, raw));
-                break;
-            default:
-                consumeMsg(MqMessage.createBusiness(device, raw));
+        MessageUtil.setDevice(device);
+        if (MsgProcessContext.getProcessInfo() != null) {
+            MsgProcessContext.getProcessInfo().setDevice(device);
+        }
+        if (device.getId() != null) {
+            statusMap.put(device.getId(), System.currentTimeMillis());
+        }
+        extractJbTelemetry(device, msg);
+        extractJbAlarms(device, msg);
+    }
+
+    /**
+     * 类型 1/2 压力与液位（毫米）帧格式相同，已入库的液位设备按液位解析。
+     */
+    private void refineJbKind(MkJBMsg msg) {
+        if (KIND_PUMP.equals(msg.getKind()) || KIND_LEVEL.equals(msg.getKind())) {
+            return;
+        }
+        ZaSysDevice existing = deviceService.selectZaSysDeviceByCode(msg.getCode(), null);
+        if (existing == null) {
+            return;
+        }
+        if (DEVICE_TYPE_LEVEL.equals(existing.getType()) || "LLOWT".equals(existing.getType())) {
+            msg.setKind(KIND_LEVEL);
+            if (!"cm".equalsIgnoreCase(msg.getUnit())) {
+                msg.setUnit("mm");
+            }
+        } else if (DEVICE_TYPE_PUMP.equals(existing.getType()) || "FIREP".equals(existing.getType())) {
+            msg.setKind(KIND_PUMP);
+            msg.setUnit("status");
         }
     }
 
-    private void pushJbValueAlarmIfNeeded(ZaSysDevice device, MkJBMsg msg, String raw) {
+    private void extractJbTelemetry(ZaSysDevice device, MkJBMsg msg) {
+        List<TelemetryPayload.Telemetry> telemetries = new ArrayList<>();
+        // 水泵
         if (KIND_PUMP.equals(msg.getKind())) {
-            if (msg.getDataType() == JB_TYPE_CHANGE) {
-                pushAlarmIfNeeded(device, "1".equals(msg.getValue()) ? ALARM_PUMP_ON : ALARM_PUMP_OFF, raw);
-            }
+            addTelemetry(telemetries, "switch", msg.getValue(), "水泵状态", 1, null, null, "");
+        }
+        // 液位
+        else if (KIND_LEVEL.equals(msg.getKind())) {
+            String valueM = toMeter(msg.getValue(), msg.getUnit());
+            String highM = toMeter(msg.getThresholdHigh(), "mm");
+            String lowM = toMeter(msg.getThresholdLow(), "mm");
+            addTelemetry(telemetries, "level_m", valueM, "液位", 1, lowM, highM, "m");
+        }
+        // 压力
+        else if (StrUtil.isNotBlank(msg.getValue())) {
+            addTelemetry(
+                    telemetries, "pressure_kpa", msg.getValue(), "压力", 1,
+                    msg.getThresholdLow(), msg.getThresholdHigh(), "kPa"
+            );
+        }
+        if (telemetries.isEmpty()) {
             return;
         }
-        Integer value = parseInt(msg.getValue());
+        Message message = MessageBuilder.buildTelemetry(device, telemetries);
+        if (msg.getTimestamp() > 0) {
+            message.setTimestamp(msg.getTimestamp());
+            for (TelemetryPayload.Telemetry telemetry : telemetries) {
+                telemetry.setTimestamp(msg.getTimestamp());
+            }
+        }
+        MsgProcessContext.addMsg(message);
+    }
+
+    /**
+     * 按数据类型和阈值比较做边沿检测：产生 / 恢复。
+     */
+    private void extractJbAlarms(ZaSysDevice device, MkJBMsg msg) {
+        int current = buildJbAlarmFlags(msg);
+        int previous = jbAlarmFlags.getOrDefault(device.getCode(), 0);
+        jbAlarmFlags.put(device.getCode(), current);
+        int changed = previous ^ current;
+        if (changed == 0) {
+            return;
+        }
+        pushFlag(device, changed, current, JB_FLAG_LOW, ALARM_LOW);
+        pushFlag(device, changed, current, JB_FLAG_HIGH, ALARM_HIGH);
+        pushFlag(device, changed, current, JB_FLAG_BATTERY, ALARM_LOW_BATTERY);
+        pushFlag(device, changed, current, JB_FLAG_FAULT, ALARM_DEVICE_FAULT);
+        if ((changed & JB_FLAG_PUMP) != 0) {
+            boolean on = (current & JB_FLAG_PUMP) != 0;
+            pushAlarmState(device, on ? ALARM_PUMP_ON : ALARM_PUMP_OFF, true, null);
+            pushAlarmState(device, on ? ALARM_PUMP_OFF : ALARM_PUMP_ON, false, null);
+        }
+    }
+
+    private int buildJbAlarmFlags(MkJBMsg msg) {
+        int flags = 0;
+        int dataType = msg.getDataType();
+        if (dataType == JB_TYPE_LOW_BATTERY) {
+            flags |= JB_FLAG_BATTERY;
+        }
+        if (dataType == JB_TYPE_FAULT) {
+            flags |= JB_FLAG_FAULT;
+        }
+        if (KIND_PUMP.equals(msg.getKind())) {
+            if ("1".equals(msg.getValue())) {
+                flags |= JB_FLAG_PUMP;
+            }
+            return flags;
+        }
+        Integer value = toCompareMmOrKpa(msg.getValue(), msg.getUnit());
         Integer high = parseInt(msg.getThresholdHigh());
         Integer low = parseInt(msg.getThresholdLow());
-        if (value == null) {
+        if (value != null && high != null && high > 0 && value > high) {
+            flags |= JB_FLAG_HIGH;
+        }
+        if (value != null && low != null && value < low) {
+            flags |= JB_FLAG_LOW;
+        }
+        return flags;
+    }
+
+    private void pushFlag(ZaSysDevice device, int changed, int current, int flag, String alarmCode) {
+        if ((changed & flag) == 0) {
             return;
         }
-        // 液位类型 5/6 当前值为厘米，阈值仍为毫米
-        if ("cm".equalsIgnoreCase(msg.getUnit())) {
-            value = value * 10;
+        pushAlarmState(device, alarmCode, (current & flag) != 0, null);
+    }
+
+    /** 液位类型 5/6 当前值为厘米，阈值仍为毫米，比较前统一到毫米。 */
+    private Integer toCompareMmOrKpa(String value, String unit) {
+        Integer raw = parseInt(value);
+        if (raw == null) {
+            return null;
         }
-//        if (high != null && high > 0 && value > high) {
-//            pushAlarmIfNeeded(device, ALARM_HIGH, raw);
-//        }
-//        if (low != null && value < low) {
-//            pushAlarmIfNeeded(device, ALARM_LOW, raw);
-//        }
+        if ("cm".equalsIgnoreCase(unit)) {
+            return raw * 10;
+        }
+        return raw;
+    }
+
+    private String toMeter(String value, String unit) {
+        Integer raw = parseInt(value);
+        if (raw == null) {
+            return value;
+        }
+        double meter;
+        if ("cm".equalsIgnoreCase(unit)) {
+            meter = raw / 100.0;
+        } else if ("mm".equalsIgnoreCase(unit)) {
+            meter = raw / 1000.0;
+        } else {
+            meter = raw / 1000.0;
+        }
+        return BigDecimal.valueOf(meter).stripTrailingZeros().toPlainString();
     }
 
     private void pushAlarmIfNeeded(ZaSysDevice device, String alarmCode, String raw) {
@@ -419,16 +537,21 @@ public class MkHandler extends BasePlatformHandler<Object> {
 
 
     private ZaSysDevice syncJbDevice(MkJBMsg msg) {
+        String typeCode = resolveJbType(msg);
+        String kindName = jbKindName(msg.getKind());
+        String model = "MK-JB-" + (StrUtil.isBlank(msg.getKind()) ? "P" : msg.getKind());
+        String remark = StrUtil.blankToDefault(msg.getIccid(), kindName);
         return DeviceUtil.syncDevice(
                 SyncDevice.builder()
                         .code(msg.getCode())
                         .pfCode(CODE)
                         .ip(msg.getSourceIp())
-                        .typeCode("4GWMETER")
-                        .model("JBF-VS31C")
+                        .typeCode(typeCode)
+                        .model(model)
                         .wireless(Constants.YES)
-                        .name(msg.getCode())
-                        .remark(JSON.toJSONString(msg))
+                        .online(DictValue.DEVICE_ONLINE)
+                        .name(kindName + "-" + msg.getCode())
+                        .remark(remark)
                         .build()
         );
     }
@@ -441,6 +564,16 @@ public class MkHandler extends BasePlatformHandler<Object> {
             return DEVICE_TYPE_LEVEL;
         }
         return DEVICE_TYPE_PRESSURE;
+    }
+
+    private String jbKindName(String kind) {
+        if (KIND_PUMP.equals(kind)) {
+            return "水泵";
+        }
+        if (KIND_LEVEL.equals(kind)) {
+            return "液位";
+        }
+        return "压力";
     }
 
 
@@ -481,6 +614,8 @@ public class MkHandler extends BasePlatformHandler<Object> {
         }
         int offlineCount = 0;
         Date now = new Date();
+        Integer heartTimeout = platform.getConfigInt("heartTimeout");
+        heartTimeout = heartTimeout == null ? 24 : heartTimeout;
         for (ZaSysDevice device : deviceList) {
             Long lastHeartTime = DeviceUtil.getCommTime(device.getId());
             if (lastHeartTime == null) {
@@ -489,8 +624,8 @@ public class MkHandler extends BasePlatformHandler<Object> {
             if (lastHeartTime == null) {
                 continue;
             }
-            if (DateUtil.between(now, new Date(lastHeartTime), DateUnit.MINUTE) > 60) {
-                log.info("铭控设备({})超过60分钟无通讯, 标记为离线", device.getCode());
+            if (DateUtil.between(now, new Date(lastHeartTime), DateUnit.HOUR) > heartTimeout) {
+                log.info("铭控设备({})超过{}小时无通讯, 标记为离线", device.getCode() ,heartTimeout);
                 device.setOnline(DictValue.DEVICE_OFFLINE);
                 deviceService.updateZaSysDevice(device);
                 if (MsgProcessContext.getProcessInfo() != null) {
