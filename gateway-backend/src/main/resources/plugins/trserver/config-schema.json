@@ -1,0 +1,7 @@
+[
+  {"code": "username", "name": "账号","desc" : "MQ账号" , "type": "string", "required": true,"defaultValue":"admin"},
+  {"code": "password", "name": "密码","desc" : "MQ密码" , "type": "string", "required": true,"defaultValue":"Pa33w0rd"},
+  {"code": "ip", "name": "MQ IP", "desc" : "MQ IP地址" ,"type": "string", "required": true,"defaultValue":"127.0.0.1"},
+  {"code": "port", "name": "MQ 端口","desc" : "MQ 端口" , "type": "integer", "required": true,"defaultValue":5672},
+  {"code": "useMQ", "name": "是否使用MQ同步","desc" : "不使用MQ 默认使用http 推送" , "type": "boolean", "required": true,"defaultValue":true}
+]

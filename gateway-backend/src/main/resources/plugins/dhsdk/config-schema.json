@@ -1,0 +1,6 @@
+[
+  {"code": "username", "name": "用户名", "type": "string", "required": true, "defaultValue": "admin"},
+  {"code": "password", "name": "密码", "type": "password", "required": true},
+  {"code": "autoRestart", "name": "异常自动重启", "type": "boolean", "defaultValue": true},
+  {"code": "maxRestart", "name": "最大重启次数", "type": "integer", "defaultValue": 5}
+]

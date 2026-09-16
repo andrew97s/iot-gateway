@@ -1,0 +1,7 @@
+id: roc
+name: 青鸟轻量化网关插件
+vendor: Jadebird
+protocol: ROC HTTP
+version: 1.1.0
+capabilities: [alarm, monitor, device]
+description: 青鸟 ROC 轻量化网关接入

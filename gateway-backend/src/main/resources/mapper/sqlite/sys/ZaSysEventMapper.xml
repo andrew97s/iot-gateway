@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhian.gateway.sys.mapper.ZaSysEventMapper">
+    
+    <resultMap type="ZaSysEvent" id="ZaSysEventResult">
+        <result property="id"    column="id"    />
+        <result property="bigType"    column="big_type"    />
+        <result property="alarmType"    column="alarm_type"    />
+        <result property="sourceCode"    column="source_code"    />
+        <result property="vendorCode"    column="vendor_code"    />
+        <result property="comment"    column="comment"    />
+        <result property="wsOption"    column="ws_option"    />
+        <result property="alarmState"    column="alarm_state"    />
+        <result property="switchState"    column="switch_state"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectZaSysEventVo">
+        select id, alarm_type, substring(alarm_type,1,4) big_type, source_code, vendor_code, comment, ws_option, alarm_state, switch_state, create_by, create_time, update_by, update_time from za_sys_event t
+    </sql>
+
+    <select id="selectZaSysEventList" parameterType="ZaSysEvent" resultMap="ZaSysEventResult">
+        <include refid="selectZaSysEventVo"/>
+        <where>  
+            <if test="bigType != null  and bigType != ''"> and t.alarm_type like concat(#{bigType} || '%' )</if>
+            <if test="alarmType != null  and alarmType != ''"> and t.alarm_type = #{alarmType}</if>
+            <if test="sourceCode != null  and sourceCode != ''"> and t.source_code = #{sourceCode}</if>
+            <if test="vendorCode != null  and vendorCode != ''"> and t.vendor_code = #{vendorCode}</if>
+            <if test="comment != null  and comment != ''"> and t.comment like ('%' ||  #{comment} || '%' )</if>
+            <if test="wsOption != null  and wsOption != ''"> and t.ws_option = #{wsOption}</if>
+            <if test="alarmState != null  and alarmState != ''"> and t.alarm_state = #{alarmState}</if>
+            <if test="switchState != null  and switchState != ''"> and t.switch_state = #{switchState}</if>
+        </where>
+    </select>
+    
+    <select id="selectZaSysEventById" parameterType="Long" resultMap="ZaSysEventResult">
+        <include refid="selectZaSysEventVo"/>
+        where t.id = #{id}
+    </select>
+        
+    <insert id="insertZaSysEvent" parameterType="ZaSysEvent">
+        insert into za_sys_event
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="alarmType != null and alarmType != ''">alarm_type,</if>
+            <if test="sourceCode != null and sourceCode != ''">source_code,</if>
+            <if test="vendorCode != null and vendorCode != ''">vendor_code,</if>
+            <if test="comment != null and comment != ''">comment,</if>
+            <if test="wsOption != null and wsOption != ''">ws_option,</if>
+            <if test="alarmState != null and alarmState != ''">alarm_state,</if>
+            <if test="switchState != null and switchState != ''">switch_state,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="alarmType != null and alarmType != ''">#{alarmType},</if>
+            <if test="sourceCode != null and sourceCode != ''">#{sourceCode},</if>
+            <if test="vendorCode != null and vendorCode != ''">#{vendorCode},</if>
+            <if test="comment != null and comment != ''">#{comment},</if>
+            <if test="wsOption != null and wsOption != ''">#{wsOption},</if>
+            <if test="alarmState != null and alarmState != ''">#{alarmState},</if>
+            <if test="switchState != null and switchState != ''">#{switchState},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateZaSysEvent" parameterType="ZaSysEvent">
+        update za_sys_event
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="alarmType != null and alarmType != ''">alarm_type = #{alarmType},</if>
+            <if test="sourceCode != null and sourceCode != ''">source_code = #{sourceCode},</if>
+            <if test="vendorCode != null and vendorCode != ''">vendor_code = #{vendorCode},</if>
+            <if test="comment != null and comment != ''">comment = #{comment},</if>
+            <if test="wsOption != null and wsOption != ''">ws_option = #{wsOption},</if>
+            <if test="alarmState != null and alarmState != ''">alarm_state = #{alarmState},</if>
+            <if test="switchState != null and switchState != ''">switch_state = #{switchState},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteZaSysEventById" parameterType="Long">
+        delete from za_sys_event where id = #{id}
+    </delete>
+
+    <delete id="deleteZaSysEventByIds" parameterType="String">
+        delete from za_sys_event where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="purge">
+        delete from za_sys_event
+    </delete>
+</mapper>

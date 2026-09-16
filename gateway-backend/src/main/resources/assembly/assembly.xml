@@ -1,0 +1,42 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+    <id>with-assembly</id>
+    <formats>
+        <format>jar</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <baseDirectory>./</baseDirectory>
+
+    <!--项目依赖的模块解压到 spring boot 指定类目录下 来构成一个jar包下的classpath-->
+    <dependencySets>
+        <dependencySet>
+            <includes>
+                <include>com.zhian:zhian-business</include>
+                <include>com.zhian:zhian-common</include>
+                <include>com.zhian:zhian-framework</include>
+                <include>com.zhian:zhian-generator</include>
+                <include>com.zhian:zhian-system</include>
+                <include>com.zhian:zhian-third</include>
+            </includes>
+            <unpack>true</unpack>
+            <!--直接输出到当前jar包根目录 ，
+            解决第三方classLoader尝试加载当前模块class 文件导致的classNotFoundException-->
+            <outputDirectory>./</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <!--使用传递依赖 f-->
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+        </dependencySet>
+
+        <!--将当前模块 spring boot jar包 解压到 jar根目录-->
+        <dependencySet>
+            <includes>
+                <include>com.zhian:zhian-admin</include>
+            </includes>
+            <unpack>true</unpack>
+            <outputDirectory>./</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+        </dependencySet>
+    </dependencySets>
+</assembly>

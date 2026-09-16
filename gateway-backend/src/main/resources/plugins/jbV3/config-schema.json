@@ -1,0 +1,6 @@
+[
+  {"code": "host", "name": "主机地址", "type": "string", "required": false,"defaultValue":"http://fire.jbufacloud.com"},
+  {"code": "salt", "name": "Salt", "type": "string", "required": false,"defaultValue":""},
+  {"code": "appKey", "name": "App key", "type": "string", "required": true,"defaultValue":""},
+  {"code": "appSecret", "name": "App Secret", "type": "string", "required": true,"defaultValue":""}
+]
