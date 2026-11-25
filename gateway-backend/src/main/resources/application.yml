@@ -50,8 +50,10 @@ websocket:
   bossLoopGroupThreads: 1
   workerLoopGroupThreads: 5
 
-# 日志配置
+# 日志配置。file.path 会写入 LOG_PATH，logback 与历史日志页面都读这个目录。
 logging:
+  file:
+    path: logs
   level:
     com.zhian: debug
     org.springframework: warn

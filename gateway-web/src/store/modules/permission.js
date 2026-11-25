@@ -44,6 +44,7 @@ const usePermissionStore = defineStore('permission', {
           asyncRoutes.forEach((route) => {
             router.addRoute(route)
           })
+          appendOpsLogRoutes(sidebarRoutes, rewriteRoutes)
           this.setRoutes(rewriteRoutes)
           this.setSidebarRouters(constantRoutes.concat(sidebarRoutes))
           this.setDefaultRoutes(sidebarRoutes)
@@ -122,6 +123,49 @@ export function filterDynamicRoutes(routes) {
     }
   })
   return res
+}
+
+/** 菜单脚本还没执行时，管理员也能从侧栏进入历史日志 / 实时日志。 */
+function hasOpsLogMenu(routes) {
+  return (routes || []).some((route) => {
+    const title = route.meta && route.meta.title
+    if (title === '历史日志' || title === '实时日志') {
+      return true
+    }
+    return hasOpsLogMenu(route.children)
+  })
+}
+
+function appendOpsLogRoutes(sidebarRoutes, rewriteRoutes) {
+  if (hasOpsLogMenu(sidebarRoutes) || hasOpsLogMenu(rewriteRoutes)) {
+    return
+  }
+  if (!auth.hasPermi('monitor:logfile:list') && !auth.hasRole('admin')) {
+    return
+  }
+  const route = {
+    path: '/ops',
+    component: Layout,
+    redirect: '/ops/history',
+    alwaysShow: true,
+    meta: { title: '运维中心', icon: 'monitor' },
+    children: [
+      {
+        path: 'history',
+        component: () => import('@/views/monitor/logfile/history.vue'),
+        name: 'HistoryLog',
+        meta: { title: '历史日志', icon: 'log' }
+      },
+      {
+        path: 'realtime',
+        component: () => import('@/views/monitor/logfile/realtime.vue'),
+        name: 'RealtimeLog',
+        meta: { title: '实时日志', icon: 'online' }
+      }
+    ]
+  }
+  sidebarRoutes.push(route)
+  rewriteRoutes.push(route)
 }
 
 export const loadView = (view) => {
