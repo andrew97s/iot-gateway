@@ -1,0 +1,84 @@
+# 项目相关配置 - 嵌入式单机部署模式
+zhian:
+  basic:
+    path: /home/zhian/gateway
+  # 消息环境
+  message:
+    env:
+  server:
+    port: 9200
+  # redis相关配置
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    database: 8
+  # 嵌入式模式降低 Disruptor 线程数以节省资源
+  disruptor:
+    threads: 3
+    bufferSize: 65536
+
+spring:
+  # 懒加载：大幅减少启动时间，按需加载 Bean
+  main:
+    lazy-initialization: true
+  web:
+    resources:
+      static-locations: file:/userdata/zhian/gateway/web
+  # 数据源配置 - 使用 SQLite 嵌入式数据库
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: org.sqlite.JDBC
+    druid:
+      # 主库数据源
+      master:
+        url: jdbc:sqlite:file:./db/gateway.sqlite?journal_mode=WAL&busy_timeout=30000
+      # 配置检测连接是否有效
+      validationQuery: select 1
+      # 嵌入式模式使用单连接，降低内存占用
+      min-idle: 1
+      max-active: 3
+      initial-size: 1
+  # 关闭热部署，减少资源占用
+  devtools:
+    restart:
+      enabled: false
+  # 关闭 JMX，减少内存占用
+  jmx:
+    enabled: false
+
+# MyBatis配置
+mybatis-plus:
+  # 搜索指定包别名
+  typeAliasesPackage: com.zhian.**.domain
+  # 配置mapper的扫描，找到所有的mapper.xml映射文件
+  mapperLocations: classpath*:mapper/sqlite/**/*Mapper.xml
+  # 加载全局的配置文件
+  configLocation: classpath:mybatis/mybatis-config.xml
+
+license:
+  subject: ccx-models
+  publicAlias: publicCert
+  storePass: public_Pa33w0rd2024
+  licensePath: /home/zhian/app/license/license.lic
+  publicKeysStorePath: /home/zhian/app/license/publicCerts.keystore
+
+logging:
+  level:
+    com.zhian: info
+    org.springframework: warn
+    # 嵌入式模式减少 Druid 日志噪音
+    com.alibaba.druid: warn
+
+server:
+  # 嵌入式模式大幅减少 Tomcat 线程数（默认 100 min + 800 max 太大）
+  tomcat:
+    threads:
+      min-spare: 2
+      max: 30
+    accept-count: 50
+  # 关闭 Actuator 不必要端点以减少内存
+  shutdown: graceful
+
+# PageHelper 方言切换为 sqlite
+pagehelper:
+  helperDialect: sqlite

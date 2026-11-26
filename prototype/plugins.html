@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>插件管理 · 物联网网关</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo"><span class="logo-mark">G</span>物联网关 IoT-GW</div>
+  <nav>
+    <a href="index.html"><span class="ico">◧</span>首页概览</a>
+    <a href="devices.html"><span class="ico">▤</span>设备管理</a>
+    <a href="plugins.html" class="active"><span class="ico">⬡</span>插件管理</a>
+    <a href="messages.html"><span class="ico">☰</span>消息日志</a>
+    <a href="settings.html"><span class="ico">⚙</span>系统配置</a>
+  </nav>
+  <div class="sys-status">
+    <div><span class="dot">●</span>网关运行中 · 已运行 36 天 4 小时</div>
+    <div class="mt8">GW-0001 · v2.4.1 · 192.168.1.100</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h1>插件管理</h1>
+    <div class="meta">
+      <span>运行中 4 · 已停止 1 · 异常 1</span>
+      <button class="btn primary sm">＋ 安装插件包</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="card">
+      <div class="card-body filter-bar">
+        <input type="text" placeholder="插件名称 / 厂商" style="width:200px">
+        <select><option>全部状态</option><option>运行中</option><option>已停止</option><option>异常</option></select>
+        <select><option>全部协议</option><option>SDK/ISAPI</option><option>Modbus</option><option>MQTT</option><option>GB/T 28181</option><option>ONVIF</option></select>
+        <button class="btn primary">查询</button>
+        <div class="spacer"></div>
+        <span class="muted small">插件为厂商接入的最小单元，同一插件可创建多个实例；启停/改配置均动态生效，不影响其他插件</span>
+      </div>
+    </div>
+
+    <div class="plugin-grid">
+
+      <!-- 海康 -->
+      <div class="plugin-card">
+        <div class="pc-head">
+          <div class="pc-ico" style="background:linear-gradient(135deg,#dc2626,#f97316)">HK</div>
+          <div style="flex:1">
+            <div class="flex" style="justify-content:space-between">
+              <b>海康威视接入插件</b><span class="badge ok">运行中</span>
+            </div>
+            <div class="muted small mt8">
+              <span class="tag">ISAPI/SDK</span> <span class="tag">v1.2.0</span> · 实例 hik-01 · 能力：告警 / 监测 / 设备 / 反控
+            </div>
+          </div>
+        </div>
+        <div class="pc-stats">
+          <div><div class="v">512</div><div class="k">接入设备</div></div>
+          <div><div class="v">9,842</div><div class="k">今日消息</div></div>
+          <div><div class="v" style="color:var(--success)">0</div><div class="k">转换失败</div></div>
+        </div>
+        <div class="pc-foot">
+          <button class="btn sm" onclick="openDrawer('drawer-log')">日志 / 统计</button>
+          <button class="btn sm" onclick="openModal('modal-cfg')">配置</button>
+          <button class="btn sm danger">停止</button>
+        </div>
+      </div>
+
+      <!-- 大华 -->
+      <div class="plugin-card">
+        <div class="pc-head">
+          <div class="pc-ico" style="background:linear-gradient(135deg,#2563eb,#06b6d4)">DH</div>
+          <div style="flex:1">
+            <div class="flex" style="justify-content:space-between">
+              <b>大华接入插件</b><span class="badge ok">运行中</span>
+            </div>
+            <div class="muted small mt8">
+              <span class="tag">SDK</span> <span class="tag">v2.0.3</span> · 实例 dh-01 · 能力：告警 / 监测 / 设备 / 反控
+            </div>
+          </div>
+        </div>
+        <div class="pc-stats">
+          <div><div class="v">386</div><div class="k">接入设备</div></div>
+          <div><div class="v">7,120</div><div class="k">今日消息</div></div>
+          <div><div class="v" style="color:var(--success)">2</div><div class="k">转换失败</div></div>
+        </div>
+        <div class="pc-foot">
+          <button class="btn sm" onclick="openDrawer('drawer-log')">日志 / 统计</button>
+          <button class="btn sm" onclick="openModal('modal-cfg')">配置</button>
+          <button class="btn sm danger">停止</button>
+        </div>
+      </div>
+
+      <!-- Modbus -->
+      <div class="plugin-card">
+        <div class="pc-head">
+          <div class="pc-ico" style="background:linear-gradient(135deg,#16a34a,#84cc16)">MB</div>
+          <div style="flex:1">
+            <div class="flex" style="justify-content:space-between">
+              <b>Modbus 采集插件</b><span class="badge ok">运行中</span>
+            </div>
+            <div class="muted small mt8">
+              <span class="tag">Modbus TCP/RTU</span> <span class="tag">v1.5.1</span> · 实例 mb-01 · 能力：监测 / 告警 / 反控
+            </div>
+          </div>
+        </div>
+        <div class="pc-stats">
+          <div><div class="v">264</div><div class="k">接入设备</div></div>
+          <div><div class="v">5,368</div><div class="k">今日消息</div></div>
+          <div><div class="v" style="color:var(--success)">0</div><div class="k">转换失败</div></div>
+        </div>
+        <div class="pc-foot">
+          <button class="btn sm" onclick="openDrawer('drawer-log')">日志 / 统计</button>
+          <button class="btn sm" onclick="openModal('modal-cfg')">配置</button>
+          <button class="btn sm danger">停止</button>
+        </div>
+      </div>
+
+      <!-- MQTT -->
+      <div class="plugin-card">
+        <div class="pc-head">
+          <div class="pc-ico" style="background:linear-gradient(135deg,#7c3aed,#c084fc)">MQ</div>
+          <div style="flex:1">
+            <div class="flex" style="justify-content:space-between">
+              <b>通用 MQTT 接入插件</b><span class="badge ok">运行中</span>
+            </div>
+            <div class="muted small mt8">
+              <span class="tag">MQTT 3.1.1/5.0</span> <span class="tag">v1.0.8</span> · 实例 mqtt-01 · 能力：监测 / 告警 / 设备
+            </div>
+          </div>
+        </div>
+        <div class="pc-stats">
+          <div><div class="v">98</div><div class="k">接入设备</div></div>
+          <div><div class="v">1,876</div><div class="k">今日消息</div></div>
+          <div><div class="v" style="color:var(--success)">0</div><div class="k">转换失败</div></div>
+        </div>
+        <div class="pc-foot">
+          <button class="btn sm" onclick="openDrawer('drawer-log')">日志 / 统计</button>
+          <button class="btn sm" onclick="openModal('modal-cfg')">配置</button>
+          <button class="btn sm danger">停止</button>
+        </div>
+      </div>
+
+      <!-- 宇视（停止） -->
+      <div class="plugin-card" style="opacity:.85">
+        <div class="pc-head">
+          <div class="pc-ico" style="background:linear-gradient(135deg,#64748b,#94a3b8)">UV</div>
+          <div style="flex:1">
+            <div class="flex" style="justify-content:space-between">
+              <b>宇视接入插件</b><span class="badge off">已停止</span>
+            </div>
+            <div class="muted small mt8">
+              <span class="tag">ONVIF</span> <span class="tag">v0.9.2</span> · 实例 uv-01 · 能力：监测 / 设备
+            </div>
+          </div>
+        </div>
+        <div class="pc-stats">
+          <div><div class="v">26</div><div class="k">接入设备</div></div>
+          <div><div class="v">0</div><div class="k">今日消息</div></div>
+          <div><div class="v">—</div><div class="k">转换失败</div></div>
+        </div>
+        <div class="pc-foot">
+          <button class="btn sm" onclick="openDrawer('drawer-log')">日志 / 统计</button>
+          <button class="btn sm" onclick="openModal('modal-cfg')">配置</button>
+          <button class="btn sm primary">启动</button>
+          <button class="btn sm danger">卸载</button>
+        </div>
+      </div>
+
+      <!-- 28181（异常） -->
+      <div class="plugin-card" style="border-color:#fecaca">
+        <div class="pc-head">
+          <div class="pc-ico" style="background:linear-gradient(135deg,#d97706,#facc15)">GB</div>
+          <div style="flex:1">
+            <div class="flex" style="justify-content:space-between">
+              <b>GB/T 28181 接入插件</b><span class="badge err">异常</span>
+            </div>
+            <div class="muted small mt8">
+              <span class="tag">SIP / GB28181-2022</span> <span class="tag">v1.1.0</span> · 实例 gb-01 · 已自动重启 3 次
+            </div>
+          </div>
+        </div>
+        <div class="pc-stats">
+          <div><div class="v">0</div><div class="k">接入设备</div></div>
+          <div><div class="v">112</div><div class="k">今日消息</div></div>
+          <div><div class="v" style="color:var(--danger)">37</div><div class="k">转换失败</div></div>
+        </div>
+        <div class="pc-foot">
+          <button class="btn sm" onclick="openDrawer('drawer-log')">日志 / 统计</button>
+          <button class="btn sm" onclick="openModal('modal-cfg')">配置</button>
+          <button class="btn sm primary">重启</button>
+          <button class="btn sm danger">停止</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 插件配置弹窗：表单由插件 config-schema.json 动态渲染 -->
+<div class="modal-mask" id="modal-cfg">
+  <div class="modal">
+    <div class="modal-head"><h3>接入参数配置 · 海康威视接入插件（实例 hik-01）</h3><span class="close" onclick="closeModal('modal-cfg')">✕</span></div>
+    <div class="modal-body">
+      <p class="hint" style="margin-bottom:14px">以下表单由插件包内 <b>config-schema.json</b> 动态渲染，不同插件表单不同；保存后配置热生效（插件自动重载）。</p>
+      <div class="form-grid">
+        <div class="form-item"><label>平台/设备地址 <span class="req">*</span></label><input type="text" value="192.168.1.64"></div>
+        <div class="form-item"><label>端口 <span class="req">*</span></label><input type="number" value="8000"></div>
+        <div class="form-item"><label>用户名 <span class="req">*</span></label><input type="text" value="admin"></div>
+        <div class="form-item"><label>密码 <span class="req">*</span></label><input type="password" value="********"></div>
+        <div class="form-item"><label>订阅事件类型</label>
+          <select multiple size="3"><option selected>移动侦测告警</option><option selected>IO 告警</option><option selected>设备上下线</option><option>视频丢失</option></select>
+        </div>
+        <div class="form-item"><label>心跳间隔（秒）</label><input type="number" value="30"></div>
+        <div class="form-item"><label>断线重连间隔（秒）</label><input type="number" value="10"></div>
+        <div class="form-item"><label>日志级别</label>
+          <select><option>DEBUG</option><option selected>INFO</option><option>WARN</option><option>ERROR</option></select>
+        </div>
+        <div class="form-item full">
+          <label>异常自动重启</label>
+          <div class="flex">
+            <label class="switch"><input type="checkbox" checked><span class="track"></span></label>
+            <span class="muted small">最多重启 <input type="number" value="5" style="width:56px;padding:3px 6px"> 次，退避间隔 <input type="number" value="10" style="width:56px;padding:3px 6px"> 秒起指数递增</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn">测试连接</button>
+      <button class="btn" onclick="closeModal('modal-cfg')">取消</button>
+      <button class="btn primary" onclick="closeModal('modal-cfg')">保存并生效</button>
+    </div>
+  </div>
+</div>
+
+<!-- 插件日志/统计抽屉 -->
+<div class="drawer-mask" id="drawer-log-mask" onclick="closeDrawer('drawer-log')"></div>
+<div class="drawer" id="drawer-log">
+  <div class="drawer-head">
+    <h3>海康威视接入插件 · 实例 hik-01</h3>
+    <span class="close" style="cursor:pointer;color:var(--muted)" onclick="closeDrawer('drawer-log')">✕</span>
+  </div>
+  <div class="tabs" data-scope="drawer-log">
+    <div class="tab active" data-pane="pane-stats">消息统计</div>
+    <div class="tab" data-pane="pane-logs">运行日志</div>
+  </div>
+  <div class="drawer-body">
+
+    <div class="tab-pane active" id="pane-stats">
+      <div class="grid-3">
+        <div class="stat"><div class="label">累计接入消息</div><div class="value">2,483,905</div></div>
+        <div class="stat"><div class="label">今日接入消息</div><div class="value">9,842</div></div>
+        <div class="stat"><div class="label">今日转换失败</div><div class="value" style="color:var(--success)">0</div></div>
+      </div>
+      <div class="card mt16">
+        <div class="card-head"><h2>今日消息类型分布</h2></div>
+        <div class="card-body">
+          <div class="hbar">
+            <div class="row"><span>监测数据</span><div class="bar-bg"><div class="bar" style="width:64%;background:#2563eb"></div></div><span class="num">6,299</span></div>
+            <div class="row"><span>告警事件</span><div class="bar-bg"><div class="bar" style="width:18%;background:#dc2626"></div></div><span class="num">1,772</span></div>
+            <div class="row"><span>设备事件</span><div class="bar-bg"><div class="bar" style="width:10%;background:#d97706"></div></div><span class="num">984</span></div>
+            <div class="row"><span>指令回执</span><div class="bar-bg"><div class="bar" style="width:8%;background:#0891b2"></div></div><span class="num">787</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card mt16">
+        <div class="card-head"><h2>近 24 小时消息量</h2></div>
+        <div class="card-body chart-wrap">
+          <svg viewBox="0 0 640 140">
+            <g fill="#2563eb" opacity=".85">
+              <rect x="12"  y="92" width="16" height="38" rx="3"/><rect x="38"  y="98" width="16" height="32" rx="3"/>
+              <rect x="64"  y="102" width="16" height="28" rx="3"/><rect x="90"  y="104" width="16" height="26" rx="3"/>
+              <rect x="116" y="100" width="16" height="30" rx="3"/><rect x="142" y="86" width="16" height="44" rx="3"/>
+              <rect x="168" y="64" width="16" height="66" rx="3"/><rect x="194" y="48" width="16" height="82" rx="3"/>
+              <rect x="220" y="40" width="16" height="90" rx="3"/><rect x="246" y="46" width="16" height="84" rx="3"/>
+              <rect x="272" y="52" width="16" height="78" rx="3"/><rect x="298" y="42" width="16" height="88" rx="3"/>
+              <rect x="324" y="34" width="16" height="96" rx="3"/><rect x="350" y="38" width="16" height="92" rx="3"/>
+              <rect x="376" y="46" width="16" height="84" rx="3"/><rect x="402" y="42" width="16" height="88" rx="3"/>
+              <rect x="428" y="26" width="16" height="104" rx="3"/><rect x="454" y="18" width="16" height="112" rx="3"/>
+              <rect x="480" y="32" width="16" height="98" rx="3"/><rect x="506" y="54" width="16" height="76" rx="3"/>
+              <rect x="532" y="72" width="16" height="58" rx="3"/><rect x="558" y="84" width="16" height="46" rx="3"/>
+              <rect x="584" y="90" width="16" height="40" rx="3"/><rect x="610" y="96" width="16" height="34" rx="3"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-logs">
+      <div class="filter-bar" style="margin-bottom:12px">
+        <select><option>全部级别</option><option>DEBUG</option><option>INFO</option><option>WARN</option><option>ERROR</option></select>
+        <input type="text" placeholder="关键字过滤" style="flex:1">
+        <button class="btn sm">刷新</button>
+        <button class="btn sm">下载日志</button>
+      </div>
+      <div class="log-console"><span class="t">14:31:56.102</span> <span class="lv-info">[INFO ]</span> [hik-01] 收到告警事件 motionDetection, 通道=3, 设备=DEV-CAM-0012
+<span class="t">14:31:56.105</span> <span class="lv-info">[INFO ]</span> [hik-01] 转换为统一消息 ALARM, messageId=8f2e...c1, 已投递总线
+<span class="t">14:31:40.331</span> <span class="lv-debug">[DEBUG]</span> [hik-01] 心跳保活 OK, 会话=SESS-2291, 延迟=6ms
+<span class="t">14:30:12.870</span> <span class="lv-warn">[WARN ]</span> [hik-01] 通道 12 取流缓慢(1.8s), 已降级为关键帧模式
+<span class="t">14:29:58.412</span> <span class="lv-info">[INFO ]</span> [hik-01] 执行反控指令 ptzControl(preset=2), 设备=DEV-CAM-0012, 结果=success, 回执已生成
+<span class="t">14:25:03.220</span> <span class="lv-error">[ERROR]</span> [hik-01] 设备 DEV-CAM-0077 登录失败: 密码错误(错误码 1), 30s 后重试
+<span class="t">14:20:00.008</span> <span class="lv-info">[INFO ]</span> [hik-01] 周期设备巡检完成: 在线 508 / 512
+<span class="t">14:00:00.012</span> <span class="lv-info">[INFO ]</span> [hik-01] 统计快照: 近1h 消息 486 条(告警 71 / 监测 355 / 事件 42 / 回执 18)</div>
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

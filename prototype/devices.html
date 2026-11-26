@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设备管理 · 物联网网关</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo"><span class="logo-mark">G</span>物联网关 IoT-GW</div>
+  <nav>
+    <a href="index.html"><span class="ico">◧</span>首页概览</a>
+    <a href="devices.html" class="active"><span class="ico">▤</span>设备管理</a>
+    <a href="plugins.html"><span class="ico">⬡</span>插件管理</a>
+    <a href="messages.html"><span class="ico">☰</span>消息日志</a>
+    <a href="settings.html"><span class="ico">⚙</span>系统配置</a>
+  </nav>
+  <div class="sys-status">
+    <div><span class="dot">●</span>网关运行中 · 已运行 36 天 4 小时</div>
+    <div class="mt8">GW-0001 · v2.4.1 · 192.168.1.100</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h1>设备管理</h1>
+    <div class="meta"><span>共 1,286 台 · 在线 1,240 · 离线 46</span></div>
+  </div>
+
+  <div class="content">
+
+    <!-- 筛选栏 -->
+    <div class="card">
+      <div class="card-body filter-bar">
+        <input type="text" placeholder="设备编码 / 名称" style="width:200px">
+        <select>
+          <option>全部类型</option><option>摄像机</option><option>门禁</option>
+          <option>烟感</option><option>温湿度传感器</option><option>水浸</option>
+        </select>
+        <select>
+          <option>全部插件</option><option>海康威视接入</option><option>大华接入</option>
+          <option>Modbus 采集</option><option>通用 MQTT 接入</option>
+        </select>
+        <select>
+          <option>全部状态</option><option>在线</option><option>离线</option><option>故障</option><option>未激活</option>
+        </select>
+        <select>
+          <option>同步状态（全部）</option><option>已同步</option><option>未同步</option><option>同步失败</option>
+        </select>
+        <button class="btn primary">查询</button>
+        <button class="btn">重置</button>
+        <div class="spacer"></div>
+        <button class="btn" onclick="openModal('modal-sync')">批量同步至上级平台</button>
+        <button class="btn danger">批量删除</button>
+      </div>
+    </div>
+
+    <!-- 设备表格 -->
+    <div class="card">
+      <div class="card-body no-pad">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th style="width:36px"><input type="checkbox"></th>
+              <th>设备编码</th><th>名称</th><th>类型</th><th>型号</th>
+              <th>归属插件</th><th>位置</th><th>状态</th><th>最后上报</th><th>同步状态</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox" checked></td>
+              <td class="mono">DEV-CAM-0012</td><td>东门球机</td><td><span class="tag">摄像机</span></td>
+              <td class="muted">DS-2CD3T46</td><td>海康威视接入</td><td>园区东门 · 1F</td>
+              <td><span class="badge ok">在线</span></td><td class="mono muted small">14:31:56</td>
+              <td><span class="badge info plain">3/3 已同步</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-edit')">修改</button>
+                <button class="btn link" onclick="openModal('modal-sync')">同步</button>
+                <button class="btn link danger" onclick="openModal('modal-del')">删除</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td class="mono">DEV-ACS-0105</td><td>A 栋大堂门禁</td><td><span class="tag">门禁</span></td>
+              <td class="muted">DH-ASI7213X</td><td>大华接入</td><td>A 栋 · 大堂</td>
+              <td><span class="badge ok">在线</span></td><td class="mono muted small">14:31:40</td>
+              <td><span class="badge info plain">3/3 已同步</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-edit')">修改</button>
+                <button class="btn link" onclick="openModal('modal-sync')">同步</button>
+                <button class="btn link danger" onclick="openModal('modal-del')">删除</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td class="mono">DEV-SMK-3F021</td><td>3F 东侧烟感</td><td><span class="tag red">烟感</span></td>
+              <td class="muted">JTY-GD-930</td><td>Modbus 采集</td><td>B 栋 · 3F 东侧走廊</td>
+              <td><span class="badge warn">故障</span></td><td class="mono muted small">14:30:12</td>
+              <td><span class="badge warn plain">2/3 · 大数据中心失败</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-edit')">修改</button>
+                <button class="btn link" onclick="openModal('modal-sync')">同步</button>
+                <button class="btn link danger" onclick="openModal('modal-del')">删除</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td class="mono">DEV-TMP-1F002</td><td>机房温湿度 02</td><td><span class="tag green">温湿度</span></td>
+              <td class="muted">AM2305</td><td>Modbus 采集</td><td>1F · 核心机房</td>
+              <td><span class="badge ok">在线</span></td><td class="mono muted small">14:31:58</td>
+              <td><span class="badge info plain">3/3 已同步</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-edit')">修改</button>
+                <button class="btn link" onclick="openModal('modal-sync')">同步</button>
+                <button class="btn link danger" onclick="openModal('modal-del')">删除</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td class="mono">DEV-CAM-B2008</td><td>B2 车库半球</td><td><span class="tag">摄像机</span></td>
+              <td class="muted">DH-IPC-HDW</td><td>大华接入</td><td>B2 · 车库入口</td>
+              <td><span class="badge off">离线</span></td><td class="mono muted small">14:17:02</td>
+              <td><span class="badge off plain">未同步</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-edit')">修改</button>
+                <button class="btn link" onclick="openModal('modal-sync')">同步</button>
+                <button class="btn link danger" onclick="openModal('modal-del')">删除</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td class="mono">DEV-WTR-B101</td><td>B1 水浸探测器</td><td><span class="tag blue">水浸</span></td>
+              <td class="muted">WD-100</td><td>通用 MQTT 接入</td><td>B1 · 水泵房</td>
+              <td><span class="badge ok">在线</span></td><td class="mono muted small">14:31:44</td>
+              <td><span class="badge info plain">3/3 已同步</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-edit')">修改</button>
+                <button class="btn link" onclick="openModal('modal-sync')">同步</button>
+                <button class="btn link danger" onclick="openModal('modal-del')">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span>已选 1 项 · 共 1,286 条记录</span>
+          <div class="pages">
+            <span class="pg">‹</span><span class="pg cur">1</span><span class="pg">2</span>
+            <span class="pg">3</span><span class="pg">…</span><span class="pg">65</span><span class="pg">›</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 修改设备弹窗 -->
+<div class="modal-mask" id="modal-edit">
+  <div class="modal">
+    <div class="modal-head"><h3>修改设备 · DEV-CAM-0012</h3><span class="close" onclick="closeModal('modal-edit')">✕</span></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item"><label>设备编码 <span class="req">*</span></label><input type="text" value="DEV-CAM-0012"><span class="hint">网关内唯一，同步上级平台时作为设备标识</span></div>
+        <div class="form-item"><label>设备名称 <span class="req">*</span></label><input type="text" value="东门球机"></div>
+        <div class="form-item"><label>设备类型 <span class="req">*</span></label>
+          <select><option selected>摄像机</option><option>门禁</option><option>烟感</option><option>温湿度传感器</option><option>水浸</option></select>
+        </div>
+        <div class="form-item"><label>型号</label><input type="text" value="DS-2CD3T46"></div>
+        <div class="form-item"><label>归属插件</label><input type="text" value="海康威视接入 (hik-01)" disabled><span class="hint">由接入来源决定，不可修改</span></div>
+        <div class="form-item"><label>状态</label><input type="text" value="在线" disabled></div>
+        <div class="form-item full"><label>安装位置</label><input type="text" value="园区东门 · 1F"></div>
+        <div class="form-item"><label>经度</label><input type="text" value="116.40529"></div>
+        <div class="form-item"><label>纬度</label><input type="text" value="39.91508"></div>
+        <div class="form-item full"><label>扩展属性（JSON）</label><textarea rows="3">{ "channelNo": 3, "ptz": true }</textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modal-edit')">取消</button>
+      <button class="btn primary" onclick="closeModal('modal-edit')">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 同步至上级平台弹窗 -->
+<div class="modal-mask" id="modal-sync">
+  <div class="modal">
+    <div class="modal-head"><h3>同步设备至上级平台</h3><span class="close" onclick="closeModal('modal-sync')">✕</span></div>
+    <div class="modal-body">
+      <p class="muted">将所选 <b>1</b> 台设备的档案信息以 <span class="tag">DEVICE_EVENT</span> 统一消息推送至以下平台：</p>
+      <table class="grid mt12">
+        <thead><tr><th style="width:36px"><input type="checkbox" checked></th><th>平台</th><th>推送方式</th><th>连接状态</th><th>该设备同步状态</th></tr></thead>
+        <tbody>
+          <tr><td><input type="checkbox" checked></td><td>市级物联平台</td><td><span class="tag blue">MQTT</span></td><td><span class="badge ok">已连接</span></td><td><span class="badge ok plain">已同步 (07-14 09:20)</span></td></tr>
+          <tr><td><input type="checkbox" checked></td><td>集团监管平台</td><td><span class="tag green">HTTP</span></td><td><span class="badge ok">已连接</span></td><td><span class="badge ok plain">已同步 (07-14 09:20)</span></td></tr>
+          <tr><td><input type="checkbox" checked></td><td>大数据中心</td><td><span class="tag purple">Kafka</span></td><td><span class="badge warn">重连中</span></td><td><span class="badge err plain">同步失败</span></td></tr>
+        </tbody>
+      </table>
+      <p class="hint mt12">平台不可达时消息将进入待补推队列，恢复后自动补推；同步结果可在「消息日志」中查看。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modal-sync')">取消</button>
+      <button class="btn primary" onclick="closeModal('modal-sync')">立即同步</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="modal-mask" id="modal-del">
+  <div class="modal" style="width:460px">
+    <div class="modal-head"><h3>删除设备</h3><span class="close" onclick="closeModal('modal-del')">✕</span></div>
+    <div class="modal-body">
+      <p>确认删除设备 <b class="mono">DEV-CAM-0012（东门球机）</b>？</p>
+      <p class="muted mt8 small">删除后：① 通知归属插件取消该设备订阅；② 向已同步的上级平台推送 <span class="tag">DEVICE_EVENT: deleted</span>；③ 历史消息日志保留。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modal-del')">取消</button>
+      <button class="btn danger" onclick="closeModal('modal-del')">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

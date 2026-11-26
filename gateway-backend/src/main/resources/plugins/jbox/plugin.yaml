@@ -1,0 +1,7 @@
+id: jbox
+name: 青鸟云盒
+vendor: 青鸟
+protocol: HTTP
+version: 1.1.0
+capabilities: [alarm, device]
+description: 在云盒里配置本网关的 http://ip:port/api/jbox/  即可

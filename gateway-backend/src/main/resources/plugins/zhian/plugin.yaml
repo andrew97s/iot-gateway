@@ -1,0 +1,7 @@
+id: zhian
+name: 智安 MQTT 接入插件
+vendor: Zhian
+protocol: MQTT
+version: 1.0.8
+capabilities: [alarm, monitor, device]
+description: 通用 MQTT 设备接入

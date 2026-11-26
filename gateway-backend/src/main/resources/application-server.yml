@@ -1,0 +1,30 @@
+# 项目相关配置
+zhian:
+  basic:
+    path: /home/zhian/app/gateway
+  # 消息环境
+  message:
+    env:
+  server:
+    port: 9200
+  # mysql相关配置
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    username: root
+    password: Pa33w0rd
+    dbname: zhian_gateway
+  # redis相关配置
+  redis:
+    # 地址
+    host: 127.0.0.1
+    # 端口，默认为6379
+    port: 6379
+    # 数据库索引
+    database: 8
+license:
+  subject: ccx-models
+  publicAlias: publicCert
+  storePass: public_Pa33w0rd2024
+  licensePath: /home/zhian/app/license/license.lic
+  publicKeysStorePath: /home/zhian/app/license/publicCerts.keystore

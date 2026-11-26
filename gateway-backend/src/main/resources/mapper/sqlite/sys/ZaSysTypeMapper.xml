@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhian.gateway.sys.mapper.ZaSysTypeMapper">
+
+    <resultMap type="ZaSysType" id="ZaSysTypeResult">
+        <result property="id"    column="id"    />
+        <result property="parentId"    column="parent_id"    />
+        <result property="ancestors"    column="ancestors"    />
+        <result property="code"    column="code"    />
+        <result property="name"    column="name"    />
+        <result property="shortName"    column="short_name"    />
+        <result property="techType"    column="tech_type"    />
+        <result property="isLeaf"    column="is_leaf"    />
+        <result property="orderNum"    column="order_num"    />
+        <result property="jbCode"    column="jb_code"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectZaSysTypeVo">
+        select t.* from za_sys_type t
+    </sql>
+
+    <select id="selectZaSysTypeList" parameterType="ZaSysType" resultMap="ZaSysTypeResult">
+        <include refid="selectZaSysTypeVo"/>
+        <where>
+            <if test="parentId != null "> and t.parent_id = #{parentId}</if>
+            <if test="ancestors != null  and ancestors != ''"> and t.ancestors = #{ancestors}</if>
+            <if test="code != null  and code != ''"> and t.code = #{code}</if>
+            <if test="name != null  and name != ''"> and t.name like ('%' ||  #{name} || '%' )</if>
+            <if test="techType != null  and techType != ''"> and t.tech_type = #{techType}</if>
+            <if test="isLeaf != null  and isLeaf != ''"> and t.is_leaf = #{isLeaf}</if>
+            <if test="jbCode != null  and jbCode != ''"> and t.jb_code = #{jbCode}</if>
+            <if test="params.sysTypeId != null "> and t.id in (select distinct type_id from za_facility where sys_type_id=#{params.sysTypeId})</if>
+        </where>
+        order by t.order_num asc
+    </select>
+
+    <select id="selectZaSysTypeById" parameterType="Long" resultMap="ZaSysTypeResult">
+        <include refid="selectZaSysTypeVo"/>
+        where t.id = #{id}
+    </select>
+
+    <select id="selectZaSysTypeByCode" parameterType="String" resultMap="ZaSysTypeResult">
+        <include refid="selectZaSysTypeVo"/>
+        where t.code = #{code}
+    </select>
+    <select id="selectZaSysTypeByName" parameterType="String" resultMap="ZaSysTypeResult">
+        <include refid="selectZaSysTypeVo"/>
+        where t.name = #{name} limit 1
+    </select>
+    <select id="selectZaSysTypeByJbCode" parameterType="String" resultMap="ZaSysTypeResult">
+        <include refid="selectZaSysTypeVo"/>
+        where t.jb_code = #{jbCode} limit 1
+    </select>
+
+    <insert id="insertZaSysType" parameterType="ZaSysType">
+        insert into za_sys_type
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="parentId != null">parent_id,</if>
+            <if test="ancestors != null and ancestors != ''">ancestors,</if>
+            <if test="code != null and code != ''">code,</if>
+            <if test="name != null and name != ''">name,</if>
+            <if test="shortName != null">short_name,</if>
+            <if test="techType != null and techType != ''">tech_type,</if>
+            <if test="isLeaf != null and isLeaf != ''">is_leaf,</if>
+            <if test="jbCode != null">jb_code,</if>
+            <if test="orderNum != null">order_num,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="parentId != null">#{parentId},</if>
+            <if test="ancestors != null and ancestors != ''">#{ancestors},</if>
+            <if test="code != null and code != ''">#{code},</if>
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="shortName != null">#{shortName},</if>
+            <if test="techType != null and techType != ''">#{techType},</if>
+            <if test="isLeaf != null and isLeaf != ''">#{isLeaf},</if>
+            <if test="jbCode != null">#{jbCode},</if>
+            <if test="orderNum != null">#{orderNum},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateZaSysType" parameterType="ZaSysType">
+        update za_sys_type
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="ancestors != null and ancestors != ''">ancestors = #{ancestors},</if>
+            <if test="code != null and code != ''">code = #{code},</if>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="shortName != null">short_name = #{shortName},</if>
+            <if test="techType != null and techType != ''">tech_type = #{techType},</if>
+            <if test="isLeaf != null and isLeaf != ''">is_leaf = #{isLeaf},</if>
+            <if test="jbCode != null">jb_code = #{jbCode},</if>
+            <if test="orderNum != null">order_num = #{orderNum},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="updateZaSysTypeAncestors" parameterType="ZaSysType">
+        update za_sys_type set ancestors = replace(ancestors, oldAncestors, newAncestors) where find_in_set(#{typeId}, ancestors)
+    </update>
+
+    <delete id="deleteZaSysTypeById" parameterType="Long">
+        delete from za_sys_type where id = #{id}
+    </delete>
+
+    <delete id="deleteZaSysTypeByIds" parameterType="String">
+        delete from za_sys_type where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>消息日志 · 物联网网关</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo"><span class="logo-mark">G</span>物联网关 IoT-GW</div>
+  <nav>
+    <a href="index.html"><span class="ico">◧</span>首页概览</a>
+    <a href="devices.html"><span class="ico">▤</span>设备管理</a>
+    <a href="plugins.html"><span class="ico">⬡</span>插件管理</a>
+    <a href="messages.html" class="active"><span class="ico">☰</span>消息日志</a>
+    <a href="settings.html"><span class="ico">⚙</span>系统配置</a>
+  </nav>
+  <div class="sys-status">
+    <div><span class="dot">●</span>网关运行中 · 已运行 36 天 4 小时</div>
+    <div class="mt8">GW-0001 · v2.4.1 · 192.168.1.100</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h1>接入消息日志</h1>
+    <div class="meta"><span>今日 24,318 条 · 同步成功率 99.2% · 待补推 1,203</span></div>
+  </div>
+
+  <div class="content">
+
+    <div class="card">
+      <div class="card-body filter-bar">
+        <input type="text" placeholder="消息ID / 设备编码" style="width:200px">
+        <select>
+          <option>全部类型</option><option>告警 ALARM</option><option>监测 TELEMETRY</option>
+          <option>设备事件 DEVICE_EVENT</option><option>反控指令 COMMAND</option><option>指令回执 COMMAND_ACK</option>
+        </select>
+        <select><option>全部插件</option><option>海康威视接入</option><option>大华接入</option><option>Modbus 采集</option><option>通用 MQTT 接入</option></select>
+        <select><option>同步状态（全部）</option><option>全部成功</option><option>部分失败</option><option>失败</option><option>待同步</option></select>
+        <input type="text" value="2026-07-15 00:00 ~ 2026-07-15 23:59" style="width:260px">
+        <button class="btn primary">查询</button>
+        <button class="btn">重置</button>
+        <div class="spacer"></div>
+        <button class="btn">失败消息批量重推</button>
+        <button class="btn">导出</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body no-pad">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th>时间</th><th>消息ID</th><th>类型</th><th>设备编码</th><th>来源插件</th>
+              <th>摘要</th><th>上级平台同步</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono muted small">14:31:56.105</td>
+              <td class="mono small">8f2e…41c1</td>
+              <td><span class="tag red">告警</span></td>
+              <td class="mono">DEV-CAM-0012</td><td>海康威视接入</td>
+              <td class="muted">移动侦测告警 · 级别 2</td>
+              <td><span class="badge ok plain">3/3 成功</span></td>
+              <td class="actions"><button class="btn link" onclick="openModal('modal-msg')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono muted small">14:31:58.220</td>
+              <td class="mono small">a3d9…77b0</td>
+              <td><span class="tag blue">监测</span></td>
+              <td class="mono">DEV-TMP-1F002</td><td>Modbus 采集</td>
+              <td class="muted">温度 41.2℃ / 湿度 38%</td>
+              <td><span class="badge warn plain">2/3 · 大数据中心失败</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-msg')">详情</button>
+                <button class="btn link">重推</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono muted small">14:29:58.412</td>
+              <td class="mono small">c1b2…09e8</td>
+              <td><span class="tag purple">反控指令</span></td>
+              <td class="mono">DEV-CAM-0012</td><td>海康威视接入</td>
+              <td class="muted">ptzControl(preset=2) · 下发方：市级物联平台</td>
+              <td><span class="badge off plain">— 下行消息</span></td>
+              <td class="actions"><button class="btn link" onclick="openModal('modal-msg')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono muted small">14:29:58.901</td>
+              <td class="mono small">c1b3…1f02</td>
+              <td><span class="tag green">指令回执</span></td>
+              <td class="mono">DEV-CAM-0012</td><td>海康威视接入</td>
+              <td class="muted">ptzControl 执行成功 · 耗时 489ms</td>
+              <td><span class="badge ok plain">3/3 成功</span></td>
+              <td class="actions"><button class="btn link" onclick="openModal('modal-msg')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono muted small">14:22:47.033</td>
+              <td class="mono small">77aa…e5d4</td>
+              <td><span class="tag orange">设备事件</span></td>
+              <td class="mono">DEV-CAM-B2008</td><td>大华接入</td>
+              <td class="muted">offline · 连续 5 分钟无心跳</td>
+              <td><span class="badge err plain">0/3 失败</span></td>
+              <td class="actions">
+                <button class="btn link" onclick="openModal('modal-msg')">详情</button>
+                <button class="btn link">重推</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono muted small">14:15:03.550</td>
+              <td class="mono small">90cd…b3a7</td>
+              <td><span class="tag red">告警</span></td>
+              <td class="mono">DEV-TMP-1F002</td><td>Modbus 采集</td>
+              <td class="muted">温度越限告警 41.2℃ ＞ 40℃ · 级别 3</td>
+              <td><span class="badge warn plain">2/3 · 重试中(3/5)</span></td>
+              <td class="actions"><button class="btn link" onclick="openModal('modal-msg')">详情</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span>共 24,318 条记录</span>
+          <div class="pages">
+            <span class="pg">‹</span><span class="pg cur">1</span><span class="pg">2</span>
+            <span class="pg">3</span><span class="pg">…</span><span class="pg">1216</span><span class="pg">›</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 消息详情弹窗 -->
+<div class="modal-mask" id="modal-msg">
+  <div class="modal wide">
+    <div class="modal-head"><h3>消息详情 · 8f2e…41c1</h3><span class="close" onclick="closeModal('modal-msg')">✕</span></div>
+    <div class="modal-body">
+
+      <div class="grid-2e">
+        <div>
+          <h2 style="font-size:13px;margin-bottom:8px" class="muted">统一消息格式（推送上级平台）</h2>
+          <div class="json-view">{
+  "messageId": "8f2e6c0d-...-41c1",
+  "messageType": "ALARM",
+  "timestamp": 1752561116105,
+  "gatewayId": "GW-0001",
+  "source": {
+    "pluginId": "hikvision-isapi",
+    "instanceId": "hik-01"
+  },
+  "device": {
+    "deviceCode": "DEV-CAM-0012",
+    "deviceType": "camera",
+    "model": "DS-2CD3T46"
+  },
+  "payload": {
+    "alarmType": "motionDetection",
+    "level": 2,
+    "description": "移动侦测告警 · 通道3",
+    "pictureUrl": "/snap/8f2e...jpg"
+  }
+}</div>
+        </div>
+        <div>
+          <h2 style="font-size:13px;margin-bottom:8px" class="muted">厂商原始报文（转换前）</h2>
+          <div class="json-view">&lt;EventNotificationAlert&gt;
+  &lt;ipAddress&gt;192.168.1.64&lt;/ipAddress&gt;
+  &lt;channelID&gt;3&lt;/channelID&gt;
+  &lt;dateTime&gt;
+    2026-07-15T14:31:56+08:00
+  &lt;/dateTime&gt;
+  &lt;eventType&gt;VMD&lt;/eventType&gt;
+  &lt;eventState&gt;active&lt;/eventState&gt;
+  &lt;eventDescription&gt;
+    Motion alarm
+  &lt;/eventDescription&gt;
+&lt;/EventNotificationAlert&gt;</div>
+        </div>
+      </div>
+
+      <h2 style="font-size:13px;margin:16px 0 8px" class="muted">上级平台同步记录</h2>
+      <table class="grid">
+        <thead><tr><th>目标平台</th><th>推送方式</th><th>结果</th><th>重试次数</th><th>耗时</th><th>时间</th><th>失败原因</th></tr></thead>
+        <tbody>
+          <tr><td>市级物联平台</td><td><span class="tag blue">MQTT</span></td><td><span class="badge ok">成功</span></td><td>0</td><td>18ms</td><td class="mono small">14:31:56.130</td><td>—</td></tr>
+          <tr><td>集团监管平台</td><td><span class="tag green">HTTP</span></td><td><span class="badge ok">成功</span></td><td>0</td><td>102ms</td><td class="mono small">14:31:56.215</td><td>—</td></tr>
+          <tr><td>大数据中心</td><td><span class="tag purple">Kafka</span></td><td><span class="badge ok">成功</span></td><td>1</td><td>2,304ms</td><td class="mono small">14:31:58.420</td><td class="muted small">首推超时，重试成功</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn">重推所选平台</button>
+      <button class="btn primary" onclick="closeModal('modal-msg')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>首页概览 · 物联网网关</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo"><span class="logo-mark">G</span>物联网关 IoT-GW</div>
+  <nav>
+    <a href="index.html" class="active"><span class="ico">◧</span>首页概览</a>
+    <a href="devices.html"><span class="ico">▤</span>设备管理</a>
+    <a href="plugins.html"><span class="ico">⬡</span>插件管理</a>
+    <a href="messages.html"><span class="ico">☰</span>消息日志</a>
+    <a href="settings.html"><span class="ico">⚙</span>系统配置</a>
+  </nav>
+  <div class="sys-status">
+    <div><span class="dot">●</span>网关运行中 · 已运行 36 天 4 小时</div>
+    <div class="mt8">GW-0001 · v2.4.1 · 192.168.1.100</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h1>首页概览</h1>
+    <div class="meta">
+      <span>2026-07-15 14:32:08</span>
+      <span class="badge ok">上级平台 3/3 在线</span>
+      <span>admin</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- 顶部指标卡 -->
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="label">设备总数</div>
+        <div class="value">1,286 <small>台</small></div>
+        <div class="sub">在线率 <span class="up">96.4%</span> · 离线 46 台</div>
+      </div>
+      <div class="stat">
+        <div class="label">今日接入消息</div>
+        <div class="value">24,318 <small>条</small></div>
+        <div class="sub">较昨日 <span class="up">▲ 8.2%</span></div>
+      </div>
+      <div class="stat">
+        <div class="label">今日告警</div>
+        <div class="value" style="color:var(--danger)">137 <small>条</small></div>
+        <div class="sub">未处理 <b style="color:var(--warning)">12</b> 条</div>
+      </div>
+      <div class="stat">
+        <div class="label">插件运行状态</div>
+        <div class="value">4 <small>/ 6 运行中</small></div>
+        <div class="sub">已停止 1 · <span class="down">异常 1</span></div>
+      </div>
+      <div class="stat">
+        <div class="label">上级平台同步成功率</div>
+        <div class="value" style="color:var(--success)">99.2%</div>
+        <div class="sub">待补推 <b>1,203</b> 条</div>
+      </div>
+    </div>
+
+    <!-- 消息趋势 + 类型分布 -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h2>24 小时消息接入趋势</h2>
+          <div class="legend">
+            <span class="li"><span class="sw" style="background:#2563eb"></span>接入消息数 / 小时</span>
+          </div>
+        </div>
+        <div class="card-body chart-wrap">
+          <svg viewBox="0 0 720 210">
+            <g stroke="#f1f5f9" stroke-width="1">
+              <line x1="20" y1="20" x2="700" y2="20"/><line x1="20" y1="62" x2="700" y2="62"/>
+              <line x1="20" y1="105" x2="700" y2="105"/><line x1="20" y1="147" x2="700" y2="147"/>
+              <line x1="20" y1="190" x2="700" y2="190"/>
+            </g>
+            <path d="M20,125 L50,131 L79,134 L109,137 L138,136 L168,133 L197,112 L227,79 L257,56 L286,47 L316,52 L345,58 L375,49 L404,39 L434,43 L463,51 L493,47 L523,30 L552,20 L582,37 L611,64 L641,86 L670,105 L700,119 L700,190 L20,190 Z"
+                  fill="rgba(37,99,235,.10)"/>
+            <polyline points="20,125 50,131 79,134 109,137 138,136 168,133 197,112 227,79 257,56 286,47 316,52 345,58 375,49 404,39 434,43 463,51 493,47 523,30 552,20 582,37 611,64 641,86 670,105 700,119"
+                      fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="552" cy="20" r="4" fill="#2563eb"/>
+            <text x="552" y="12" font-size="11" fill="#2563eb" text-anchor="middle">峰值 1,230</text>
+            <g font-size="11" fill="#94a3b8">
+              <text x="20" y="206">00:00</text><text x="188" y="206">06:00</text>
+              <text x="356" y="206">12:00</text><text x="524" y="206">18:00</text><text x="682" y="206">23:00</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>今日消息类型分布</h2></div>
+        <div class="card-body">
+          <div class="hbar">
+            <div class="row"><span>监测数据</span><div class="bar-bg"><div class="bar" style="width:68%;background:#2563eb"></div></div><span class="num">16,536</span></div>
+            <div class="row"><span>告警事件</span><div class="bar-bg"><div class="bar" style="width:12%;background:#dc2626"></div></div><span class="num">2,918</span></div>
+            <div class="row"><span>设备事件</span><div class="bar-bg"><div class="bar" style="width:9%;background:#d97706"></div></div><span class="num">2,189</span></div>
+            <div class="row"><span>反控指令</span><div class="bar-bg"><div class="bar" style="width:6%;background:#7c3aed"></div></div><span class="num">1,459</span></div>
+            <div class="row"><span>指令回执</span><div class="bar-bg"><div class="bar" style="width:5%;background:#0891b2"></div></div><span class="num">1,216</span></div>
+          </div>
+          <div class="mt16" style="border-top:1px solid var(--border);padding-top:14px">
+            <h2 style="font-size:14px;margin-bottom:12px">系统资源</h2>
+            <div class="hbar">
+              <div class="row"><span>CPU</span><div class="bar-bg"><div class="bar" style="width:32%;background:#16a34a"></div></div><span class="num">32%</span></div>
+              <div class="row"><span>内存</span><div class="bar-bg"><div class="bar" style="width:58%;background:#2563eb"></div></div><span class="num">58%</span></div>
+              <div class="row"><span>磁盘</span><div class="bar-bg"><div class="bar" style="width:41%;background:#d97706"></div></div><span class="num">41%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 插件状态 + 平台状态 -->
+    <div class="grid-2e">
+      <div class="card">
+        <div class="card-head">
+          <h2>插件运行状态</h2>
+          <a class="btn sm" href="plugins.html">管理插件 →</a>
+        </div>
+        <div class="card-body no-pad">
+          <table class="grid">
+            <thead><tr><th>插件</th><th>协议</th><th>状态</th><th>接入设备</th><th>今日消息</th></tr></thead>
+            <tbody>
+              <tr><td>海康威视接入</td><td><span class="tag">ISAPI/SDK</span></td><td><span class="badge ok">运行中</span></td><td>512</td><td>9,842</td></tr>
+              <tr><td>大华接入</td><td><span class="tag">SDK</span></td><td><span class="badge ok">运行中</span></td><td>386</td><td>7,120</td></tr>
+              <tr><td>Modbus 采集</td><td><span class="tag">Modbus TCP</span></td><td><span class="badge ok">运行中</span></td><td>264</td><td>5,368</td></tr>
+              <tr><td>通用 MQTT 接入</td><td><span class="tag">MQTT 3.1.1</span></td><td><span class="badge ok">运行中</span></td><td>98</td><td>1,876</td></tr>
+              <tr><td>宇视接入</td><td><span class="tag">ONVIF</span></td><td><span class="badge off">已停止</span></td><td>26</td><td>0</td></tr>
+              <tr><td>GB/T 28181 接入</td><td><span class="tag">SIP/28181</span></td><td><span class="badge err">异常</span></td><td>0</td><td>112</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>上级平台同步状态</h2>
+          <a class="btn sm" href="settings.html">平台配置 →</a>
+        </div>
+        <div class="card-body no-pad">
+          <table class="grid">
+            <thead><tr><th>平台</th><th>推送方式</th><th>连接</th><th>今日同步</th><th>积压</th></tr></thead>
+            <tbody>
+              <tr><td>市级物联平台</td><td><span class="tag blue">MQTT</span></td><td><span class="badge ok">已连接</span></td><td>23,910 <span class="muted small">(99.8%)</span></td><td>0</td></tr>
+              <tr><td>集团监管平台</td><td><span class="tag green">HTTP</span></td><td><span class="badge ok">已连接</span></td><td>2,915 <span class="muted small">(99.9%)</span></td><td>0</td></tr>
+              <tr><td>大数据中心</td><td><span class="tag purple">Kafka</span></td><td><span class="badge warn">重连中</span></td><td>15,320 <span class="muted small">(93.1%)</span></td><td style="color:var(--warning)">1,203</td></tr>
+            </tbody>
+          </table>
+          <div class="card-body">
+            <h2 style="font-size:14px;margin-bottom:12px">最新告警</h2>
+            <table class="grid">
+              <tbody>
+                <tr><td class="mono muted small">14:30:12</td><td><span class="tag red">火警</span></td><td>3F 东侧烟感 SMK-3F-021 触发烟雾告警</td></tr>
+                <tr><td class="mono muted small">14:22:47</td><td><span class="tag orange">离线</span></td><td>摄像机 CAM-B2-008 连续 5 分钟无心跳</td></tr>
+                <tr><td class="mono muted small">14:15:03</td><td><span class="tag orange">越界</span></td><td>机房温度传感器 TMP-1F-002 温度 41.2℃ 超阈值</td></tr>
+                <tr><td class="mono muted small">13:58:36</td><td><span class="tag red">入侵</span></td><td>周界防区 Z-04 红外对射触发入侵告警</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

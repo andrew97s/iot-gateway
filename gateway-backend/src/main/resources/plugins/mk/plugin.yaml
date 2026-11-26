@@ -1,0 +1,7 @@
+id: mk
+name: 铭控
+vendor: 铭控
+protocol: TCP
+version: 1.1.0
+capabilities: [alarm, monitor, device, control]
+description: 铭控协议支持V3.3协议、青鸟定制协议设备接入

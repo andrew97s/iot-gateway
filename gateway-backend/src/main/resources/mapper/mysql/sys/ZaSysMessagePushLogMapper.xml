@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhian.gateway.sys.mapper.ZaSysMessageLogMapper">
+
+    <resultMap id="ZaSysMessagePushLogResult" type="ZaSysMessageLog">
+        <id property="id" column="id"/>
+        <result property="messageId" column="message_id"/>
+        <result property="type" column="type"/>
+        <result property="target" column="target"/>
+        <result property="time" column="time"/>
+        <result property="status" column="status"/>
+        <result property="failReason" column="fail_reason"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="ZaSysMessageLog">
+        INSERT INTO za_sys_message_log (id, message_id, type, target, time, status, fail_reason)
+        VALUES (#{id}, #{messageId}, #{type}, #{target}, #{time}, #{status}, #{failReason})
+    </insert>
+
+    <select id="selectByMessageId" resultMap="ZaSysMessagePushLogResult">
+        SELECT id, message_id, type, target, time, status, fail_reason
+        FROM za_sys_message_log
+        WHERE message_id = #{messageId}
+        ORDER BY time DESC, id DESC
+    </select>
+
+    <delete id="deleteByMessageId">
+        DELETE FROM za_sys_message_log WHERE message_id = #{messageId}
+    </delete>
+
+    <delete id="deleteByMessageIds">
+        DELETE FROM za_sys_message_log WHERE message_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteAll">
+        DELETE FROM za_sys_message_log
+    </delete>
+</mapper>

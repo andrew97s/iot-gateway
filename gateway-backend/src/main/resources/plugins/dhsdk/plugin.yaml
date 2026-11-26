@@ -1,0 +1,7 @@
+id: dhsdk
+name: 大华 SDK 接入插件
+vendor: Dahua
+protocol: NetSDK
+version: 1.5.0
+capabilities: [alarm, device, control]
+description: 大华 NetSDK 直连接入

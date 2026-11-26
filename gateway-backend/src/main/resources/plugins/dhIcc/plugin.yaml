@@ -1,0 +1,7 @@
+id: dhIcc
+name: 大华 ICC 接入插件
+vendor: Dahua
+protocol: ICC/SDK
+version: 2.0.3
+capabilities: [alarm, monitor, device, control]
+description: 大华 ICC 平台接入
