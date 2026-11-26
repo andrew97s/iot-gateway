@@ -67,7 +67,7 @@ public class ZaOverviewController extends BaseController {
         data.put("trend", messageService.selectHourlyTrend());
 
         // ---------- 插件（平台）运行状态 ----------
-        List<PluginInstanceView> pluginList = pluginManager.listInstances(null, null, null);
+        List<PluginInstanceView> pluginList = pluginManager.listInstances(null, "running", null);
         long runningCount = pluginList.stream().filter(p -> "running".equals(p.getState())).count();
         long stoppedCount = pluginList.stream().filter(p -> "stopped".equals(p.getState())).count();
         long installedCount = pluginList.stream().filter(p -> "installed".equals(p.getState())).count();

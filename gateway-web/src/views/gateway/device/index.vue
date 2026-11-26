@@ -9,9 +9,9 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="filters.keyword" clearable placeholder="设备编码 / 名称" style="width: 200px" @keyup.enter="handleQuery" />
         <el-select-v2 v-model="filters.type" :options="deviceTypeOptions" clearable filterable placeholder="全部类型" style="width: 140px" />
-        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 160px" />
+        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 130px" />
         <el-select-v2 v-model="filters.online" :options="ONLINE_OPTIONS" clearable placeholder="全部状态" style="width: 120px" />
-        <el-select-v2 v-model="filters.sync" :options="SYNC_OPTIONS" clearable placeholder="同步状态（全部）" style="width: 150px" />
+        <el-select-v2 v-model="filters.sync" :options="SYNC_OPTIONS" clearable placeholder="同步状态" style="width: 120px" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
@@ -64,16 +64,17 @@
               </el-tooltip>
             </template>
           </el-table-column>
-          <el-table-column align="center" label="同步状态" width="130">
+          <el-table-column align="center" label="同步状态" width="120">
             <template #default="{ row }">
               <span class="gw-badge plain" :class="syncBadgeClass(row)">{{ row.syncLabel || '未同步' }}</span>
             </template>
           </el-table-column>
-          <el-table-column align="center" fixed="right" label="操作" width="230">
+          <el-table-column align="center" fixed="right" label="操作" width="280">
             <template #default="{ row }">
               <el-button link type="primary" @click="openDetail(row)">详情</el-button>
               <el-button link type="primary" @click="openEdit(row)">修改</el-button>
               <el-button link type="primary" @click="openSync([row])">同步</el-button>
+              <el-button link type="primary" @click="openControl(row)">控制</el-button>
               <el-button link type="danger" v-hasPermi="['sys:device:remove']" @click="handleDelete(row)">删除</el-button>
             </template>
           </el-table-column>
@@ -90,6 +91,31 @@
         </div>
       </div>
     </div>
+
+    <el-dialog v-model="controlOpen" append-to-body destroy-on-close :title="`远程控制 · ${controlForm.code || ''}`" width="640px">
+      <el-form label-width="88px">
+        <el-form-item label="设备">
+          <span class="gw-mono">{{ controlForm.code }}</span>
+          <span class="gw-muted"> · {{ platformName(controlForm.pfCode) }}</span>
+        </el-form-item>
+        <el-form-item label="指令">
+          <el-select v-model="controlForm.command" style="width: 100%">
+            <el-option v-for="item in CONTROL_COMMANDS" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="参数">
+          <el-input v-model="controlForm.value" clearable placeholder="可选。启停填 on/off，屏蔽填 1/0" />
+        </el-form-item>
+      </el-form>
+      <div class="control-result" v-if="controlResult">
+        <div class="section-title">返回结果</div>
+        <pre>{{ controlResult }}</pre>
+      </div>
+      <template #footer>
+        <el-button @click="controlOpen = false">关闭</el-button>
+        <el-button :loading="controlLoading" type="primary" @click="submitControl">下发</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 修改设备 -->
     <el-dialog v-model="editOpen" append-to-body destroy-on-close :title="`修改设备 · ${editForm.code || ''}`" width="680px">
@@ -256,7 +282,7 @@
     <!-- 同步至上级平台 -->
     <el-dialog v-model="syncOpen" append-to-body destroy-on-close title="同步设备至上级平台" width="720px">
       <p class="gw-muted">
-        将所选 <b>{{ syncTargets.length }}</b> 台设备的档案信息以 <span class="gw-tag">DEVICE_EVENT</span> 统一消息推送至以下平台：
+        将所选 <b>{{ syncTargets.length }}</b> 台设备的档案只推送到勾选的上级通道。未勾选的通道不会收到这次同步。
       </p>
       <el-table class="mt12" :data="upstreamList" size="small" ref="upstreamTableRef" @selection-change="(s) => (syncUpstreams = s)">
         <el-table-column type="selection" width="42" />
@@ -309,7 +335,8 @@ import {
   pushDevice,
   getDeviceOnlineStats,
   getDeviceTelemetry,
-  getDeviceAlarms
+  getDeviceAlarms,
+  controlDevice
 } from '@/api/sys/device'
 import { selectPlatform } from '@/api/sys/platform'
 import { selectUpstream, getUpstreamStatus } from '@/api/sys/upstream'
@@ -345,6 +372,19 @@ const editOpen = ref(false)
 const editLoading = ref(false)
 const editForm = ref({})
 
+const CONTROL_COMMANDS = [
+  { value: 'reset', label: '复位 reset' },
+  { value: 'mute', label: '消音 mute' },
+  { value: 'power', label: '启停 power' },
+  { value: 'shield', label: '屏蔽 shield' },
+  { value: 'manual', label: '手自动 manual' },
+  { value: 'qry', label: '查询 qry' },
+  { value: 'set', label: '参数下发 set' }
+]
+const controlOpen = ref(false)
+const controlLoading = ref(false)
+const controlResult = ref('')
+const controlForm = reactive({ id: undefined, code: '', net: '', pfCode: '', command: 'reset', value: '' })
 const syncOpen = ref(false)
 const syncLoading = ref(false)
 const syncTargets = ref([])
@@ -395,7 +435,7 @@ const totalStats = computed(() => {
 const filteredList = computed(() => {
   if (!filters.sync) return deviceList.value
   return deviceList.value.filter((row) => {
-    const synced = isOnline(row) && Number(row.syncSuccess || 0) > 0
+    const synced = Number(row.syncTotal) > 0 && Number(row.syncSuccess) >= Number(row.syncTotal)
     return filters.sync === 'synced' ? synced : !synced
   })
 })
@@ -628,8 +668,39 @@ async function openDetail(row) {
 }
 function syncBadgeClass(row) {
   if (!row?.syncTotal) return 'off'
-  if (isOnline(row) && row.syncSuccess > 0) return 'info'
+  if (Number(row.syncSuccess) > 0 && Number(row.syncSuccess) >= Number(row.syncTotal)) return 'info'
+  if (String(row.syncLabel || '').includes('失败')) return 'err'
   return 'off'
+}
+
+function openControl(row) {
+  controlForm.id = row.id
+  controlForm.code = row.code
+  controlForm.net = row.net
+  controlForm.pfCode = row.pfCode
+  controlForm.command = 'reset'
+  controlForm.value = ''
+  controlResult.value = ''
+  controlOpen.value = true
+}
+
+async function submitControl() {
+  controlLoading.value = true
+  try {
+    const res = await controlDevice({
+      deviceId: controlForm.id,
+      code: controlForm.code,
+      net: controlForm.net,
+      command: controlForm.command,
+      value: controlForm.value
+    })
+    controlResult.value = JSON.stringify(res, null, 2)
+    proxy.$modal.msgSuccess(res.msg || '指令已下发')
+  } catch (e) {
+    controlResult.value = typeof e === 'string' ? e : e?.message || '下发失败'
+  } finally {
+    controlLoading.value = false
+  }
 }
 function pushTypeLabel(t) {
   return { url: 'HTTP', redis: 'Redis', mq: 'MQ', kafka: 'Kafka', mqtt: 'MQTT' }[t] || t || '-'
@@ -681,6 +752,7 @@ function getList() {
     ...queryParams,
     type: filters.type || null,
     pfCode: filters.pfCode || null,
+    online: filters.online || null,
     online: filters.online || null,
     params: {
       searchValue: filters.keyword || null
@@ -765,11 +837,13 @@ async function confirmSync() {
   if (!syncTargets.value.length) return
   syncLoading.value = true
   try {
+    const upstreamCodes = syncUpstreams.value.map((row) => row.code).filter(Boolean).join(',')
     for (const d of syncTargets.value) {
-      await pushDevice({ code: d.code, pfCode: d.pfCode })
+      await pushDevice({ code: d.code, pfCode: d.pfCode, upstreamCodes })
     }
-    proxy.$modal.msgSuccess(`已提交 ${syncTargets.value.length} 台设备同步`)
+    proxy.$modal.msgSuccess(`已同步 ${syncTargets.value.length} 台设备`)
     syncOpen.value = false
+    getList()
   } finally {
     syncLoading.value = false
   }
@@ -1000,6 +1074,20 @@ onBeforeUnmount(() => {
 .telemetry-item-time {
   margin-top: 8px;
   font-size: 11px;
+}
+.control-result {
+  margin-top: 8px;
+}
+.control-result pre {
+  max-height: 240px;
+  overflow: auto;
+  margin: 8px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.5;
 }
 @media (max-width: 900px) {
   .edit-grid {

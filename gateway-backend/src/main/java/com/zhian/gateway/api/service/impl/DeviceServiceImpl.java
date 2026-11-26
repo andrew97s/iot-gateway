@@ -10,18 +10,25 @@ import com.zhian.gateway.common.utils.StringUtils;
 import com.zhian.gateway.common.utils.spring.SpringUtils;
 import com.zhian.gateway.common.utils.uuid.SnowflakeIdWorker;
 import com.zhian.gateway.consts.CascadeConst;
+import com.zhian.gateway.consts.MessageConstants;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.sys.domain.ZaSysPlatform;
 import com.zhian.gateway.sys.service.IZaSysDeviceService;
+import com.zhian.gateway.sys.service.IZaSysMessageService;
 import com.zhian.gateway.sys.service.IZaSysPlatformService;
 import com.zhian.gateway.third.ThirdApplicationRunner;
 import com.zhian.gateway.third.ThirdHandler;
+import com.zhian.gateway.third.common.bo.ProcessInfo;
+import com.zhian.gateway.third.gw.MessageSyncHandler;
+import com.zhian.gateway.third.gw.message.UnifiedMessage;
 import com.zhian.gateway.third.vo.ControlVo;
 import com.zhian.gateway.third.vo.MqMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,6 +45,8 @@ public class DeviceServiceImpl implements IDeviceService {
     private IZaSysDeviceService deviceService;
     @Autowired
     private IZaSysPlatformService zaSysPlatformService;
+    @Autowired
+    private IZaSysMessageService messageService;
     @Autowired
     private Cache cache;
 
@@ -79,7 +88,11 @@ public class DeviceServiceImpl implements IDeviceService {
             if(zaSysPlatform == null){
                 return R.error("未找到网关信息");
             }
-            return ThirdApplicationRunner.getHandler(zaSysPlatform.getCode()).control(controlVo);
+            ThirdHandler handler = ThirdApplicationRunner.getHandler(zaSysPlatform.getCode());
+            if (handler == null) {
+                return R.error("插件未运行，无法下发控制");
+            }
+            return handler.control(controlVo);
         }else{
             if(StringUtils.isEmpty(controlVo.getEventId())){
                 controlVo.setEventId(SnowflakeIdWorker.getInstance().nextStringId());
@@ -109,11 +122,12 @@ public class DeviceServiceImpl implements IDeviceService {
      * @return
      */
     @Override
-    public R push(ZaSysDevice zaSysDevice){
-        new Thread(()->{
+    public R push(ZaSysDevice zaSysDevice, List<String> upstreamCodes){
+        List<String> codes = upstreamCodes == null ? Collections.emptyList() : upstreamCodes;
+        Runnable job = () -> {
             int page = 1;
             int limit = 3;
-            ThirdHandler gatewayHandler = SpringUtils.getBean("messageSyncHandler");
+            MessageSyncHandler gatewayHandler = SpringUtils.getBean("gatewayHandler", MessageSyncHandler.class);
             Map<String, ZaSysPlatform> platformMap = zaSysPlatformService.selectZaSysPlatformList(new ZaSysPlatform())
                     .stream().collect(Collectors.toMap(ZaSysPlatform::getCode, ZaSysPlatform->ZaSysPlatform));
             try{
@@ -139,9 +153,25 @@ public class DeviceServiceImpl implements IDeviceService {
                             facility.setWireless(sysDevice.getWireless() != null && sysDevice.getWireless().equalsIgnoreCase("1"));
                             facility.setOnLine(sysDevice.getOnline() != null && sysDevice.getOnline().equalsIgnoreCase("1"));
 
-                            MqMessage message = MqMessage.createDevice(sysDevice.getId(), thirdHandler.getProtocol(), facility, sysDevice.getRemark());
+                            String protocol = thirdHandler == null ? "" : thirdHandler.getProtocol();
+                            MqMessage message = MqMessage.createDevice(sysDevice.getId(), protocol, facility, sysDevice.getRemark());
                             message.setEventType(MqMessage.DEVICE_ADD);
-                            gatewayHandler.processMsg(message);
+                            UnifiedMessage unified = gatewayHandler.convert(message);
+                            String json = unified.toJson();
+                            List<MessageSyncHandler.UpstreamPushResult> results = codes.isEmpty()
+                                    ? gatewayHandler.pushToUpstreams(json)
+                                    : gatewayHandler.pushToUpstreams(json, codes);
+                            ProcessInfo info = new ProcessInfo();
+                            Date now = new Date();
+                            info.setDevice(sysDevice);
+                            info.setStartTime(now);
+                            info.setEndTime(now);
+                            info.setType(MessageConstants.MSG_TYPE_DEVICE_ADD);
+                            info.setContent(json);
+                            info.setUnifiedContent(json);
+                            info.setMsgList(Collections.emptyList());
+                            info.setPushResults(results);
+                            messageService.log(info);
                         }
                     }
                     if(list.size() < limit){
@@ -151,9 +181,14 @@ public class DeviceServiceImpl implements IDeviceService {
                     Thread.sleep(1000);
                 }
             }catch (Exception e){
-                e.printStackTrace();
+                log.error("设备同步失败", e);
             }
-        }).start();
+        };
+        if (zaSysDevice != null && StringUtils.isNotEmpty(zaSysDevice.getCode())) {
+            job.run();
+            return R.success("设备信息已推送");
+        }
+        new Thread(job).start();
         return R.success("设备信息开始推送中");
     }
 

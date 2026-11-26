@@ -12,6 +12,7 @@ import com.zhian.gateway.sys.domain.ZaSysMessageLog;
 import com.zhian.gateway.sys.mapper.ZaSysMessageLogMapper;
 import com.zhian.gateway.sys.mapper.ZaSysMessageMapper;
 import com.zhian.gateway.sys.service.IZaSysMessageService;
+import com.zhian.gateway.sys.utils.MessageViewHelper;
 import com.zhian.gateway.third.common.bo.ProcessInfo;
 import com.zhian.gateway.third.gw.MessageSyncHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -78,11 +79,13 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper, ZaS
         message.setHandleStatus(info.getHandleStatus());
         message.setHandleResult(info.getHandleResult());
         message.setPfCode(device.getPfCode());
-        // 花费时间
-        message.setCostTime(info.getEndTime().getTime() - info.getStartTime().getTime());
-        // 消息类型
-        String types = info.getMsgList().stream().map(Message::getType).collect(Collectors.joining(","));
-        message.setType(types);
+        if (info.getStartTime() != null && info.getEndTime() != null) {
+            message.setCostTime(info.getEndTime().getTime() - info.getStartTime().getTime());
+        }
+        if (info.getMsgList() != null && !info.getMsgList().isEmpty()) {
+            String types = info.getMsgList().stream().map(Message::getType).collect(Collectors.joining(","));
+            message.setType(types);
+        }
 
         // 汇总各上级平台推送结果：全部成功=sent，任一失败=failed（失败消息可重推）
         List<MessageSyncHandler.UpstreamPushResult> results = info.getPushResults();
@@ -202,43 +205,123 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper, ZaS
 
     @Override
     public boolean retryMessage(Long id) {
+        Object success = retryMessageDetail(id, null).get("success");
+        return Boolean.TRUE.equals(success);
+    }
+
+    @Override
+    public Map<String, Object> retryMessageDetail(Long id, List<String> upstreamCodes) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("id", id);
+        detail.put("success", false);
         ZaSysMessage msg = zaSysMessageMapper.selectZaSysMessageById(id);
         if (msg == null) {
-            return false;
+            detail.put("error", "消息不存在");
+            return detail;
         }
-        // 优先重推统一消息（保持原 messageId，上级平台按其去重保证幂等）；无统一消息时回退原始报文
+        MessageViewHelper.fillMessageIdAndSummary(msg);
+        detail.put("messageId", msg.getMessageId());
+        detail.put("deviceCode", msg.getDeviceCode());
+        detail.put("summary", msg.getSummary());
+        if ("control".equalsIgnoreCase(msg.getType())) {
+            detail.put("error", "反控消息不支持重推");
+            return detail;
+        }
         String payload = StringUtils.isNotEmpty(msg.getUnifiedContent()) ? msg.getUnifiedContent() : msg.getContent();
         if (StringUtils.isEmpty(payload)) {
-            return false;
+            detail.put("error", "消息内容为空");
+            return detail;
+        }
+        List<String> codes = upstreamCodes == null ? new ArrayList<>() : new ArrayList<>(upstreamCodes);
+        if (codes.isEmpty()) {
+            codes.addAll(failedUpstreamCodes(id));
         }
         MessageSyncHandler messageSyncHandler = SpringUtils.getBean("gatewayHandler", MessageSyncHandler.class);
-        List<MessageSyncHandler.UpstreamPushResult> results = messageSyncHandler.pushToUpstreams(payload);
+        List<MessageSyncHandler.UpstreamPushResult> results = codes.isEmpty()
+                ? messageSyncHandler.pushToUpstreams(payload)
+                : messageSyncHandler.pushToUpstreams(payload, codes);
 
-        boolean ok;
         if (results.isEmpty()) {
-            // 未配置任何上级平台
-            ok = false;
             MessageSyncHandler.UpstreamPushResult none = new MessageSyncHandler.UpstreamPushResult();
             none.setUpstreamName("-");
             none.setPushType("unknown");
             none.setTarget("未配置上级平台");
             none.setSuccess(false);
-            none.setError("未配置任何启用的上级平台");
+            none.setError(codes.isEmpty() ? "未配置任何启用的上级平台" : "所选通道不存在或未启用");
             insertPushLog(id, none);
+            results.add(none);
         } else {
-            ok = results.stream().allMatch(MessageSyncHandler.UpstreamPushResult::isSuccess);
             for (MessageSyncHandler.UpstreamPushResult r : results) {
                 insertPushLog(id, r);
             }
         }
 
+        boolean attemptOk = results.stream().allMatch(MessageSyncHandler.UpstreamPushResult::isSuccess);
+        boolean allChannelsOk = latestChannelsAllSuccess(id);
         ZaSysMessage update = new ZaSysMessage();
         update.setId(id);
-        update.setSendStatus(ok ? ZaSysMessage.SEND_STATUS_SENT : ZaSysMessage.SEND_STATUS_FAILED);
+        update.setSendStatus(allChannelsOk ? ZaSysMessage.SEND_STATUS_SENT : ZaSysMessage.SEND_STATUS_FAILED);
         update.setRetryCount((msg.getRetryCount() == null ? 0 : msg.getRetryCount()) + 1);
         update.setRetryTime(new Date());
         zaSysMessageMapper.updateZaSysMessage(update);
-        return ok;
+
+        String error = results.stream()
+                .filter(r -> !r.isSuccess())
+                .map(r -> (r.getUpstreamName() == null ? "通道" : r.getUpstreamName()) + "：" + (r.getError() == null ? "失败" : r.getError()))
+                .collect(Collectors.joining("；"));
+        detail.put("success", attemptOk);
+        detail.put("sendStatus", update.getSendStatus());
+        detail.put("error", attemptOk ? "" : error);
+        return detail;
+    }
+
+    /**
+     * 最近一次推送失败的上级通道编码。日志里只存了平台名称，按名称回查编码。
+     */
+    private List<String> failedUpstreamCodes(Long messageId) {
+        List<ZaSysMessageLog> logs = pushLogMapper.selectByMessageId(messageId);
+        Map<String, ZaSysMessageLog> latest = new LinkedHashMap<>();
+        for (ZaSysMessageLog logItem : logs) {
+            String name = channelName(logItem.getTarget());
+            latest.putIfAbsent(name, logItem);
+        }
+        MessageSyncHandler handler = SpringUtils.getBean("gatewayHandler", MessageSyncHandler.class);
+        Map<String, String> nameToCode = new HashMap<>();
+        for (Map<String, Object> item : handler.upstreamRuntimeStatus()) {
+            Object name = item.get("name");
+            Object code = item.get("code");
+            if (name != null && code != null) {
+                nameToCode.put(String.valueOf(name), String.valueOf(code));
+            }
+        }
+        List<String> codes = new ArrayList<>();
+        for (Map.Entry<String, ZaSysMessageLog> e : latest.entrySet()) {
+            if (!ZaSysMessageLog.STATUS_FAILURE.equals(e.getValue().getStatus())) {
+                continue;
+            }
+            String code = nameToCode.get(e.getKey());
+            if (StringUtils.isNotEmpty(code)) {
+                codes.add(code);
+            }
+        }
+        return codes;
+    }
+
+    private boolean latestChannelsAllSuccess(Long messageId) {
+        List<ZaSysMessageLog> logs = pushLogMapper.selectByMessageId(messageId);
+        Map<String, ZaSysMessageLog> latest = new LinkedHashMap<>();
+        for (ZaSysMessageLog logItem : logs) {
+            latest.putIfAbsent(channelName(logItem.getTarget()), logItem);
+        }
+        return !latest.isEmpty() && latest.values().stream().allMatch(l -> ZaSysMessageLog.STATUS_SUCCESS.equals(l.getStatus()));
+    }
+
+    private static String channelName(String target) {
+        if (target == null) {
+            return "";
+        }
+        int idx = target.indexOf('|');
+        return (idx > 0 ? target.substring(0, idx) : target).trim();
     }
 
     private static String truncate(String s, int max) {

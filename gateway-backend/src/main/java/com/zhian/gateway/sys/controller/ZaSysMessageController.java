@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -162,10 +163,9 @@ public class ZaSysMessageController extends BaseController
     @ApiOperation("重试发送消息")
     @PreAuthorize("@ss.hasPermi('sys:message:edit')")
     @PostMapping("/retry/{id}")
-    public R retry(@PathVariable("id") Long id)
+    public R retry(@PathVariable("id") Long id, @RequestBody(required = false) Map<String, Object> body)
     {
-        boolean ok = zaSysMessageService.retryMessage(id);
-        return ok ? success("推送成功") : error("推送失败，请检查网关推送配置");
+        return success(zaSysMessageService.retryMessageDetail(id, upstreamCodes(body)));
     }
 
     /**
@@ -204,6 +204,7 @@ public class ZaSysMessageController extends BaseController
     public R retryBatch(@RequestBody Map<String, Object> body)
     {
         Object idsObj = body != null ? body.get("ids") : null;
+        List<String> codes = upstreamCodes(body);
         int ok = 0, fail = 0;
         if (idsObj instanceof List) {
             for (Object id : (List<?>) idsObj) {
@@ -211,7 +212,7 @@ public class ZaSysMessageController extends BaseController
                     continue;
                 }
                 try {
-                    boolean r = zaSysMessageService.retryMessage(Long.valueOf(String.valueOf(id)));
+                    boolean r = Boolean.TRUE.equals(zaSysMessageService.retryMessageDetail(Long.valueOf(String.valueOf(id)), codes).get("success"));
                     if (r) {
                         ok++;
                     } else {
@@ -231,7 +232,7 @@ public class ZaSysMessageController extends BaseController
                 if ("control".equalsIgnoreCase(m.getType())) {
                     continue;
                 }
-                if (zaSysMessageService.retryMessage(m.getId())) {
+                if (Boolean.TRUE.equals(zaSysMessageService.retryMessageDetail(m.getId(), codes).get("success"))) {
                     ok++;
                 } else {
                     fail++;
@@ -268,6 +269,22 @@ public class ZaSysMessageController extends BaseController
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    private static List<String> upstreamCodes(Map<String, Object> body) {
+        if (body == null) {
+            return new ArrayList<>();
+        }
+        Object raw = body.get("upstreamCodes");
+        List<String> codes = new ArrayList<>();
+        if (raw instanceof List) {
+            for (Object item : (List<?>) raw) {
+                if (item != null && String.valueOf(item).length() > 0) {
+                    codes.add(String.valueOf(item));
+                }
+            }
+        }
+        return codes;
     }
 
     private static long toLong(Object v) {

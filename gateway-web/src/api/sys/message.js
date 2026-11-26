@@ -61,10 +61,11 @@ export function clearMessage() {
 }
 
 // 重试/再次推送（同一接口）
-export function retryMessage(id) {
+export function retryMessage(id, upstreamCodes) {
   return request({
     url: '/sys/message/retry/' + id,
-    method: 'post'
+    method: 'post',
+    data: { upstreamCodes: upstreamCodes || [] }
   })
 }
 

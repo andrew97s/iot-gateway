@@ -57,6 +57,11 @@
         </filter>
     </appender>
 	
+	<!-- 实时日志页面。与文件使用同一格式，连接 /ws/log 后由 LogStreamHub 推送。 -->
+	<appender name="web_log" class="com.zhian.gateway.framework.log.LogStreamAppender">
+		<pattern>${log.pattern}</pattern>
+	</appender>
+
 	<!-- 用户访问日志输出  -->
     <appender name="sys-user" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -77,6 +82,7 @@
 
 	<root level="info">
 		<appender-ref ref="console" />
+		<appender-ref ref="web_log" />
 	</root>
 	
 	<!--系统操作日志-->

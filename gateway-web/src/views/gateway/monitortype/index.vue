@@ -5,8 +5,8 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="queryParams.name" clearable placeholder="类型名称" style="width: 160px" @keyup.enter="handleQuery" />
         <el-input v-model="queryParams.code" clearable placeholder="类型编码" style="width: 140px" @keyup.enter="handleQuery" />
-        <el-select-v2 v-model="queryParams.valueType" :options="VALUE_TYPE_OPTIONS" clearable placeholder="值类型（全部）" style="width: 130px" @change="handleQuery" />
-        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery" />
+        <el-select-v2 v-model="queryParams.valueType" :options="VALUE_TYPE_OPTIONS" clearable placeholder="值类型" style="width: 120px" @change="handleQuery" />
+        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态" style="width: 100px" @change="handleQuery" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />

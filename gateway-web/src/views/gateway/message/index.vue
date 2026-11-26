@@ -7,9 +7,9 @@
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="filters.keyword" clearable placeholder="消息ID / 设备编码" style="width: 200px" @keyup.enter="handleQuery" />
-        <el-select-v2 v-model="filters.type" :options="msgTypeOptions" clearable placeholder="全部类型" style="width: 160px" />
-        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 160px" />
-        <el-select-v2 v-model="filters.sendStatus" :options="SEND_STATUS_OPTIONS" clearable placeholder="同步状态（全部）" style="width: 150px" />
+        <el-select-v2 v-model="filters.type" :options="msgTypeOptions" clearable placeholder="全部类型" style="width: 120px" />
+        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 120px" />
+        <el-select-v2 v-model="filters.sendStatus" :options="SEND_STATUS_OPTIONS" clearable placeholder="同步状态" style="width: 120px" />
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
@@ -17,7 +17,7 @@
           start-placeholder="开始时间"
           end-placeholder="结束时间"
           value-format="YYYY-MM-DD HH:mm:ss"
-          style="width: 340px"
+          style="width: 100px"
         />
         <el-button type="primary" icon="Search" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -133,16 +133,58 @@
         <el-button type="primary" @click="detailOpen = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="retryOpen" append-to-body destroy-on-close title="选择重推通道" width="720px">
+      <p class="retry-hint">
+        将 <b>{{ retryTargets.length }}</b> 条消息重推到勾选的上级通道。未勾选的通道保持原结果，不会再次推送。
+      </p>
+      <el-table ref="retryUpstreamRef" :data="upstreamList" size="small" @selection-change="(rows) => (retryUpstreams = rows)">
+        <el-table-column type="selection" width="48" />
+        <el-table-column label="通道" min-width="160" prop="name" show-overflow-tooltip />
+        <el-table-column label="编码" min-width="120" prop="code" show-overflow-tooltip />
+        <el-table-column align="center" label="方式" width="100">
+          <template #default="{ row }"><span class="gw-tag">{{ pushModeLabel(row.pushType) }}</span></template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="retryOpen = false">取消</el-button>
+        <el-button :disabled="!retryUpstreams.length" type="primary" @click="confirmRetry">开始重推</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="progress.open" append-to-body :close-on-click-modal="false" :show-close="!progress.running" title="消息重推进度" width="880px">
+      <el-progress :percentage="progressPercent" :status="progressStatus" :stroke-width="16" />
+      <div class="progress-summary">
+        已处理 {{ progress.done }} / {{ progress.total }}
+        · 成功 <b class="ok">{{ progressOk }}</b>
+        · 仍失败 <b class="err">{{ progressFail }}</b>
+      </div>
+      <el-table :data="progress.items" max-height="360" size="small">
+        <el-table-column label="消息ID" min-width="150" prop="messageId" show-overflow-tooltip />
+        <el-table-column label="设备编码" min-width="130" prop="deviceCode" show-overflow-tooltip />
+        <el-table-column label="摘要" min-width="160" prop="summary" show-overflow-tooltip />
+        <el-table-column align="center" label="结果" width="90">
+          <template #default="{ row }">
+            <span class="gw-badge" :class="row.ok ? 'ok' : 'err'">{{ row.ok ? '成功' : '仍失败' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="说明" min-width="200" prop="reason" show-overflow-tooltip />
+      </el-table>
+      <template #footer>
+        <el-button :disabled="progress.running" type="primary" @click="progress.open = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Message">
 import JsonPretty from 'vue-json-pretty'
 import {
-  listMessage, getMessage, pushMessage, listMessagePushLogs,
-  messageTodayStats, retryMessageBatch
+  listMessage, getMessage, listMessagePushLogs,
+  messageTodayStats, retryMessage
 } from '@/api/sys/message'
 import { selectPlatform } from '@/api/sys/platform'
+import { selectUpstream } from '@/api/sys/upstream'
 
 const { proxy } = getCurrentInstance()
 
@@ -183,6 +225,19 @@ const dateRange = ref([])
 const queryParams = reactive({ pageNum: 1, pageSize: 10, orderByColumn: 'id', isAsc: 'DESC' })
 const pushingMap = reactive({})
 const batchRetryLoading = ref(false)
+const upstreamList = ref([])
+const retryOpen = ref(false)
+const retryTargets = ref([])
+const retryUpstreams = ref([])
+const retryUpstreamRef = ref()
+const progress = reactive({ open: false, running: false, done: 0, total: 0, items: [] })
+const progressPercent = computed(() => (progress.total ? Math.round((progress.done * 100) / progress.total) : 0))
+const progressOk = computed(() => progress.items.filter((item) => item.ok).length)
+const progressFail = computed(() => progress.items.filter((item) => !item.ok).length)
+const progressStatus = computed(() => {
+  if (progress.running || !progress.total || progress.done < progress.total) return undefined
+  return progressFail.value ? 'warning' : 'success'
+})
 
 const detailOpen = ref(false)
 const detail = ref({})
@@ -380,35 +435,114 @@ async function openDetail(row) {
   }
 }
 
-async function handlePush(row) {
-  if (!row?.id) return
-  pushingMap[row.id] = true
-  try {
-    await pushMessage(row.id)
-    proxy.$modal.msgSuccess('推送成功')
-    getList()
-    loadToday()
-    if (detailOpen.value && detail.value.id === row.id) {
-      openDetail(row)
+async function loadUpstreams() {
+  if (upstreamList.value.length) return
+  const res = await selectUpstream({ status: '1' }).catch(() => ({ data: [] }))
+  upstreamList.value = res.data || []
+}
+
+async function failedChannelNames(row) {
+  if (!row?.id) return null
+  let logs = []
+  if (detailOpen.value && detail.value.id === row.id && pushLogs.value.length) {
+    logs = pushLogs.value
+  } else {
+    const res = await listMessagePushLogs(row.id).catch(() => ({ data: [] }))
+    logs = res.data || []
+  }
+  const latest = new Map()
+  logs.forEach((log) => {
+    const name = platformFromTarget(log.target)
+    if (!latest.has(name)) latest.set(name, log)
+  })
+  const failed = new Set()
+  latest.forEach((log, name) => {
+    if (log.status !== 'success') failed.add(name)
+  })
+  return failed
+}
+
+async function openRetry(rows) {
+  const targets = (rows || []).filter((row) => row?.id && !isControlType(row.type))
+  if (!targets.length) {
+    proxy.$modal.msgWarning('没有可重推的消息')
+    return
+  }
+  await loadUpstreams()
+  if (!upstreamList.value.length) {
+    proxy.$modal.msgWarning('还没有启用的上级通道')
+    return
+  }
+  retryTargets.value = targets
+  retryOpen.value = true
+  const failedNames = targets.length === 1 ? await failedChannelNames(targets[0]) : null
+  await nextTick()
+  retryUpstreamRef.value?.clearSelection?.()
+  upstreamList.value.forEach((row) => {
+    const checked = failedNames && failedNames.size ? failedNames.has(row.name) : true
+    retryUpstreamRef.value?.toggleRowSelection?.(row, checked)
+  })
+}
+
+function handlePush(row) {
+  openRetry([row])
+}
+
+async function confirmRetry() {
+  const codes = retryUpstreams.value.map((row) => row.code).filter(Boolean)
+  const targets = retryTargets.value.slice()
+  if (!codes.length || !targets.length) return
+  retryOpen.value = false
+  progress.open = true
+  progress.running = true
+  progress.done = 0
+  progress.total = targets.length
+  progress.items = []
+  for (const row of targets) {
+    pushingMap[row.id] = true
+    let ok = false
+    let reason = ''
+    try {
+      const res = await retryMessage(row.id, codes)
+      const data = res.data || {}
+      ok = !!data.success
+      reason = data.error || (ok ? '已推送到所选通道' : '重推失败')
+      if (ok && data.sendStatus === 'failed') {
+        reason = '所选通道已成功，未勾选的通道仍失败'
+      }
+    } catch (e) {
+      reason = e?.message || '请求失败'
+    } finally {
+      delete pushingMap[row.id]
     }
-  } catch {
-    proxy.$modal.msgError('推送失败')
-    getList()
-  } finally {
-    delete pushingMap[row.id]
+    progress.items.push({
+      messageId: row.messageId || row.id,
+      deviceCode: row.deviceCode || '-',
+      summary: row.summary || '-',
+      ok,
+      reason
+    })
+    progress.done += 1
+  }
+  progress.running = false
+  getList()
+  loadToday()
+  if (detailOpen.value && targets.some((row) => row.id === detail.value.id)) {
+    openDetail(detail.value)
   }
 }
 
 async function batchRetryFailed() {
+  batchRetryLoading.value = true
   try {
-    await proxy.$modal.confirm('确认批量重推最近失败的消息？（最多 50 条）')
-    batchRetryLoading.value = true
-    const res = await retryMessageBatch({})
-    const d = res.data || {}
-    proxy.$modal.msgSuccess(`重推完成：成功 ${d.success || 0}，失败 ${d.failed || 0}`)
-    getList()
-    loadToday()
-  } catch { /* */ } finally {
+    const res = await listMessage({ pageNum: 1, pageSize: 50, sendStatus: 'failed', orderByColumn: 'id', isAsc: 'DESC' })
+    const rows = (res.rows || []).filter((row) => !isControlType(row.type))
+    if (!rows.length) {
+      proxy.$modal.msgWarning('最近没有失败消息')
+      return
+    }
+    await openRetry(rows)
+  } finally {
     batchRetryLoading.value = false
   }
 }
@@ -428,6 +562,11 @@ getList()
 </script>
 
 <style scoped>
+.retry-hint { margin: 0 0 12px; color: #64748b; font-size: 13px; }
+.retry-hint b { color: #0f172a; }
+.progress-summary { margin: 12px 0; color: #64748b; font-size: 13px; }
+.progress-summary b.ok { color: #16a34a; }
+.progress-summary b.err { color: #dc2626; }
 .page-summary { color: #64748b; font-size: 13px; }
 .page-summary b { color: #0f172a; font-weight: 700; }
 .page-summary b.ok { color: #16a34a; }

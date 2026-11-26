@@ -106,6 +106,13 @@ public interface IZaSysMessageService  extends IService<ZaSysMessage>
     boolean retryMessage(Long id);
 
     /**
+     * 向指定上级通道重推。通道为空时只重推最近一次失败的通道。
+     *
+     * @return success、error、messageId、deviceCode、summary
+     */
+    java.util.Map<String, Object> retryMessageDetail(Long id, java.util.List<String> upstreamCodes);
+
+    /**
      * 按平台统计消息数量
      *
      * @return list of {pfCode, total, sentCount, failedCount}

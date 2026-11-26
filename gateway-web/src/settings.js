@@ -13,8 +13,8 @@ export default {
   showAsideLogo: hostInfo.showAsideLogo,
   needVerify: hostInfo.needVerify,
   // 根据路由首页设置对应首页path和name
-  homePath: '/status',
-  homeName: 'Status',
+  homePath: '/home',
+  homeName: 'Home',
   /**
    * 侧边栏主题 深色主题theme-dark，浅色主题theme-light
    */

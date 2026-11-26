@@ -89,17 +89,46 @@ public class ZaSysDeviceController extends BaseController
             total = cnt == null ? 0 : cnt.intValue();
         } catch (Exception ignored) {
         }
+        List<Long> ids = new ArrayList<>();
+        for (ZaSysDevice d : list) {
+            if (d.getId() != null) {
+                ids.add(d.getId());
+            }
+        }
+        Map<Long, String> synced = new HashMap<>();
+        if (!ids.isEmpty()) {
+            try {
+                List<ZaSysMessage> latest = messageMapper.selectLatestDeviceSync(ids);
+                if (latest != null) {
+                    for (ZaSysMessage msg : latest) {
+                        if (msg.getDeviceId() != null) {
+                            synced.put(msg.getDeviceId(), msg.getSendStatus());
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
         for (ZaSysDevice d : list) {
             d.setSyncTotal(total);
             if (total <= 0) {
                 d.setSyncSuccess(0);
                 d.setSyncLabel("未配置上级");
-            } else if ("1".equals(d.getOnline())) {
+                continue;
+            }
+            String sendStatus = synced.get(d.getId());
+            if (ZaSysMessage.SEND_STATUS_SENT.equals(sendStatus)) {
                 d.setSyncSuccess(total);
-                d.setSyncLabel(total + "/" + total + " 已同步");
-            } else {
+                d.setSyncLabel("已同步");
+            } else if (ZaSysMessage.SEND_STATUS_FAILED.equals(sendStatus)) {
+                d.setSyncSuccess(0);
+                d.setSyncLabel("同步失败");
+            } else if (sendStatus == null) {
                 d.setSyncSuccess(0);
                 d.setSyncLabel("未同步");
+            } else {
+                d.setSyncSuccess(0);
+                d.setSyncLabel("待同步");
             }
         }
     }

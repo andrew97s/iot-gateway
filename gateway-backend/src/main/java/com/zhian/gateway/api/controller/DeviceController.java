@@ -54,8 +54,16 @@ public class DeviceController extends BaseController {
 
     @ApiOperation("强制网关向上推送设备列表")
     @GetMapping("push")
-    public R push(ZaSysDevice zaSysDevice) {
-        return deviceService.push(zaSysDevice);
+    public R push(ZaSysDevice zaSysDevice, @RequestParam(value = "upstreamCodes", required = false) String upstreamCodes) {
+        java.util.List<String> codes = new java.util.ArrayList<>();
+        if (StringUtils.isNotEmpty(upstreamCodes)) {
+            for (String code : upstreamCodes.split(",")) {
+                if (StringUtils.isNotEmpty(code)) {
+                    codes.add(code.trim());
+                }
+            }
+        }
+        return deviceService.push(zaSysDevice, codes);
     }
 
 }

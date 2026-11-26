@@ -16,7 +16,7 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="filters.keyword" clearable placeholder="插件名称 / 厂商" style="width: 200px" @keyup.enter="loadList" />
         <el-select-v2 v-model="filters.state" :options="STATE_OPTIONS" clearable placeholder="全部状态" style="width: 130px" />
-        <el-select-v2 v-model="filters.protocol" :options="protocolSelectOptions" clearable placeholder="全部协议" style="width: 150px" />
+        <el-select-v2 v-model="filters.protocol" :options="protocolSelectOptions" clearable placeholder="全部协议" style="width: 120px" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" :loading="loading" @click="handleQuery">刷新</el-button>
         <div class="spacer" />
@@ -77,7 +77,7 @@
               <el-button size="small" type="primary" v-hasPermi="['sys:platform:add']" @click="openInstallFor(row)">创建实例</el-button>
             </template>
             <template v-else>
-              <el-button size="small" @click="openDrawer(row)">日志 / 统计</el-button>
+              <el-button size="small" @click="openDrawer(row)">统计</el-button>
               <el-button size="small" v-hasPermi="['sys:platform:edit']" @click="openConfig(row)">配置</el-button>
             </template>
             <template v-if="row.state === 'running'">
@@ -263,24 +263,24 @@
             </div>
           </div>
         </el-tab-pane>
-        <el-tab-pane label="运行日志" name="logs">
-          <div class="gw-filter-bar log-filter" style="margin-bottom: 12px">
-            <el-select-v2 v-model="logLevel" :options="LOG_LEVEL_OPTIONS" clearable placeholder="全部级别" style="width: 130px" />
-            <el-input v-model="logKeyword" clearable placeholder="关键字过滤" style="flex: 1" />
-            <el-button icon="Refresh" :loading="logLoading" size="small" @click="loadLogs">刷新</el-button>
-            <el-button :disabled="!displayLogs.length" icon="Download" size="small" @click="downloadLogs">下载日志</el-button>
-          </div>
-          <div class="gw-log-console" v-loading="logLoading">
-            <template v-if="displayLogs.length">
-              <div v-for="(log, idx) in displayLogs" class="log-line" :key="log.id || idx">
-                <span class="t">{{ formatLogTime(log.time) }}</span>
-                <span :class="'lv-' + log.level.toLowerCase()">[{{ padLevel(log.level) }}]</span>
-                <span> [{{ currentId }}] {{ log.message }}</span>
-              </div>
-            </template>
-            <div class="empty-log" v-else>暂无运行日志</div>
-          </div>
-        </el-tab-pane>
+<!--        <el-tab-pane label="运行日志" name="logs">-->
+<!--          <div class="gw-filter-bar log-filter" style="margin-bottom: 12px">-->
+<!--            <el-select-v2 v-model="logLevel" :options="LOG_LEVEL_OPTIONS" clearable placeholder="全部级别" style="width: 130px" />-->
+<!--            <el-input v-model="logKeyword" clearable placeholder="关键字过滤" style="flex: 1" />-->
+<!--            <el-button icon="Refresh" :loading="logLoading" size="small" @click="loadLogs">刷新</el-button>-->
+<!--            <el-button :disabled="!displayLogs.length" icon="Download" size="small" @click="downloadLogs">下载日志</el-button>-->
+<!--          </div>-->
+<!--          <div class="gw-log-console" v-loading="logLoading">-->
+<!--            <template v-if="displayLogs.length">-->
+<!--              <div v-for="(log, idx) in displayLogs" class="log-line" :key="log.id || idx">-->
+<!--                <span class="t">{{ formatLogTime(log.time) }}</span>-->
+<!--                <span :class="'lv-' + log.level.toLowerCase()">[{{ padLevel(log.level) }}]</span>-->
+<!--                <span> [{{ currentId }}] {{ log.message }}</span>-->
+<!--              </div>-->
+<!--            </template>-->
+<!--            <div class="empty-log" v-else>暂无运行日志</div>-->
+<!--          </div>-->
+<!--        </el-tab-pane>-->
       </el-tabs>
     </el-drawer>
   </div>
@@ -344,7 +344,7 @@ const loading = ref(false)
 const instances = ref([])
 const summary = ref({ running: 0, stopped: 0, installed: 0, abnormal: 0, total: 0 })
 const types = ref([])
-const filters = reactive({ keyword: '', state: undefined, protocol: undefined })
+const filters = reactive({ keyword: '', state: 'running', protocol: undefined })
 const queryParams = reactive({ pageNum: 1, pageSize: 9 })
 const busy = ref({})
 

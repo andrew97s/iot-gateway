@@ -191,6 +191,26 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where create_time >= curdate()
     </select>
 
+    <select id="selectLatestDeviceSync" resultMap="ZaSysMessageResult">
+        select m.id, m.device_id, m.send_status, m.type
+        from za_sys_message m
+        inner join (
+            select device_id, max(id) as id
+            from za_sys_message
+            where device_id in
+            <foreach collection="deviceIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+              and (
+                type like '%device_add%'
+                or type like '%device_upd%'
+                or type like '%device_del%'
+                or type = 'device'
+              )
+            group by device_id
+        ) t on m.id = t.id
+    </select>
+
     <delete id="deleteZaSysMessageById" parameterType="Long">
         delete from za_sys_message where id = #{id}
     </delete>

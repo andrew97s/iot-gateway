@@ -40,6 +40,7 @@ public class ZaAlarmTypeController extends BaseController {
                 .like(StringUtils.isNotEmpty(query.getName()), ZaAlarmType::getName, query.getName())
                 .like(StringUtils.isNotEmpty(query.getCode()), ZaAlarmType::getCode, query.getCode())
                 .eq(StringUtils.isNotEmpty(query.getStatus()), ZaAlarmType::getStatus, query.getStatus())
+                .eq(query.getType() != null, ZaAlarmType::getType, query.getType())
                 .like(StringUtils.isNotEmpty(query.getPfCode()), ZaAlarmType::getAliases, query.getPfCode())
                 .orderByDesc(ZaAlarmType::getId);
     }

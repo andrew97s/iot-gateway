@@ -5,6 +5,8 @@ import com.zhian.gateway.common.core.domain.R;
 import com.zhian.gateway.sys.domain.ZaSysDevice;
 import com.zhian.gateway.third.vo.ControlVo;
 
+import java.util.List;
+
 /**
  * 设备业务接口
  */
@@ -31,5 +33,5 @@ public interface IDeviceService {
      * @param zaSysDevice
      * @return
      */
-    public R push(ZaSysDevice zaSysDevice);
+    public R push(ZaSysDevice zaSysDevice, List<String> upstreamCodes);
 }

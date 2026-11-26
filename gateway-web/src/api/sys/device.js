@@ -93,6 +93,15 @@ export function getDeviceOnlineStats() {
   })
 }
 
+// 远程控制调试
+export function controlDevice(data) {
+  return request({
+    url: '/api/device/control',
+    method: 'post',
+    data
+  })
+}
+
 // 更新设备在线状态（并推送事件给下游）
 export function updateDeviceOnline(data) {
   return request({

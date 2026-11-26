@@ -129,4 +129,9 @@ public interface ZaSysMessageMapper extends BaseMapper<ZaSysMessage>
      * 今日推送/告警汇总
      */
     java.util.Map<String, Object> selectTodaySendStats();
+
+    /**
+     * 每台设备最近一次档案同步消息（不含上下线事件）。
+     */
+    List<ZaSysMessage> selectLatestDeviceSync(@Param("deviceIds") List<Long> deviceIds);
 }

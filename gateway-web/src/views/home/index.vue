@@ -1,5 +1,5 @@
 <template>
-  <div class="gw-page" v-loading="loading">
+  <div class="gw-page home-page" v-loading="loading">
     <!-- 顶部指标卡 -->
     <div class="gw-stat-grid">
       <div class="gw-stat">
@@ -41,20 +41,20 @@
     </div>
 
     <!-- 趋势 + 分布/资源 -->
-    <el-row :gutter="14">
+    <el-row class="home-mid" :gutter="14">
       <el-col :lg="16" :xs="24">
-        <div class="gw-card" style="height: 100%">
+        <div class="gw-card home-mid-card">
           <div class="gw-card-head">
             <h2>近 24 小时消息接入趋势</h2>
             <el-button icon="Refresh" :loading="loading" size="small" text @click="loadAll">刷新</el-button>
           </div>
-          <div class="gw-card-body">
+          <div class="gw-card-body chart-body">
             <div class="chart-box" ref="chartRef" />
           </div>
         </div>
       </el-col>
       <el-col :lg="8" :xs="24">
-        <div class="gw-card" style="height: 100%">
+        <div class="gw-card home-mid-card">
           <div class="gw-card-head"><h2>今日消息类型分布</h2></div>
           <div class="gw-card-body">
             <el-empty description="今日暂无消息" :image-size="60" v-if="typeDist.length === 0" />
@@ -98,15 +98,15 @@
     </el-row>
 
     <!-- 插件状态 + 推送统计/最新告警 -->
-    <el-row :gutter="14">
-      <el-col :lg="12" :xs="24">
+    <el-row class="home-bottom" :gutter="14">
+      <el-col :lg="12" :xs="24" >
         <div class="gw-card home-side-card">
           <div class="gw-card-head">
             <h2>插件运行状态</h2>
             <button class="gw-link-btn" type="button" @click="navTo('platform')">管理插件 →</button>
           </div>
-          <div class="gw-card-body no-pad">
-            <el-table class="home-table" :data="plugin.list || []" max-height="380" :show-header="true" size="small">
+          <div class="gw-card-body plugin-table-wrap">
+            <el-table class="home-table" :data="plugin.list || []" height="100%" :show-header="true" size="small">
               <el-table-column label="插件" min-width="130" prop="name" show-overflow-tooltip />
               <el-table-column align="center" label="协议" width="120">
                 <template #default="scope">
@@ -132,33 +132,33 @@
       </el-col>
       <el-col :lg="12" :xs="24">
         <div class="gw-card home-side-card">
-          <div class="gw-card-head">
-            <h2>消息推送统计（按来源平台）</h2>
-            <button class="gw-link-btn" type="button" @click="navTo('message')">消息日志 →</button>
-          </div>
-          <div class="gw-card-body no-pad">
-            <el-table class="home-table" :data="messageByPlatform" max-height="200" size="small">
-              <el-table-column label="来源平台" min-width="120" show-overflow-tooltip>
-                <template #default="scope">
-                  <span class="pf-name">{{ platformDisplay(scope.row) }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column align="center" label="今日消息" width="100">
-                <template #default="scope">{{ fmt(scope.row.total) }}</template>
-              </el-table-column>
-              <el-table-column align="center" label="推送成功" width="110">
-                <template #default="scope">
-                  <span class="ok-num">{{ fmt(scope.row.sentCount) }}</span>
-                  <span class="rate-muted" v-if="Number(scope.row.total) > 0"> ({{ pushRate(scope.row) }}%) </span>
-                </template>
-              </el-table-column>
-              <el-table-column align="center" label="推送失败" width="100">
-                <template #default="scope">
-                  <span :class="Number(scope.row.failedCount) > 0 ? 'err-num' : 'muted-num'">{{ fmt(scope.row.failedCount) }}</span>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
+<!--          <div class="gw-card-head">-->
+<!--            <h2>消息推送统计（按来源平台）</h2>-->
+<!--            <button class="gw-link-btn" type="button" @click="navTo('message')">消息日志 →</button>-->
+<!--          </div>-->
+<!--          <div class="gw-card-body platform-table-wrap">-->
+<!--            <el-table class="home-table" :data="messageByPlatform" max-height="148" size="small">-->
+<!--              <el-table-column label="来源平台" min-width="120" show-overflow-tooltip>-->
+<!--                <template #default="scope">-->
+<!--                  <span class="pf-name">{{ platformDisplay(scope.row) }}</span>-->
+<!--                </template>-->
+<!--              </el-table-column>-->
+<!--              <el-table-column align="center" label="今日消息" width="100">-->
+<!--                <template #default="scope">{{ fmt(scope.row.total) }}</template>-->
+<!--              </el-table-column>-->
+<!--              <el-table-column align="center" label="推送成功" width="110">-->
+<!--                <template #default="scope">-->
+<!--                  <span class="ok-num">{{ fmt(scope.row.sentCount) }}</span>-->
+<!--                  <span class="rate-muted" v-if="Number(scope.row.total) > 0"> ({{ pushRate(scope.row) }}%) </span>-->
+<!--                </template>-->
+<!--              </el-table-column>-->
+<!--              <el-table-column align="center" label="推送失败" width="100">-->
+<!--                <template #default="scope">-->
+<!--                  <span :class="Number(scope.row.failedCount) > 0 ? 'err-num' : 'muted-num'">{{ fmt(scope.row.failedCount) }}</span>-->
+<!--                </template>-->
+<!--              </el-table-column>-->
+<!--            </el-table>-->
+<!--          </div>-->
           <div class="gw-card-head alarm-head">
             <h2>最新告警</h2>
           </div>
@@ -360,6 +360,7 @@ onMounted(() => {
   chartInst = echarts.init(chartRef.value)
   window.addEventListener('resize', onResize)
   loadAll()
+  nextTick(onResize)
 })
 
 onBeforeUnmount(() => {
@@ -386,13 +387,79 @@ async function loadAll() {
     loading.value = false
   }
   renderChart()
+  nextTick(onResize)
 }
 </script>
 
 <style scoped>
+.home-page {
+  height: calc(100vh - 50px);
+  max-height: calc(100vh - 50px);
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 16px 20px 24px;
+  gap: 12px;
+}
+
+:global(.hasTagsView) .home-page {
+  height: calc(100vh - 84px);
+  max-height: calc(100vh - 84px);
+}
+
+.home-page :deep(.home-mid),
+.home-page :deep(.home-bottom) {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+.home-page :deep(.home-mid) {
+  flex-grow: 1.05;
+}
+
+.home-page :deep(.home-bottom) {
+  flex-grow: 0.9;
+  max-height: 400px;
+}
+
+.home-page :deep(.home-mid > .el-col),
+.home-page :deep(.home-bottom > .el-col) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.home-mid-card,
+.home-side-card {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.home-mid-card .gw-card-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.chart-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .chart-box {
   width: 100%;
-  height: 330px;
+  flex: 1;
+  min-height: 0;
+  height: auto;
 }
 .res-divider {
   margin-top: 14px;
@@ -405,8 +472,24 @@ async function loadAll() {
   margin: 0 0 12px;
   color: #0f172a;
 }
-.home-side-card {
+.home-side-card .plugin-table-wrap {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-side-card .plugin-table-wrap :deep(.el-table) {
   height: 100%;
+}
+
+.home-side-card .platform-table-wrap {
+  flex: 0 0 auto;
+  padding: 12px 14px 8px;
+  box-sizing: border-box;
 }
 /* 原型 card-head 右侧按钮：边框小按钮 */
 .gw-link-btn {
@@ -450,7 +533,7 @@ async function loadAll() {
 }
 .home-table :deep(td.el-table__cell) {
   font-size: 13px;
-  padding: 10px 0;
+  padding: 7px 0;
 }
 .pf-name {
   color: #0f172a;
@@ -474,14 +557,18 @@ async function loadAll() {
 .alarm-head {
   border-top: 1px solid #e2e8f0;
 }
-.alarm-body {
-  padding-top: 8px;
+.home-side-card .alarm-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 14px 12px;
+  box-sizing: border-box;
 }
 .alarm-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
+  padding: 7px 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 13px;
 }
@@ -493,5 +580,29 @@ async function loadAll() {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 1199px) {
+  .home-page {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    min-height: calc(100vh - 50px);
+  }
+
+  .home-page :deep(.home-mid),
+  .home-page :deep(.home-bottom) {
+    flex: none;
+  }
+
+  .chart-box {
+    height: 280px;
+    flex: none;
+  }
+
+  .home-side-card .plugin-table-wrap {
+    flex: none;
+    height: 320px;
+  }
 }
 </style>

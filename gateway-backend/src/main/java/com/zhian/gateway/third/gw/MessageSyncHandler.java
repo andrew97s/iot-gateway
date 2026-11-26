@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -209,11 +210,21 @@ public class MessageSyncHandler implements ThirdHandler {
      * @return 每个上级平台的推送结果
      */
     public List<UpstreamPushResult> pushToUpstreams(String unifiedJson) {
+        return pushToUpstreams(unifiedJson, null);
+    }
+
+    /**
+     * 只向指定上级通道推送。codes 为空时与 {@link #pushToUpstreams(String)} 相同，推送全部通道。
+     */
+    public List<UpstreamPushResult> pushToUpstreams(String unifiedJson, Collection<String> upstreamCodes) {
         List<UpstreamPushResult> results = new ArrayList<>();
         if (upstreams.isEmpty()) {
             return results;
         }
         for (Map.Entry<String, ZaSysUpstream> e : upstreams.entrySet()) {
+            if (upstreamCodes != null && !upstreamCodes.isEmpty() && !upstreamCodes.contains(e.getKey())) {
+                continue;
+            }
             ZaSysUpstream upstream = e.getValue();
             UpstreamPushResult result = new UpstreamPushResult();
             result.setUpstreamCode(upstream.getCode());

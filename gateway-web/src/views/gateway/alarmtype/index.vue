@@ -5,7 +5,8 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="queryParams.name" clearable placeholder="类型名称" style="width: 170px" @keyup.enter="handleQuery" />
         <el-input v-model="queryParams.code" clearable placeholder="类型编码" style="width: 150px" @keyup.enter="handleQuery" />
-        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态（全部）" style="width: 120px" @change="handleQuery" />
+        <el-select-v2 v-model="queryParams.type" :options="LEVEL_OPTIONS" clearable placeholder="类型" style="width: 100px" @change="handleQuery" />
+        <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态" style="width: 100px" @change="handleQuery" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
@@ -204,10 +205,10 @@ const STATUS_OPTIONS = [
   { value: '0', label: '停用' }
 ]
 const LEVEL_OPTIONS = [
-  { value: 1, label: '1 - 火警' },
-  { value: 2, label: '2 - 预警' },
-  { value: 3, label: '3 - 故障' },
-  { value: 4, label: '4 - 事件' }
+  { value: 1, label: '火警' },
+  { value: 2, label: '预警' },
+  { value: 3, label: '故障' },
+  { value: 4, label: '事件' }
 ]
 
 const queryParams = reactive({
@@ -218,7 +219,7 @@ const queryParams = reactive({
   status: undefined
 })
 
-const LEVELS = { 1: { label: '火警', tag: 'danger' }, 2: { label: '预警', tag: 'warning' }, 3: { label: '故障', tag: 'info' }, 4: { label: '事件', tag: 'primary' } }
+const LEVELS = { 1: { label: '火警', tag: 'danger' }, 2: { label: '预警', tag: 'primary' }, 3: { label: '故障', tag: 'warning' }, 4: { label: '事件', tag: '' } }
 function levelLabel(l) { return LEVELS[l]?.label || l || '-' }
 function levelTag(l) { return LEVELS[l]?.tag || 'info' }
 
