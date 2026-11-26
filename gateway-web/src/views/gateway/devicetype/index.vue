@@ -54,7 +54,10 @@
             </template>
           </el-table-column>
         </el-table>
-        <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :total="total" @pagination="getList" v-show="total > 0" />
+        <div class="gw-table-foot">
+          <span class="gw-muted gw-small">共 {{ total }} 条记录</span>
+          <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :total="total" @pagination="getList" v-show="total > 0" />
+        </div>
       </div>
     </div>
 
@@ -126,11 +129,19 @@ function parseAliases(str) {
 
 function getList() {
   loading.value = true
-  deviceTypeApi.list(queryParams).then(res => {
-    list.value = res.rows
-    total.value = res.total
-    loading.value = false
-  })
+  deviceTypeApi
+    .list(queryParams)
+    .then((res) => {
+      list.value = res.rows || []
+      total.value = res.total || 0
+    })
+    .catch(() => {
+      /* 错误提示由请求拦截器统一弹出 */
+    })
+    .finally(() => {
+      // 请求失败时也要收起 loading，否则表格会一直转圈
+      loading.value = false
+    })
 }
 
 function handleQuery() {

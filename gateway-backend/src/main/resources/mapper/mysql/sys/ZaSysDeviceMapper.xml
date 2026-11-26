@@ -47,8 +47,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="cascadeId != null "> and t.cascade_id = #{cascadeId}</if>
             <if test="online != null "> and t.`online` = #{online}</if>
             <if test="ip != null "> and t.`ip` = #{ip}</if>
-            <if test="params.searchValue != null ">
-             and (t.name like concat('%', #{params.searchValue}, '%') or t.code like concat('%', #{params.searchValue}, '%'))
+            <!-- 关键字：设备编码 / 名称；页面上「修改」的显示名称保存在 remark 的 displayName 里，一并匹配 -->
+            <if test="params.searchValue != null and params.searchValue != ''">
+             and (t.name like concat('%', #{params.searchValue}, '%')
+                  or t.code like concat('%', #{params.searchValue}, '%')
+                  or t.remark like concat('%"displayName"%', #{params.searchValue}, '%'))
             </if>
         </where>
     </select>

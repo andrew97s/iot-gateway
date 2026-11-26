@@ -1,17 +1,49 @@
 <template>
   <div class="gw-page">
-    <div class="page-summary">
-      共 <b>{{ totalStats.total }}</b> 台 · 在线 <b class="ok">{{ totalStats.onlineCount }}</b> · 离线
-      <b class="err">{{ totalStats.total - totalStats.onlineCount }}</b>
+    <div class="gw-page-summary">
+      <span>
+        共 <b>{{ fmtNumber(totalStats.total) }}</b> 台 · 在线 <b class="ok">{{ fmtNumber(totalStats.onlineCount) }}</b> · 离线
+        <b :class="totalStats.offlineCount > 0 ? 'err' : ''">{{ fmtNumber(totalStats.offlineCount) }}</b>
+      </span>
     </div>
 
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
-        <el-input v-model="filters.keyword" clearable placeholder="设备编码 / 名称" style="width: 200px" @keyup.enter="handleQuery" />
-        <el-select-v2 v-model="filters.type" :options="deviceTypeOptions" clearable filterable placeholder="全部类型" style="width: 140px" />
-        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 130px" />
-        <el-select-v2 v-model="filters.online" :options="ONLINE_OPTIONS" clearable placeholder="全部状态" style="width: 120px" />
-        <el-select-v2 v-model="filters.sync" :options="SYNC_OPTIONS" clearable placeholder="同步状态" style="width: 120px" />
+        <el-input
+          v-model="filters.keyword"
+          clearable
+          placeholder="设备编码 / 名称"
+          style="width: 200px"
+          @clear="handleQuery"
+          @keyup.enter="handleQuery"
+        />
+        <el-select-v2
+          v-model="filters.type"
+          clearable
+          filterable
+          :options="deviceTypeOptions"
+          placeholder="全部类型"
+          style="width: 140px"
+          @change="handleQuery"
+        />
+        <el-select-v2
+          v-model="filters.pfCode"
+          clearable
+          filterable
+          :options="platformSelectOptions"
+          placeholder="全部插件"
+          style="width: 130px"
+          @change="handleQuery"
+        />
+        <el-select-v2
+          v-model="filters.online"
+          clearable
+          :options="ONLINE_OPTIONS"
+          placeholder="全部状态"
+          style="width: 120px"
+          @change="handleQuery"
+        />
+        <el-select-v2 v-model="filters.sync" clearable :options="SYNC_OPTIONS" placeholder="同步状态" style="width: 120px" @change="handleQuery" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
@@ -24,7 +56,7 @@
 
     <div class="gw-card">
       <div class="gw-card-body no-pad">
-        <el-table :data="filteredList" v-loading="loading" @selection-change="(s) => (selectedRows = s)">
+        <el-table :data="deviceList" v-loading="loading" @selection-change="(s) => (selectedRows = s)">
           <el-table-column align="center" type="selection" width="42" />
           <el-table-column label="设备编码" min-width="150" show-overflow-tooltip>
             <template #default="{ row }">
@@ -36,7 +68,7 @@
           </el-table-column>
           <el-table-column align="center" label="类型" width="180">
             <template #default="{ row }">
-              <span >{{ typeName(row.type) }}</span>
+              <span>{{ typeName(row.type) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="型号" min-width="110" prop="model" show-overflow-tooltip>
@@ -69,18 +101,28 @@
               <span class="gw-badge plain" :class="syncBadgeClass(row)">{{ row.syncLabel || '未同步' }}</span>
             </template>
           </el-table-column>
-          <el-table-column align="center" fixed="right" label="操作" width="280">
+          <el-table-column align="center" fixed="right" label="操作" width="168">
             <template #default="{ row }">
               <el-button link type="primary" @click="openDetail(row)">详情</el-button>
               <el-button link type="primary" @click="openEdit(row)">修改</el-button>
-              <el-button link type="primary" @click="openSync([row])">同步</el-button>
-              <el-button link type="primary" @click="openControl(row)">控制</el-button>
-              <el-button link type="danger" v-hasPermi="['sys:device:remove']" @click="handleDelete(row)">删除</el-button>
+              <el-dropdown trigger="click">
+                <el-button link type="primary">更多</el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="openSync([row])">同步上级</el-dropdown-item>
+                    <el-dropdown-item @click="openControl(row)">远程控制</el-dropdown-item>
+                    <el-dropdown-item v-hasPermi="['sys:device:remove']" @click="handleDelete(row)">删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </template>
           </el-table-column>
+          <template #empty>
+            <el-empty :description="hasFilter ? '没有符合条件的设备' : '暂无接入设备，设备由插件接入后自动出现在这里'" :image-size="70" />
+          </template>
         </el-table>
-        <div class="table-foot">
-          <span class="gw-muted gw-small">已选 {{ selectedRows.length }} 项 · 共 {{ total }} 条记录</span>
+        <div class="gw-table-foot">
+          <span class="gw-muted gw-small">已选 {{ selectedRows.length }} 项 · 共 {{ fmtNumber(total) }} 条记录</span>
           <pagination
             v-model:limit="queryParams.pageSize"
             v-model:page="queryParams.pageNum"
@@ -100,7 +142,7 @@
         </el-form-item>
         <el-form-item label="指令">
           <el-select v-model="controlForm.command" style="width: 100%">
-            <el-option v-for="item in CONTROL_COMMANDS" :key="item.value" :label="item.label" :value="item.value" />
+            <el-option v-for="item in CONTROL_COMMANDS" :label="item.label" :value="item.value" :key="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="参数">
@@ -119,22 +161,22 @@
 
     <!-- 修改设备 -->
     <el-dialog v-model="editOpen" append-to-body destroy-on-close :title="`修改设备 · ${editForm.code || ''}`" width="680px">
-      <el-form class="edit-grid" label-position="top" :model="editForm">
-        <el-form-item label="设备编码" required>
-          <el-input v-model="editForm.code" />
-          <div class="field-hint">网关内唯一，同步上级平台时作为设备标识</div>
+      <el-form class="edit-grid" label-position="top" :model="editForm" :rules="editRules" ref="editFormRef">
+        <el-form-item label="设备编码" prop="code">
+          <el-input v-model.trim="editForm.code" maxlength="64" />
+          <div class="gw-field-hint">网关内唯一，同步上级平台时作为设备标识</div>
         </el-form-item>
-        <el-form-item label="设备名称" required>
-          <el-input v-model="editForm.displayName" placeholder="显示名称（写入扩展属性）" />
+        <el-form-item label="设备名称" prop="displayName">
+          <el-input v-model.trim="editForm.displayName" maxlength="64" placeholder="显示名称（写入扩展属性）" />
         </el-form-item>
-        <el-form-item label="设备类型" required>
+        <el-form-item label="设备类型" prop="type">
           <el-select-v2
             v-model="editForm.type"
-            :options="deviceTypeEditOptions"
             filterable
-            :teleported="false"
+            :options="deviceTypeEditOptions"
             placeholder="请选择设备类型"
             style="width: 100%"
+            :teleported="false"
           />
         </el-form-item>
         <el-form-item label="型号">
@@ -142,13 +184,20 @@
         </el-form-item>
         <el-form-item label="归属插件">
           <el-input disabled :model-value="`${platformName(editForm.pfCode)} (${editForm.pfCode || '-'})`" />
-          <div class="field-hint">由接入来源决定，不可修改</div>
+          <div class="gw-field-hint">由接入来源决定，不可修改</div>
         </el-form-item>
         <el-form-item label="状态">
           <el-input disabled :model-value="isOnline(editForm) ? '在线' : '离线'" />
         </el-form-item>
-        <el-form-item class="full" label="扩展属性（JSON）">
-          <el-input v-model="editForm.remarkText" :placeholder="jsonPlaceholder" :rows="3" type="textarea" />
+        <el-form-item class="full" label="扩展属性（JSON）" prop="remarkText">
+          <el-input
+            v-model="editForm.remarkText"
+            :autosize="{ minRows: 3, maxRows: 10 }"
+            class="gw-mono"
+            :placeholder="jsonPlaceholder"
+            type="textarea"
+          />
+          <div class="gw-field-hint">必须是 JSON 对象；留空表示没有扩展属性。「设备名称」会自动写入其中的 displayName</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -256,7 +305,7 @@
                 </el-table-column>
                 <el-table-column align="center" label="告警类别" width="90">
                   <template #default="{ row }">
-                    <el-tag size="small" :type="alarmCategoryTag(row.category)">{{ alarmCategoryName(row.category) }}</el-tag>
+                    <el-tag size="small" :type="alarmCategoryTag(row.category)">{{ alarmCategoryLabel(row.category) }}</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="告警名称" min-width="120" show-overflow-tooltip>
@@ -284,7 +333,14 @@
       <p class="gw-muted">
         将所选 <b>{{ syncTargets.length }}</b> 台设备的档案只推送到勾选的上级通道。未勾选的通道不会收到这次同步。
       </p>
-      <el-table class="mt12" :data="upstreamList" size="small" ref="upstreamTableRef" @selection-change="(s) => (syncUpstreams = s)">
+      <el-table
+        class="mt12"
+        :data="upstreamList"
+        empty-text="还没有启用的上级通道，请先在「系统配置 → 上级平台配置」中添加"
+        size="small"
+        ref="upstreamTableRef"
+        @selection-change="(s) => (syncUpstreams = s)"
+      >
         <el-table-column type="selection" width="42" />
         <el-table-column label="平台" min-width="140" prop="name" />
         <el-table-column align="center" label="推送方式" width="110">
@@ -297,13 +353,8 @@
             <span class="gw-badge" :class="upstreamAlive(row) ? 'ok' : 'warn'">{{ upstreamAlive(row) ? '已连接' : '未连接' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="该设备同步状态" min-width="140">
-          <template #default>
-            <span class="gw-badge plain info">将推送 DEVICE_EVENT</span>
-          </template>
-        </el-table-column>
       </el-table>
-      <p class="field-hint mt12">平台不可达时消息将进入待补推队列；同步结果可在「消息日志」中查看。</p>
+      <p class="gw-field-hint mt12">平台不可达时消息将进入待补推队列；同步结果可在「消息日志」中查看。</p>
       <template #footer>
         <el-button @click="syncOpen = false">取消</el-button>
         <el-button :disabled="!syncUpstreams.length" :loading="syncLoading" type="primary" @click="confirmSync">立即同步</el-button>
@@ -341,6 +392,7 @@ import {
 import { selectPlatform } from '@/api/sys/platform'
 import { selectUpstream, getUpstreamStatus } from '@/api/sys/upstream'
 import { deviceTypeApi, monitorTypeApi } from '@/api/sys/businessType'
+import { alarmCategoryLabel, alarmCategoryTag, pushTypeLabel, fmtNumber, copyText as copyToClipboard } from '@/utils/gateway'
 
 const { proxy } = getCurrentInstance()
 const jsonPlaceholder = '{ "channelNo": 3 }'
@@ -366,11 +418,42 @@ const SYNC_OPTIONS = [
 ]
 
 const filters = reactive({ keyword: '', type: undefined, pfCode: undefined, online: undefined, sync: undefined })
+const hasFilter = computed(() => !!(filters.keyword || filters.type || filters.pfCode || filters.online || filters.sync))
 const queryParams = reactive({ pageNum: 1, pageSize: 10, orderByColumn: 'id', isAsc: 'DESC' })
+let listRequestId = 0
 
 const editOpen = ref(false)
 const editLoading = ref(false)
 const editForm = ref({})
+const editFormRef = ref()
+/** 扩展属性必须是 JSON 对象；空串视为无扩展属性 */
+function parseExtension(text) {
+  const raw = String(text ?? '').trim()
+  if (!raw) return {}
+  const parsed = JSON.parse(raw)
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('扩展属性必须是 JSON 对象，例如 { "channelNo": 3 }')
+  }
+  return parsed
+}
+const editRules = {
+  code: [{ required: true, message: '请输入设备编码', trigger: 'blur' }],
+  displayName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择设备类型', trigger: 'change' }],
+  remarkText: [
+    {
+      trigger: 'blur',
+      validator: (rule, value, callback) => {
+        try {
+          parseExtension(value)
+          callback()
+        } catch (e) {
+          callback(new Error(e instanceof SyntaxError ? 'JSON 格式不正确，请检查括号、引号和逗号' : e.message))
+        }
+      }
+    }
+  ]
+}
 
 const CONTROL_COMMANDS = [
   { value: 'reset', label: '复位 reset' },
@@ -411,13 +494,6 @@ let telemetryRequestId = 0
 let alarmRequestId = 0
 const relativeTimeNow = ref(Date.now())
 
-const ALARM_CATEGORIES = {
-  1: { name: '火警', tag: 'danger' },
-  2: { name: '预警', tag: 'warning' },
-  3: { name: '故障', tag: 'primary' },
-  4: { name: '事件', tag: 'info' }
-}
-
 const deviceExtensionData = computed(() => parseJson(detailDevice.value?.remark))
 const deviceExtensionJson = computed(() => prettyJson(detailDevice.value?.remark))
 
@@ -428,16 +504,12 @@ const totalStats = computed(() => {
     t += Number(s.total || 0)
     online += Number(s.onlineCount || 0)
   })
-  if (!t && total.value) return { total: total.value, onlineCount: deviceList.value.filter(isOnline).length }
-  return { total: t, onlineCount: online }
-})
-
-const filteredList = computed(() => {
-  if (!filters.sync) return deviceList.value
-  return deviceList.value.filter((row) => {
-    const synced = Number(row.syncTotal) > 0 && Number(row.syncSuccess) >= Number(row.syncTotal)
-    return filters.sync === 'synced' ? synced : !synced
-  })
+  // 统计接口不可用时退回列表数据，至少总数是对的
+  if (!t && total.value) {
+    t = total.value
+    online = deviceList.value.filter(isOnline).length
+  }
+  return { total: t, onlineCount: online, offlineCount: Math.max(0, t - online) }
 })
 
 function toSelectOptions(list, valueKey, labelKey) {
@@ -540,21 +612,11 @@ function prettyJson(value) {
   return JSON.stringify(value, null, 2)
 }
 async function copyText(text, label) {
-  try {
-    await navigator.clipboard.writeText(text)
-    proxy.$modal.msgSuccess(`${label}已复制`)
-  } catch {
-    proxy.$modal.msgError('复制失败，请手动复制')
-  }
+  if (await copyToClipboard(text)) proxy.$modal.msgSuccess(`${label}已复制`)
+  else proxy.$modal.msgError('复制失败，请手动复制')
 }
 function copyAlarmRaw(row) {
   return copyText(prettyJson(row?.rawContent), '告警原始消息')
-}
-function alarmCategoryName(category) {
-  return ALARM_CATEGORIES[category]?.name || '未分类'
-}
-function alarmCategoryTag(category) {
-  return ALARM_CATEGORIES[category]?.tag || 'info'
 }
 function monitorType(code) {
   return monitorTypes.value.find((t) => t.code === code)
@@ -702,9 +764,6 @@ async function submitControl() {
     controlLoading.value = false
   }
 }
-function pushTypeLabel(t) {
-  return { url: 'HTTP', redis: 'Redis', mq: 'MQ', kafka: 'Kafka', mqtt: 'MQTT' }[t] || t || '-'
-}
 function upstreamAlive(row) {
   const st = upstreamStatusMap.value[row.code] || upstreamStatusMap.value[row.id]
   if (st && typeof st.alive === 'boolean') return st.alive
@@ -746,26 +805,35 @@ async function loadOnlineStats() {
   }
 }
 
-function getList() {
+async function getList() {
+  const requestId = ++listRequestId
   loading.value = true
-  const params = {
-    ...queryParams,
-    type: filters.type || null,
-    pfCode: filters.pfCode || null,
-    online: filters.online || null,
-    online: filters.online || null,
-    params: {
-      searchValue: filters.keyword || null
+  try {
+    const res = await listDevice({
+      ...queryParams,
+      type: filters.type || null,
+      pfCode: filters.pfCode || null,
+      online: filters.online || null,
+      params: {
+        searchValue: (filters.keyword || '').trim() || null,
+        // 同步状态由后端过滤，分页总数才准确
+        syncStatus: filters.sync || null
+      }
+    })
+    if (requestId !== listRequestId) return
+    deviceList.value = res.rows || []
+    total.value = res.total || 0
+    // 删除后当前页可能已空，退回最后一页
+    const lastPage = Math.max(1, Math.ceil(total.value / queryParams.pageSize))
+    if (!deviceList.value.length && queryParams.pageNum > lastPage) {
+      queryParams.pageNum = lastPage
+      getList()
     }
+  } catch {
+    /* 错误提示由请求拦截器统一弹出 */
+  } finally {
+    if (requestId === listRequestId) loading.value = false
   }
-  listDevice(params)
-    .then((res) => {
-      deviceList.value = res.rows || []
-      total.value = res.total || 0
-    })
-    .finally(() => {
-      loading.value = false
-    })
 }
 
 function handleQuery() {
@@ -777,18 +845,21 @@ function resetQuery() {
   handleQuery()
 }
 
-function parseRemark(raw) {
-  if (!raw) return {}
-  if (typeof raw === 'object') return { ...raw }
-  try {
-    return JSON.parse(raw) || {}
-  } catch {
-    return { _raw: String(raw) }
-  }
-}
-
 function openEdit(row) {
-  const remark = parseRemark(row.remark)
+  // 库里已有的扩展属性如果不是合法 JSON 对象，原样放进输入框让用户修正，不再悄悄包成 { _raw }
+  let remark = {}
+  let remarkText = ''
+  if (row.remark && typeof row.remark === 'object') {
+    remark = { ...row.remark }
+    remarkText = JSON.stringify(remark, null, 2)
+  } else if (row.remark) {
+    try {
+      remark = parseExtension(row.remark)
+      remarkText = JSON.stringify(remark, null, 2)
+    } catch {
+      remarkText = String(row.remark)
+    }
+  }
   editForm.value = {
     id: row.id,
     code: row.code,
@@ -798,16 +869,21 @@ function openEdit(row) {
     model: row.model,
     pfCode: row.pfCode,
     online: row.online,
-    remarkText: JSON.stringify(remark, null, 2)
+    remarkText
   }
   editOpen.value = true
 }
 
 async function submitEdit() {
+  try {
+    await editFormRef.value?.validate()
+  } catch {
+    return
+  }
   editLoading.value = true
   try {
-    let remarkObj = parseRemark(editForm.value.remarkText)
-    if (editForm.value.displayName) remarkObj.displayName = editForm.value.displayName
+    const remarkObj = parseExtension(editForm.value.remarkText)
+    remarkObj.displayName = editForm.value.displayName
     await updateDevice({
       id: editForm.value.id,
       code: editForm.value.code,
@@ -820,13 +896,15 @@ async function submitEdit() {
     proxy.$modal.msgSuccess('保存成功')
     editOpen.value = false
     getList()
+  } catch {
+    /* 错误提示由请求拦截器统一弹出，保留弹窗内容便于修改后重试 */
   } finally {
     editLoading.value = false
   }
 }
 
 async function openSync(rows) {
-  syncTargets.value = rows || []
+  syncTargets.value = (rows || []).slice()
   syncOpen.value = true
   await nextTick()
   upstreamTableRef.value?.clearSelection?.()
@@ -836,13 +914,29 @@ async function openSync(rows) {
 async function confirmSync() {
   if (!syncTargets.value.length) return
   syncLoading.value = true
+  const failed = []
   try {
-    const upstreamCodes = syncUpstreams.value.map((row) => row.code).filter(Boolean).join(',')
+    const upstreamCodes = syncUpstreams.value
+      .map((row) => row.code)
+      .filter(Boolean)
+      .join(',')
+    // 逐台推送：单台失败不中断其余设备，最后统一汇报
     for (const d of syncTargets.value) {
-      await pushDevice({ code: d.code, pfCode: d.pfCode, upstreamCodes })
+      try {
+        await pushDevice({ code: d.code, pfCode: d.pfCode, upstreamCodes })
+      } catch {
+        failed.push(d.code)
+      }
     }
-    proxy.$modal.msgSuccess(`已同步 ${syncTargets.value.length} 台设备`)
-    syncOpen.value = false
+    const okCount = syncTargets.value.length - failed.length
+    if (!failed.length) {
+      proxy.$modal.msgSuccess(`已提交 ${okCount} 台设备的同步`)
+      syncOpen.value = false
+    } else {
+      const preview = failed.slice(0, 5).join('、') + (failed.length > 5 ? ' 等' : '')
+      proxy.$modal.msgWarning(`成功 ${okCount} 台，失败 ${failed.length} 台：${preview}`)
+      if (okCount > 0) syncOpen.value = false
+    }
     getList()
   } finally {
     syncLoading.value = false
@@ -880,7 +974,7 @@ async function handleBatchDelete() {
 init()
 relativeTimeTimer = setInterval(() => {
   relativeTimeNow.value = Date.now()
-}, 1000)
+}, 30000)
 onBeforeUnmount(() => {
   closeDetail()
   if (relativeTimeTimer) clearInterval(relativeTimeTimer)
@@ -888,44 +982,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.page-summary {
-  color: #64748b;
-  font-size: 13px;
-}
-.page-summary b {
-  color: #0f172a;
-  font-weight: 700;
-}
-.page-summary b.ok {
-  color: #16a34a;
-}
-.page-summary b.err {
-  color: #dc2626;
-}
-.gw-tag {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 5px;
-  font-size: 12px;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-.table-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 1px solid #e2e8f0;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.table-foot :deep(.pagination-container) {
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  height: auto !important;
-  box-shadow: none !important;
+.el-dropdown {
+  vertical-align: middle;
+  margin-left: 2px;
 }
 .edit-grid {
   display: grid;
@@ -948,12 +1007,6 @@ onBeforeUnmount(() => {
 .edit-grid :deep(.full),
 .edit-grid .full {
   grid-column: 1 / -1;
-}
-.field-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #94a3b8;
-  line-height: 1.4;
 }
 .mt8 {
   margin-top: 8px;

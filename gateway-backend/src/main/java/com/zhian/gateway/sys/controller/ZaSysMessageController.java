@@ -75,6 +75,8 @@ public class ZaSysMessageController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, ZaSysMessage zaSysMessage)
     {
+        // 与列表页一致：按筛选条件导出，最新的排在前面
+        com.github.pagehelper.PageHelper.orderBy("id desc");
         List<ZaSysMessage> list = zaSysMessageService.selectZaSysMessageList(zaSysMessage);
         ExcelUtil<ZaSysMessage> util = new ExcelUtil<ZaSysMessage>(ZaSysMessage.class);
         util.exportExcel(response, list, "接入消息数据");
@@ -191,9 +193,10 @@ public class ZaSysMessageController extends BaseController
         long total = toLong(stats.get("total"));
         long sent = toLong(stats.get("sentCount"));
         long failed = toLong(stats.get("failedCount"));
-        double rate = total <= 0 ? 100.0 : Math.round(sent * 1000.0 / total) / 10.0;
+        long attempted = sent + failed;
+        double rate = attempted <= 0 ? 100.0 : Math.round(sent * 1000.0 / attempted) / 10.0;
         stats.put("successRate", rate);
-        stats.put("pendingCount", Math.max(0, total - sent - failed) + failed);
+        stats.put("pendingCount", Math.max(0, total - sent - failed));
         return success(stats);
     }
 
@@ -251,9 +254,9 @@ public class ZaSysMessageController extends BaseController
         }
         int upstreamTotal = enabledUpstreamCount();
         for (ZaSysMessage msg : list) {
-            List<ZaSysMessageLog> logs = zaSysMessageService.selectPushLogsByMessageId(msg.getId());
-            // 列表不查推送日志，避免 N+1；徽标按 sendStatus + 上级平台数估算
             try {
+                // 逐条查推送日志以得到准确的「x/y 成功」徽标；分页场景每页条数有限
+                List<ZaSysMessageLog> logs = zaSysMessageService.selectPushLogsByMessageId(msg.getId());
                 MessageViewHelper.enrich(msg, upstreamTotal, logs);
             } catch (Exception e) {
                 // 忽略

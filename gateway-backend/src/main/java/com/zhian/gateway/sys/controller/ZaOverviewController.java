@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,13 +68,25 @@ public class ZaOverviewController extends BaseController {
         data.put("trend", messageService.selectHourlyTrend());
 
         // ---------- 插件（平台）运行状态 ----------
-        List<PluginInstanceView> pluginList = pluginManager.listInstances(null, "running", null);
-        long runningCount = pluginList.stream().filter(p -> "running".equals(p.getState())).count();
-        long stoppedCount = pluginList.stream().filter(p -> "stopped".equals(p.getState())).count();
-        long installedCount = pluginList.stream().filter(p -> "installed".equals(p.getState())).count();
-        long abnormalCount = pluginList.stream().filter(p -> "abnormal".equals(p.getState())).count();
+        // 数量按全部插件统计；列表只展示已启用的（运行中 + 异常），异常排在最前，未启动/未安装的不占首页篇幅
+        List<PluginInstanceView> allPlugins = pluginManager.listInstances(null, null, null);
+        long runningCount = allPlugins.stream().filter(p -> "running".equals(p.getState())).count();
+        long stoppedCount = allPlugins.stream().filter(p -> "stopped".equals(p.getState())).count();
+        long installedCount = allPlugins.stream().filter(p -> "installed".equals(p.getState())).count();
+        long abnormalCount = allPlugins.stream().filter(p -> "abnormal".equals(p.getState())).count();
+        List<PluginInstanceView> pluginList = new ArrayList<>();
+        for (PluginInstanceView p : allPlugins) {
+            if ("abnormal".equals(p.getState())) {
+                pluginList.add(p);
+            }
+        }
+        for (PluginInstanceView p : allPlugins) {
+            if ("running".equals(p.getState())) {
+                pluginList.add(p);
+            }
+        }
         Map<String, Object> plugin = new LinkedHashMap<>();
-        plugin.put("total", pluginList.size());
+        plugin.put("total", allPlugins.size());
         plugin.put("enabled", runningCount + abnormalCount);
         plugin.put("running", runningCount);
         plugin.put("stopped", stoppedCount);

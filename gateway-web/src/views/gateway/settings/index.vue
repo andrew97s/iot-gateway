@@ -21,7 +21,7 @@
                     <span class="gw-badge" :class="nic.up ? 'ok' : 'off'">{{ nic.up ? '已连接' : '未连接' }}</span>
                   </div>
                   <div class="gw-card-body">
-                    <el-form label-width="90px" size="default">
+                    <el-form v-if="netForm[nic.name]" label-width="90px" size="default">
                       <el-form-item label="获取方式">
                         <el-radio-group v-model="netForm[nic.name].mode">
                           <el-radio label="dhcp">DHCP 自动获取</el-radio>
@@ -106,11 +106,11 @@
                   </div>
                 </div>
               </el-col>
-              <el-col :lg="12" :xs="24">
+              <el-col :lg="24" :xs="24">
                 <div class="gw-card">
                   <div class="gw-card-head"><h2>插件与同步策略</h2></div>
                   <div class="gw-card-body">
-                    <el-form label-width="170px">
+                    <el-form class="strategy-form" label-width="170px">
                       <el-form-item label="插件异常自动重启">
                         <el-switch v-model="coreSwitches.autorestart" />
                         <div class="gw-muted gw-small">按下方阈值巡检真实连接并自动恢复异常插件</div>
@@ -302,7 +302,7 @@
         </el-form-item>
 
         <template v-if="upstreamForm.pushType === 'url'">
-          <el-form-item label="推送地址列表">
+          <el-form-item label="推送地址列表" required>
             <el-input
               v-model="upstreamCfg.pushUrls"
               placeholder="每行一个 URL，或英文逗号分隔；网关将统一消息 JSON 以 POST 推送"
@@ -315,7 +315,7 @@
         <template v-if="upstreamForm.pushType === 'mq'">
           <el-row :gutter="16">
             <el-col :span="12">
-              <el-form-item label="MQ 地址">
+              <el-form-item label="MQ 地址" required>
                 <el-input v-model="upstreamCfg.ip" placeholder="RabbitMQ 主机地址" />
               </el-form-item>
             </el-col>
@@ -468,12 +468,51 @@ async function loadNetwork() {
         dns: s.dns ?? ''
       }
     })
+  } catch {
+    /* 错误提示由请求拦截器统一弹出 */
   } finally {
     netLoading.value = false
   }
 }
 
+const IPV4_RE = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
+/** 子网掩码必须是连续的 1 后跟连续的 0（如 255.255.255.0） */
+function isNetmask(value) {
+  if (!IPV4_RE.test(value)) return false
+  const bits = value
+    .split('.')
+    .map((n) => Number(n).toString(2).padStart(8, '0'))
+    .join('')
+  return /^1+0*$/.test(bits)
+}
+/** 静态 IP 的格式校验；返回第一条错误文案，全部正确返回空串 */
+function validateNetwork() {
+  for (const nic of nics.value) {
+    const f = netForm[nic.name]
+    if (!f || f.mode !== 'static') continue
+    const ip = (f.ip || '').trim()
+    const netmask = (f.netmask || '').trim()
+    const gateway = (f.gateway || '').trim()
+    const dnsList = (f.dns || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (!IPV4_RE.test(ip)) return `网卡 ${nic.name}：IP 地址格式不正确`
+    if (!isNetmask(netmask)) return `网卡 ${nic.name}：子网掩码格式不正确`
+    if (gateway && !IPV4_RE.test(gateway)) return `网卡 ${nic.name}：默认网关格式不正确`
+    const badDns = dnsList.find((d) => !IPV4_RE.test(d))
+    if (badDns) return `网卡 ${nic.name}：DNS「${badDns}」格式不正确`
+    Object.assign(f, { ip, netmask, gateway, dns: dnsList.join(',') })
+  }
+  return ''
+}
+
 async function saveNetwork() {
+  const invalid = validateNetwork()
+  if (invalid) {
+    proxy.$modal.msgWarning(invalid)
+    return
+  }
   try {
     await proxy.$modal.confirm('确认保存网络配置？错误的 IP 配置可能导致网关管理页面无法访问。')
   } catch (e) {
@@ -488,7 +527,7 @@ async function saveNetwork() {
     await saveNetworkConfig(JSON.stringify(payload))
     proxy.$modal.msgSuccess('网络配置已保存')
   } catch (e) {
-    proxy.$modal.msgError('保存失败')
+    // 失败原因已由请求拦截器弹出，这里不再重复提示
   } finally {
     netSaving.value = false
   }
@@ -525,6 +564,8 @@ async function loadCore() {
     coreNumbers.maxRestarts = Number(coreForm['gateway.plugin.restart.maxAttempts'] || 3)
     coreSwitches.autorestart = String(coreForm['gateway.plugin.autorestart']) !== 'false'
     coreSwitches.autosync = String(coreForm['gateway.device.autosync']) === 'true'
+  } catch {
+    /* 错误提示由请求拦截器统一弹出 */
   } finally {
     coreLoading.value = false
   }
@@ -550,7 +591,7 @@ async function saveCore() {
     })
     proxy.$modal.msgSuccess('核心参数已保存')
   } catch (e) {
-    proxy.$modal.msgError('保存失败')
+    // 失败原因已由请求拦截器弹出，这里不再重复提示
   } finally {
     coreSaving.value = false
   }
@@ -596,7 +637,10 @@ function upstreamTarget(row) {
   return '-'
 }
 
+const statusReady = ref(false)
+
 async function loadUpstream() {
+  statusReady.value = false
   upstreamLoading.value = true
   try {
     const [upRes, statusRes, cascadeRes] = await Promise.all([
@@ -611,8 +655,13 @@ async function loadUpstream() {
     })
     upstreamAliveMap.value = aliveMap
     cascadeList.value = cascadeRes.rows || []
+  } catch {
+    /* 错误提示由请求拦截器统一弹出 */
   } finally {
     upstreamLoading.value = false
+    nextTick(() => {
+      statusReady.value = true
+    })
   }
 }
 
@@ -660,10 +709,41 @@ function buildUpstreamPayload() {
   return { ...upstreamForm.value, config: JSON.stringify(cfg) }
 }
 
+/** 推送地址：每行一个或英文逗号分隔 */
+function splitPushUrls(text) {
+  return String(text || '')
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+/** 推送通道参数校验（这些字段不在 el-form 的 model 里，单独校验）；返回错误文案，正确返回空串 */
+function validateUpstreamCfg() {
+  const c = upstreamCfg.value
+  const type = upstreamForm.value.pushType
+  if (type === 'url') {
+    const urls = splitPushUrls(c.pushUrls)
+    if (!urls.length) return '请填写至少一个推送地址'
+    const bad = urls.find((u) => !/^https?:\/\/[^\s/]+/i.test(u))
+    if (bad) return `推送地址「${bad}」不是合法的 http/https 地址`
+  } else if (type === 'mq') {
+    if (!(c.ip || '').trim()) return '请填写 MQ 地址'
+  } else if (type === 'redis') {
+    if (c.db !== undefined && c.db !== null && String(c.db).trim() !== '' && !/^\d+$/.test(String(c.db).trim())) {
+      return 'Redis 库编号必须是非负整数'
+    }
+  }
+  return ''
+}
+
 async function saveUpstream() {
   try {
     await proxy.$refs['upstreamFormRef'].validate()
   } catch (e) {
+    return
+  }
+  const invalid = validateUpstreamCfg()
+  if (invalid) {
+    proxy.$modal.msgWarning(invalid)
     return
   }
   upstreamSaving.value = true
@@ -677,12 +757,15 @@ async function saveUpstream() {
     proxy.$modal.msgSuccess('保存成功，推送通道已热重载')
     upstreamOpen.value = false
     await loadUpstream()
+  } catch {
+    /* 错误提示由请求拦截器统一弹出，保留弹窗内容便于修改后重试 */
   } finally {
     upstreamSaving.value = false
   }
 }
 
 async function toggleUpstream(row) {
+  if (!statusReady.value || !row?.id) return
   try {
     await updateUpstream({ id: row.id, code: row.code, status: row.status })
     proxy.$modal.msgSuccess(row.status === '1' ? '已启用，推送通道已重载' : '已停用')
@@ -705,6 +788,11 @@ async function handleTestUpstream(row) {
 }
 
 async function testUpstreamForm() {
+  const invalid = validateUpstreamCfg()
+  if (invalid) {
+    proxy.$modal.msgWarning(invalid)
+    return
+  }
   upstreamTesting.value = true
   try {
     const res = await testUpstream(buildUpstreamPayload())
@@ -756,13 +844,14 @@ async function saveCascade() {
     cascadeOpen.value = false
     await loadUpstream()
   } catch (e) {
-    proxy.$modal.msgError('保存失败')
+    // 失败原因已由请求拦截器弹出，这里不再重复提示
   } finally {
     cascadeSaving.value = false
   }
 }
 
 async function toggleCascade(row) {
+  if (!statusReady.value || !row?.id) return
   try {
     await updateCascade({ id: row.id, code: row.code, status: row.status })
     proxy.$modal.msgSuccess(row.status === '1' ? '已启用' : '已停用')
@@ -816,6 +905,16 @@ loadUpstream()
 .threshold-separator {
   margin: 0 8px;
   color: #94a3b8;
+}
+.strategy-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
+}
+@media (max-width: 900px) {
+  .strategy-form {
+    grid-template-columns: 1fr;
+  }
 }
 .dialog-form :deep(.el-form-item__content) {
   min-width: 0;

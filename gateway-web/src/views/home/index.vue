@@ -24,10 +24,10 @@
       <div class="gw-stat">
         <div class="label">插件运行状态</div>
         <div class="value">
-          {{ plugin.running || 0 }} <small>/ {{ plugin.enabled || 0 }} 运行中</small>
+          {{ plugin.running || 0 }} <small>/ {{ plugin.total || 0 }} 运行中</small>
         </div>
         <div class="sub">
-          共 {{ plugin.total || 0 }} 个插件
+          已停止 {{ plugin.stopped || 0 }}
           <span style="color: #dc2626" v-if="abnormalCount > 0"> · 异常 {{ abnormalCount }}</span>
         </div>
       </div>
@@ -35,7 +35,8 @@
         <div class="label">今日推送成功率</div>
         <div class="value" :style="{ color: pushRateColor }">{{ pushSuccessRate }}%</div>
         <div class="sub">
-          失败 <b :style="today.failedCount > 0 ? 'color:#dc2626' : ''">{{ fmt(today.failedCount) }}</b> 条
+          失败 <b :style="today.failedCount > 0 ? 'color:#dc2626' : ''">{{ fmt(today.failedCount) }}</b> 条 · 待同步
+          {{ fmt(pendingCount) }} 条
         </div>
       </div>
     </div>
@@ -46,7 +47,10 @@
         <div class="gw-card home-mid-card">
           <div class="gw-card-head">
             <h2>近 24 小时消息接入趋势</h2>
-            <el-button icon="Refresh" :loading="loading" size="small" text @click="loadAll">刷新</el-button>
+            <span class="refresh-box">
+              <span class="gw-muted gw-small" v-if="lastUpdated">更新于 {{ lastUpdated }} · 每 {{ AUTO_REFRESH_SECONDS }} 秒自动刷新</span>
+              <el-button icon="Refresh" :loading="loading" size="small" text @click="loadAll()">刷新</el-button>
+            </span>
           </div>
           <div class="gw-card-body chart-body">
             <div class="chart-box" ref="chartRef" />
@@ -99,14 +103,14 @@
 
     <!-- 插件状态 + 推送统计/最新告警 -->
     <el-row class="home-bottom" :gutter="14">
-      <el-col :lg="12" :xs="24" >
+      <el-col :lg="12" :xs="24">
         <div class="gw-card home-side-card">
           <div class="gw-card-head">
             <h2>插件运行状态</h2>
             <button class="gw-link-btn" type="button" @click="navTo('platform')">管理插件 →</button>
           </div>
           <div class="gw-card-body plugin-table-wrap">
-            <el-table class="home-table" :data="plugin.list || []" height="100%" :show-header="true" size="small">
+            <el-table class="home-table" :data="plugin.list || []" empty-text="暂无运行中的插件" height="100%" :show-header="true" size="small">
               <el-table-column label="插件" min-width="130" prop="name" show-overflow-tooltip />
               <el-table-column align="center" label="协议" width="120">
                 <template #default="scope">
@@ -132,49 +136,24 @@
       </el-col>
       <el-col :lg="12" :xs="24">
         <div class="gw-card home-side-card">
-<!--          <div class="gw-card-head">-->
-<!--            <h2>消息推送统计（按来源平台）</h2>-->
-<!--            <button class="gw-link-btn" type="button" @click="navTo('message')">消息日志 →</button>-->
-<!--          </div>-->
-<!--          <div class="gw-card-body platform-table-wrap">-->
-<!--            <el-table class="home-table" :data="messageByPlatform" max-height="148" size="small">-->
-<!--              <el-table-column label="来源平台" min-width="120" show-overflow-tooltip>-->
-<!--                <template #default="scope">-->
-<!--                  <span class="pf-name">{{ platformDisplay(scope.row) }}</span>-->
-<!--                </template>-->
-<!--              </el-table-column>-->
-<!--              <el-table-column align="center" label="今日消息" width="100">-->
-<!--                <template #default="scope">{{ fmt(scope.row.total) }}</template>-->
-<!--              </el-table-column>-->
-<!--              <el-table-column align="center" label="推送成功" width="110">-->
-<!--                <template #default="scope">-->
-<!--                  <span class="ok-num">{{ fmt(scope.row.sentCount) }}</span>-->
-<!--                  <span class="rate-muted" v-if="Number(scope.row.total) > 0"> ({{ pushRate(scope.row) }}%) </span>-->
-<!--                </template>-->
-<!--              </el-table-column>-->
-<!--              <el-table-column align="center" label="推送失败" width="100">-->
-<!--                <template #default="scope">-->
-<!--                  <span :class="Number(scope.row.failedCount) > 0 ? 'err-num' : 'muted-num'">{{ fmt(scope.row.failedCount) }}</span>-->
-<!--                </template>-->
-<!--              </el-table-column>-->
-<!--            </el-table>-->
-<!--          </div>-->
-          <div class="gw-card-head alarm-head">
+          <div class="gw-card-head">
             <h2>最新告警</h2>
+            <button class="gw-link-btn" type="button" @click="navTo('message')">消息日志 →</button>
           </div>
           <div class="gw-card-body alarm-body">
             <el-empty description="暂无告警" :image-size="50" v-if="latestAlarms.length === 0" />
-            <div v-for="alarm in latestAlarms" class="alarm-row" :key="alarm.id">
+            <button v-for="alarm in latestAlarms" class="alarm-row" type="button" :key="alarm.id" @click="openAlarm(alarm)">
               <span class="gw-mono gw-muted gw-small">{{ shortTime(alarm.createTime) }}</span>
               <span class="gw-tag red">告警</span>
-              <span class="alarm-text">
-                <span class="gw-mono">{{ alarm.deviceCode || '-' }}</span>
-                <span class="gw-muted"> · {{ alarm.pfCode }}</span>
+              <span class="alarm-text" :title="alarmTitle(alarm)">
+                <span class="alarm-summary" v-if="alarm.summary">{{ alarm.summary }}</span>
+                <span class="gw-mono" :class="{ 'gw-muted': !!alarm.summary }">{{ alarm.summary ? ' · ' : '' }}{{ alarm.deviceCode || '-' }}</span>
+                <span class="gw-muted"> · {{ pluginName(alarm.pfCode) }}</span>
               </span>
               <span class="gw-badge" :class="alarm.sendStatus === 'sent' ? 'ok' : alarm.sendStatus === 'failed' ? 'err' : 'off'">
                 {{ alarm.sendStatus === 'sent' ? '已推送' : alarm.sendStatus === 'failed' ? '推送失败' : '未推送' }}
               </span>
-            </div>
+            </button>
           </div>
         </div>
       </el-col>
@@ -184,18 +163,50 @@
 
 <script setup name="Home">
 import * as echarts from 'echarts'
+import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { getOverview } from '@/api/sys/overview'
 import { getServer } from '@/api/monitor/server'
+import { msgTypeLabel as typeLabel, msgTypeColor as typeColor, pluginStateLabel, pluginStateBadge, fmtNumber as fmt } from '@/utils/gateway'
 
+const AUTO_REFRESH_SECONDS = 30
 const router = useRouter()
 
-/** 按关键字在已注册路由中定位目标页（菜单由后端动态下发，路径不固定） */
-function navTo(keyword) {
-  const target = router.getRoutes().find((r) => r.path.toLowerCase().includes(keyword) && r.components)
-  if (target) {
-    router.push(target.path)
+/** 菜单由后端动态下发，路径不固定。优先按菜单标题匹配，其次按路径分段匹配。 */
+const NAV_HINTS = {
+  platform: { titles: ['插件'], paths: ['platform', 'plugin'] },
+  message: { titles: ['消息'], paths: ['message'] }
+}
+function findRoute(keyword) {
+  const spec = NAV_HINTS[keyword] || { titles: [], paths: [keyword] }
+  const ranked = router
+    .getRoutes()
+    .filter((r) => r.components?.default && r.path && !r.path.includes(':'))
+    .map((r) => {
+      const title = String(r.meta?.title || '')
+      const segments = r.path.toLowerCase().split('/')
+      let score = 0
+      if (spec.titles.some((item) => title.includes(item))) score += 5
+      if (spec.paths.some((item) => segments.includes(item))) score += 4
+      return { route: r, score }
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.route.path.length - b.route.path.length)
+  return ranked[0]?.route
+}
+function navTo(keyword, query) {
+  const target = findRoute(keyword)
+  if (!target) {
+    ElMessage.warning('当前账号没有对应菜单')
+    return
   }
+  router.push({ path: target.path, query: query || {} })
+}
+function openAlarm(alarm) {
+  navTo('message', {
+    keyword: alarm?.deviceCode || '',
+    type: 'alarm'
+  })
 }
 
 const loading = ref(false)
@@ -204,40 +215,32 @@ const today = ref({})
 const plugin = ref({})
 const typeDistRaw = ref([])
 const trend = ref([])
-const messageByPlatform = ref([])
 const latestAlarms = ref([])
 const server = ref({})
+const lastUpdated = ref('')
 const chartRef = ref(null)
 let chartInst = null
-
-const TYPE_META = {
-  alarm: { label: '告警事件', color: '#dc2626' },
-  telemetry: { label: '监测数据', color: '#2563eb' },
-  device_add: { label: '设备新增', color: '#d97706' },
-  device_upd: { label: '设备更新', color: '#d97706' },
-  device_del: { label: '设备删除', color: '#d97706' },
-  device_online: { label: '设备在线', color: '#d97706' },
-  device_offline: { label: '设备离线', color: '#d97706' },
-  control: { label: '反控指令', color: '#7c3aed' },
-  event: { label: '事件', color: '#0891b2' },
-  heartbeat: { label: '心跳', color: '#64748b' }
-}
-function typeLabel(t) {
-  return TYPE_META[t]?.label || t || '未知'
-}
-function typeColor(t) {
-  return TYPE_META[t]?.color || '#94a3b8'
-}
+let refreshTimer = null
+let loadRequestId = 0
+let pageActive = true
 
 const onlineRate = computed(() => {
   const t = Number(device.value.total || 0)
   return t === 0 ? 0 : Math.round((Number(device.value.online || 0) / t) * 1000) / 10
 })
 const onlineRateColor = computed(() => (onlineRate.value >= 90 ? '#16a34a' : onlineRate.value >= 70 ? '#d97706' : '#dc2626'))
-const pushSuccessRate = computed(() => {
+const pendingCount = computed(() => {
   const total = Number(today.value.total || 0)
-  if (total === 0) return 100
-  return Math.round((Number(today.value.sentCount || 0) / total) * 1000) / 10
+  const sent = Number(today.value.sentCount || 0)
+  const failed = Number(today.value.failedCount || 0)
+  return Math.max(0, total - sent - failed)
+})
+const pushSuccessRate = computed(() => {
+  const sent = Number(today.value.sentCount || 0)
+  const failed = Number(today.value.failedCount || 0)
+  const attempted = sent + failed
+  if (attempted === 0) return 100
+  return Math.round((sent / attempted) * 1000) / 10
 })
 const pushRateColor = computed(() => (pushSuccessRate.value >= 95 ? '#16a34a' : pushSuccessRate.value >= 80 ? '#d97706' : '#dc2626'))
 const abnormalCount = computed(() => Number(plugin.value.abnormal || 0))
@@ -255,10 +258,6 @@ const mainDiskUsage = computed(() => {
   return f.reduce((a, b) => (Number(a.usage) > Number(b.usage) ? a : b)).usage
 })
 
-function fmt(v) {
-  const n = Number(v || 0)
-  return n.toLocaleString('zh-CN')
-}
 function shortTime(t) {
   if (!t) return '-'
   return String(t).slice(5, 16)
@@ -269,18 +268,18 @@ function barStyle(v) {
   return { width: n + '%', background: color }
 }
 function pluginBadge(row) {
-  return { running: 'ok', abnormal: 'err', stopped: 'off', installed: 'info' }[row.state] || 'off'
+  return pluginStateBadge(row.state)
 }
 function pluginLabel(row) {
-  return { running: '运行中', abnormal: '异常', stopped: '已停止', installed: '已安装' }[row.state] || '未知'
+  return pluginStateLabel(row.state)
 }
-function platformDisplay(row) {
-  return row.pfName || row.name || row.pfCode || '—'
+/** 告警只带插件编码，用插件列表换成名称 */
+function pluginName(pfCode) {
+  const hit = (plugin.value.list || []).find((p) => p.instanceId === pfCode || p.pluginId === pfCode)
+  return hit?.name || pfCode || '-'
 }
-function pushRate(row) {
-  const total = Number(row.total || 0)
-  if (!total) return 100
-  return Math.round((Number(row.sentCount || 0) / total) * 1000) / 10
+function alarmTitle(alarm) {
+  return [alarm.summary, alarm.deviceCode, pluginName(alarm.pfCode), alarm.createTime].filter(Boolean).join(' · ')
 }
 
 // ==================== 趋势图 ====================
@@ -356,35 +355,85 @@ function onResize() {
   chartInst?.resize()
 }
 
+// ==================== 自动刷新 ====================
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+function startAutoRefresh() {
+  stopAutoRefresh()
+  refreshTimer = setInterval(() => {
+    // 浏览器标签页在后台时不刷新，切回来由 visibilitychange 补一次
+    if (document.hidden || loading.value) return
+    loadAll({ silent: true })
+  }, AUTO_REFRESH_SECONDS * 1000)
+}
+function onVisibilityChange() {
+  if (!document.hidden && pageActive && refreshTimer) loadAll({ silent: true })
+}
+
 onMounted(() => {
   chartInst = echarts.init(chartRef.value)
   window.addEventListener('resize', onResize)
+  document.addEventListener('visibilitychange', onVisibilityChange)
   loadAll()
   nextTick(onResize)
+  startAutoRefresh()
+})
+// 首页被 keep-alive 缓存：离开时停止轮询，回来时立即刷新一次并校正图表尺寸
+let firstActivation = true
+onActivated(() => {
+  pageActive = true
+  if (firstActivation) {
+    firstActivation = false
+    return
+  }
+  loadAll({ silent: true })
+  startAutoRefresh()
+  nextTick(onResize)
+})
+onDeactivated(() => {
+  pageActive = false
+  stopAutoRefresh()
 })
 
 onBeforeUnmount(() => {
+  pageActive = false
+  stopAutoRefresh()
   window.removeEventListener('resize', onResize)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
   chartInst?.dispose()
   chartInst = null
 })
 
 // ==================== 数据加载 ====================
-async function loadAll() {
-  loading.value = true
+/** silent：自动刷新时不出现整页 loading，失败也不打断当前展示 */
+async function loadAll({ silent = false } = {}) {
+  const requestId = ++loadRequestId
+  if (!silent) loading.value = true
   try {
-    const [ovRes, srvRes] = await Promise.all([getOverview(), getServer().catch(() => ({ data: {} }))])
+    const [ovRes, srvRes] = await Promise.all([getOverview(), getServer().catch(() => null)])
+    if (requestId !== loadRequestId) return
     const d = ovRes.data || {}
     device.value = d.device || {}
     today.value = d.today || {}
     plugin.value = d.plugin || {}
     typeDistRaw.value = d.typeDistribution || []
     trend.value = d.trend || []
-    messageByPlatform.value = d.messageByPlatform || []
     latestAlarms.value = d.latestAlarms || []
-    server.value = srvRes.data || {}
+    // 服务器监控接口偶发失败时保留上一次的数值，不把资源条清零
+    if (srvRes?.data) server.value = srvRes.data
+    lastUpdated.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+    // 之前因失败暂停过轮询的话，成功一次后恢复
+    if (pageActive && !refreshTimer) startAutoRefresh()
+  } catch {
+    // 错误提示由请求拦截器统一弹出，保留上一次的数据。
+    // 自动刷新失败（后端重启、断网等）就先停掉轮询，避免每 30 秒弹一次错误；手动刷新成功后会恢复
+    if (silent) stopAutoRefresh()
   } finally {
-    loading.value = false
+    if (requestId === loadRequestId) loading.value = false
   }
   renderChart()
   nextTick(onResize)
@@ -486,10 +535,10 @@ async function loadAll() {
   height: 100%;
 }
 
-.home-side-card .platform-table-wrap {
-  flex: 0 0 auto;
-  padding: 12px 14px 8px;
-  box-sizing: border-box;
+.refresh-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 /* 原型 card-head 右侧按钮：边框小按钮 */
 .gw-link-btn {
@@ -510,21 +559,6 @@ async function loadAll() {
   border-color: #94a3b8;
   background: #f8fafc;
 }
-.gw-tag {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 5px;
-  font-size: 12px;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  white-space: nowrap;
-}
-.gw-tag.red {
-  background: #fef2f2;
-  color: #dc2626;
-  border-color: #fecaca;
-}
 .home-table :deep(th.el-table__cell) {
   background: #f8fafc !important;
   color: #64748b;
@@ -535,27 +569,8 @@ async function loadAll() {
   font-size: 13px;
   padding: 7px 0;
 }
-.pf-name {
+.alarm-summary {
   color: #0f172a;
-}
-.ok-num {
-  color: #16a34a;
-  font-weight: 600;
-}
-.err-num {
-  color: #dc2626;
-  font-weight: 600;
-}
-.muted-num {
-  color: #64748b;
-}
-.rate-muted {
-  margin-left: 4px;
-  color: #94a3b8;
-  font-size: 12px;
-}
-.alarm-head {
-  border-top: 1px solid #e2e8f0;
 }
 .home-side-card .alarm-body {
   flex: 1;
@@ -568,9 +583,21 @@ async function loadAll() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 0;
+  width: 100%;
+  margin: 0;
+  padding: 8px 6px;
+  border: none;
   border-bottom: 1px solid #f1f5f9;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
   font-size: 13px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.alarm-row:hover {
+  background: #f8fafc;
 }
 .alarm-row:last-child {
   border-bottom: none;

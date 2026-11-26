@@ -5,7 +5,7 @@
  */
 
 .gw-page {
-  padding: 20px 24px;
+  padding: 10px 24px;
   background: #f1f5f9;
   /* 仅铺满可视区背景，不强制把内部白卡片撑满整屏 */
   min-height: calc(100vh - 50px);
@@ -155,6 +155,90 @@
   &.plain::before { display: none; }
 }
 
+/* ---------- 标签（消息类型 / 协议 / 推送方式） ---------- */
+.gw-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.6;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+
+  &.red    { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+  &.blue   { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+  &.cyan   { background: #ecfeff; color: #0891b2; border-color: #a5f3fc; }
+  &.green  { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+  &.orange { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+  &.purple { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
+  &.gray   { background: #f9fafb; color: #6b7280; border-color: #d1d5db; }
+}
+
+/* 多个标签并排时统一间距，允许换行 */
+.gw-tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ---------- 页面顶部一句话摘要 ---------- */
+.gw-page-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  color: #64748b;
+  font-size: 13px;
+
+  b { color: #0f172a; font-weight: 700; }
+  b.ok { color: #16a34a; }
+  b.warn { color: #d97706; }
+  b.err { color: #dc2626; }
+}
+
+/* ---------- 表格底部：左侧统计 + 右侧分页 ---------- */
+.gw-table-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid #e2e8f0;
+
+  .pagination-container {
+    width: auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    height: auto !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ---------- JSON 查看区 ---------- */
+.gw-json-view {
+  max-height: 280px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 12px;
+}
+
+/* ---------- 表单项下方的说明文字 ---------- */
+.gw-field-hint {
+  width: 100%;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
 /* ---------- 等宽编码 ---------- */
 .gw-mono {
   font-family: "SFMono-Regular", Consolas, Menlo, monospace;
@@ -252,10 +336,27 @@
   .pc-foot {
     padding: 10px 14px;
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
     justify-content: flex-end;
   }
+}
+
+/* 表格里多标签列允许换行，避免被单元格省略号裁掉 */
+.gw-page .el-table td.gw-cell-wrap .cell {
+  white-space: normal;
+  line-height: 1.7;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.gw-filter-note {
+  flex: 1 0 100%;
+  margin: 2px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 /* ---------- 表格内工具 ---------- */

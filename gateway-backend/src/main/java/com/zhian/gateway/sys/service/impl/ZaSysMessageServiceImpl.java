@@ -139,7 +139,41 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper, ZaS
      */
     @Override
     public List<ZaSysMessage> selectZaSysMessageList(ZaSysMessage zaSysMessage) {
+        prepareKeyword(zaSysMessage);
         return zaSysMessageMapper.selectZaSysMessageList(zaSysMessage);
+    }
+
+    /** 统一消息ID（UUID 等）只存在于 unified_content 里，关键字足够长时才去匹配它，避免短关键字触发大字段全表扫描 */
+    private static final int KEYWORD_CONTENT_MIN_LENGTH = 16;
+
+    /**
+     * 列表关键字（params.keyword）预处理：
+     * 设备编码始终模糊匹配；纯数字额外按消息主键精确匹配；长度足够的非纯数字关键字额外匹配统一消息内容。
+     * keywordId / keywordInContent 一律由这里决定，不采信前端传值。
+     */
+    private static void prepareKeyword(ZaSysMessage query) {
+        if (query == null) {
+            return;
+        }
+        Map<String, Object> params = query.getParams();
+        params.remove("keywordId");
+        params.remove("keywordInContent");
+        Object raw = params.get("keyword");
+        String keyword = raw == null ? "" : String.valueOf(raw).trim();
+        if (keyword.isEmpty()) {
+            params.remove("keyword");
+            return;
+        }
+        params.put("keyword", keyword);
+        if (keyword.matches("\\d{1,19}")) {
+            try {
+                params.put("keywordId", Long.parseLong(keyword));
+            } catch (NumberFormatException ignored) {
+                // 超出 bigint 范围，不可能是消息主键
+            }
+        } else if (keyword.length() >= KEYWORD_CONTENT_MIN_LENGTH) {
+            params.put("keywordInContent", Boolean.TRUE);
+        }
     }
 
     /**
@@ -348,80 +382,50 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper, ZaS
 
     @Override
     public List<Map<String, Object>> countTodayByType() {
-        List<Map<String, Object>> maps = zaSysMessageMapper.countTodayByType();
-
-        List<Map<String, Object>> results = new ArrayList<>();
-        Map<String, Long> mp = new HashMap<String, Long>();
-
-        for (Map<String, Object> map : maps) {
-            String type = (String) map.get("type");
-            Long total = (Long) map.get("total");
-
-            if (type.contains(",")) {
-                String[] types = type.split(",");
-                for (String tp : types) {
-                    if (mp.containsKey(tp)) {
-                        mp.put(tp, mp.get(tp) + total);
-                    } else {
-                        mp.put(tp, total);
-                    }
-                }
-            } else {
-                if (mp.containsKey(type)) {
-                    mp.put(type, mp.get(type) + total);
-                } else {
-                    mp.put(type, total);
-                }
-            }
-        }
-
-        results = mp.entrySet().stream().map(entry->{
-            HashMap<String, Object> map = new HashMap<>();
-            map.put("type", entry.getKey());
-            map.put("total", entry.getValue());
-
-            return map;
-        }).collect(Collectors.toList());
-        return results;
+        return mergeTypeCounts(zaSysMessageMapper.countTodayByType());
     }
 
     @Override
     public List<Map<String, Object>> countTodayByTypeAndPlatform(String pfCode) {
+        return mergeTypeCounts(zaSysMessageMapper.countTodayByTypeAndPlatform(pfCode));
+    }
 
-        List<Map<String, Object>> maps = zaSysMessageMapper.countTodayByTypeAndPlatform(pfCode);
-        List<Map<String, Object>> results = new ArrayList<>();
-
-        Map<String, Long> mp = new HashMap<String, Long>();
-
-        for (Map<String, Object> map : maps) {
-            String type = (String) map.get("type");
-            Long total = (Long) map.get("total");
-
-            if (type.contains(",")) {
-                String[] types = type.split(",");
-                for (String tp : types) {
-                    if (mp.containsKey(tp)) {
-                        mp.put(tp, mp.get(tp) + total);
-                    } else {
-                        mp.put(tp, total);
-                    }
+    /**
+     * 消息的 type 列是逗号拼接的类型列表（如 alarm,alarm,device_upd），这里拆开后按单个类型累加。
+     * count(*) 在 MySQL 返回 Long、SQLite 返回 Integer，统一按 Number 取值；type 为空的行归入 unknown。
+     */
+    private static List<Map<String, Object>> mergeTypeCounts(List<Map<String, Object>> rows) {
+        Map<String, Long> merged = new LinkedHashMap<>();
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                if (row == null) {
+                    continue;
                 }
-            } else {
-                if (mp.containsKey(type)) {
-                    mp.put(type, mp.get(type) + total);
-                } else {
-                    mp.put(type, total);
+                Object totalObj = row.get("total");
+                long total = totalObj instanceof Number ? ((Number) totalObj).longValue() : 0L;
+                Object typeObj = row.get("type");
+                String types = typeObj == null ? "" : String.valueOf(typeObj);
+                boolean matched = false;
+                for (String tp : types.split(",")) {
+                    String key = tp.trim();
+                    if (key.isEmpty()) {
+                        continue;
+                    }
+                    matched = true;
+                    merged.merge(key, total, Long::sum);
+                }
+                if (!matched) {
+                    merged.merge("unknown", total, Long::sum);
                 }
             }
         }
-
-        results = mp.entrySet().stream().map(entry->{
-            HashMap<String, Object> map = new HashMap<>();
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : merged.entrySet()) {
+            Map<String, Object> map = new HashMap<>();
             map.put("type", entry.getKey());
             map.put("total", entry.getValue());
-
-            return map;
-        }).collect(Collectors.toList());
+            results.add(map);
+        }
         return results;
     }
 
@@ -445,6 +449,17 @@ public class ZaSysMessageServiceImpl extends ServiceImpl<ZaSysMessageMapper, ZaS
         com.github.pagehelper.PageHelper.startPage(1, limit, "id desc");
         ZaSysMessage query = new ZaSysMessage();
         query.setType("alarm");
-        return zaSysMessageMapper.selectZaSysMessageList(query);
+        List<ZaSysMessage> list = zaSysMessageMapper.selectZaSysMessageList(query);
+        for (ZaSysMessage msg : list) {
+            try {
+                MessageViewHelper.fillMessageIdAndSummary(msg);
+            } catch (Exception ignored) {
+                // 摘要解析失败不影响列表展示
+            }
+            // 首页只展示摘要，报文正文不下发
+            msg.setContent(null);
+            msg.setUnifiedContent(null);
+        }
+        return list;
     }
 }

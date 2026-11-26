@@ -1,10 +1,18 @@
 <template>
   <div class="gw-page plugin-page">
     <div class="plugin-summary">
-      <div class="plugin-summary-text">
-        运行中 <b class="ok">{{ summary.running }}</b> · 已停止 <b>{{ summary.stopped }}</b> · 已安装 <b>{{ summary.installed }}</b> · 异常
-        <b class="err">{{ summary.abnormal }}</b>
-        <span class="gw-muted" style="margin-left: 10px">共 {{ summary.total || 0 }} 个插件项</span>
+      <!-- 状态统计同时是快捷筛选：点一下只看该状态的插件 -->
+      <div class="plugin-summary-chips">
+        <button
+          v-for="chip in summaryChips"
+          class="sum-chip"
+          :class="[chip.cls, { active: (filters.state || '') === chip.value }]"
+          type="button"
+          :key="chip.value || 'all'"
+          @click="pickState(chip.value)"
+        >
+          {{ chip.label }} <b>{{ chip.count }}</b>
+        </button>
       </div>
       <div class="plugin-summary-actions">
         <el-button icon="Upload" size="small" v-hasPermi="['sys:platform:add']" @click="openPackageUpload">安装插件包</el-button>
@@ -14,20 +22,35 @@
 
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
-        <el-input v-model="filters.keyword" clearable placeholder="插件名称 / 厂商" style="width: 200px" @keyup.enter="loadList" />
-        <el-select-v2 v-model="filters.state" :options="STATE_OPTIONS" clearable placeholder="全部状态" style="width: 130px" />
-        <el-select-v2 v-model="filters.protocol" :options="protocolSelectOptions" clearable placeholder="全部协议" style="width: 120px" />
+        <el-input
+          v-model="filters.keyword"
+          clearable
+          placeholder="插件名称 / 厂商"
+          style="width: 200px"
+          @clear="handleQuery"
+          @keyup.enter="handleQuery"
+        />
+<!--        <el-select-v2 v-model="filters.state" clearable :options="STATE_OPTIONS" placeholder="全部状态" style="width: 130px" @change="handleQuery" />-->
+<!--        <el-select-v2-->
+<!--          v-model="filters.protocol"-->
+<!--          clearable-->
+<!--          :options="protocolSelectOptions"-->
+<!--          placeholder="全部协议"-->
+<!--          style="width: 120px"-->
+<!--          @change="handleQuery"-->
+<!--        />-->
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
-        <el-button icon="Refresh" :loading="loading" @click="handleQuery">刷新</el-button>
-        <div class="spacer" />
-        <span class="gw-muted gw-small"> 插件为厂商接入的最小单元；配置由 plugin.yaml / config-schema 驱动，启停热生效 </span>
+        <el-button icon="Refresh" :loading="loading" @click="loadList">刷新</el-button>
+        <p class="gw-filter-note">插件是厂商接入的最小单元；配置由 plugin.yaml / config-schema 驱动，启停后热生效</p>
       </div>
     </div>
 
     <!-- 卡片栅格直接铺在灰底上，与原型一致（不加白色容器） -->
     <div class="plugin-list">
       <div class="gw-plugin-grid" v-loading="loading">
-        <el-empty description="暂无插件实例，请先创建或安装" style="grid-column: 1 / -1" v-if="!loading && instances.length === 0" />
+        <el-empty :description="emptyText" style="grid-column: 1 / -1" v-if="!loading && instances.length === 0">
+          <el-button @click="resetFilters" v-if="hasFilter">查看全部插件</el-button>
+        </el-empty>
         <div
           v-for="row in pagedInstances"
           class="gw-plugin-card"
@@ -95,7 +118,7 @@
         </div>
       </div>
       <div class="plugin-pager" v-show="instances.length > 0">
-        <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :page-sizes="[10, 20, 30]" :total="instances.length" />
+        <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :page-sizes="[9, 18, 36]" :total="instances.length" />
       </div>
     </div>
 
@@ -105,11 +128,11 @@
         <el-form-item label="插件类型" prop="pluginId">
           <el-select-v2
             v-model="installForm.pluginId"
-            :options="runnableTypeOptions"
             filterable
-            :teleported="false"
+            :options="runnableTypeOptions"
             placeholder="选择已注册的可运行插件"
             style="width: 100%"
+            :teleported="false"
             @change="onTypePicked"
           >
             <template #default="{ item }">
@@ -120,7 +143,7 @@
         </el-form-item>
         <el-form-item label="实例编码">
           <el-input v-model="installForm.instanceId" disabled placeholder="与插件类型一致" />
-          <div class="field-hint">当前运行时实例编码与插件类型 1:1（Handler 键）</div>
+          <div class="gw-field-hint">当前运行时实例编码与插件类型 1:1（Handler 键）</div>
         </el-form-item>
         <el-form-item label="显示名称" prop="name">
           <el-input v-model="installForm.name" />
@@ -155,13 +178,20 @@
       <p class="cfg-hint">表单由插件 <b>config-schema</b> 动态渲染；保存后热生效（运行中实例将自动重载）。</p>
       <el-form class="cfg-form" label-position="top" :model="cfgForm" ref="cfgFormRef">
         <div class="cfg-grid">
-          <el-form-item v-for="field in schemaFields" :label="field.name" :required="!!field.required" :key="field.code">
+          <el-form-item
+            v-for="field in schemaFields"
+            :label="field.name"
+            :prop="['config', field.code]"
+            :required="!!field.required"
+            :rules="fieldRules(field)"
+            :key="field.code"
+          >
             <el-select-v2
               v-model="cfgForm.config[field.code]"
-              :options="field.options"
               clearable
-              :teleported="false"
+              :options="field.options"
               style="width: 100%"
+              :teleported="false"
               v-if="field.type === 'select'"
             />
             <el-switch v-model="cfgForm.config[field.code]" v-else-if="field.type === 'boolean'" />
@@ -174,19 +204,7 @@
             <el-input v-model="cfgForm.config[field.code]" show-password type="password" v-else-if="field.type === 'password'" />
             <el-input v-model="cfgForm.config[field.code]" :rows="3" type="textarea" v-else-if="field.type === 'textarea'" />
             <el-input v-model="cfgForm.config[field.code]" v-else />
-            <template #label>
-              <span style="margin-right: 3px">{{ field.name }}</span>
-              <!--              <el-tooltip-->
-              <!--                  v-if="field.desc"-->
-              <!--                  :content="field.desc"-->
-              <!--                  placement="top"-->
-              <!--              >-->
-              <!--                <el-icon class="tip-icon">-->
-              <!--                  <InfoFilled />-->
-              <!--                </el-icon>-->
-              <!--              </el-tooltip>-->
-            </template>
-            <div class="field-hint" v-if="field.desc">{{ field.desc }}</div>
+            <div class="gw-field-hint" v-if="field.desc">{{ field.desc }}</div>
           </el-form-item>
           <el-form-item class="full" label="备注">
             <el-input v-model="cfgForm.remark" :rows="2" type="textarea" />
@@ -194,22 +212,16 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button :loading="testing" @click="doTest">测试连接</el-button>
+        <el-tooltip content="测试的是已保存并生效的配置；表单里的修改需先保存" placement="top">
+          <el-button :loading="testing" @click="doTest">测试连接</el-button>
+        </el-tooltip>
         <el-button @click="cfgOpen = false">取消</el-button>
         <el-button :loading="saving" type="primary" @click="saveConfig">保存并生效</el-button>
       </template>
     </el-dialog>
 
     <!-- 日志/统计 -->
-    <el-drawer
-      v-model="drawerOpen"
-      destroy-on-close
-      direction="rtl"
-      size="700px"
-      class="plugin-drawer"
-      custom-class="plugin-drawer"
-      :title="drawerTitle"
-    >
+    <el-drawer v-model="drawerOpen" class="plugin-drawer" destroy-on-close direction="rtl" size="700px" :title="drawerTitle">
       <div class="drawer-health" :class="'is-' + (drawerHealth.state || 'stopped')">
         <div class="drawer-health-head">
           <b>健康信息</b>
@@ -263,24 +275,24 @@
             </div>
           </div>
         </el-tab-pane>
-<!--        <el-tab-pane label="运行日志" name="logs">-->
-<!--          <div class="gw-filter-bar log-filter" style="margin-bottom: 12px">-->
-<!--            <el-select-v2 v-model="logLevel" :options="LOG_LEVEL_OPTIONS" clearable placeholder="全部级别" style="width: 130px" />-->
-<!--            <el-input v-model="logKeyword" clearable placeholder="关键字过滤" style="flex: 1" />-->
-<!--            <el-button icon="Refresh" :loading="logLoading" size="small" @click="loadLogs">刷新</el-button>-->
-<!--            <el-button :disabled="!displayLogs.length" icon="Download" size="small" @click="downloadLogs">下载日志</el-button>-->
-<!--          </div>-->
-<!--          <div class="gw-log-console" v-loading="logLoading">-->
-<!--            <template v-if="displayLogs.length">-->
-<!--              <div v-for="(log, idx) in displayLogs" class="log-line" :key="log.id || idx">-->
-<!--                <span class="t">{{ formatLogTime(log.time) }}</span>-->
-<!--                <span :class="'lv-' + log.level.toLowerCase()">[{{ padLevel(log.level) }}]</span>-->
-<!--                <span> [{{ currentId }}] {{ log.message }}</span>-->
-<!--              </div>-->
-<!--            </template>-->
-<!--            <div class="empty-log" v-else>暂无运行日志</div>-->
-<!--          </div>-->
-<!--        </el-tab-pane>-->
+        <!--        <el-tab-pane label="运行日志" name="logs">-->
+        <!--          <div class="gw-filter-bar log-filter" style="margin-bottom: 12px">-->
+        <!--            <el-select-v2 v-model="logLevel" :options="LOG_LEVEL_OPTIONS" clearable placeholder="全部级别" style="width: 130px" />-->
+        <!--            <el-input v-model="logKeyword" clearable placeholder="关键字过滤" style="flex: 1" />-->
+        <!--            <el-button icon="Refresh" :loading="logLoading" size="small" @click="loadLogs">刷新</el-button>-->
+        <!--            <el-button :disabled="!displayLogs.length" icon="Download" size="small" @click="downloadLogs">下载日志</el-button>-->
+        <!--          </div>-->
+        <!--          <div class="gw-log-console" v-loading="logLoading">-->
+        <!--            <template v-if="displayLogs.length">-->
+        <!--              <div v-for="(log, idx) in displayLogs" class="log-line" :key="log.id || idx">-->
+        <!--                <span class="t">{{ formatLogTime(log.time) }}</span>-->
+        <!--                <span :class="'lv-' + log.level.toLowerCase()">[{{ padLevel(log.level) }}]</span>-->
+        <!--                <span> [{{ currentId }}] {{ log.message }}</span>-->
+        <!--              </div>-->
+        <!--            </template>-->
+        <!--            <div class="empty-log" v-else>暂无运行日志</div>-->
+        <!--          </div>-->
+        <!--        </el-tab-pane>-->
       </el-tabs>
     </el-drawer>
   </div>
@@ -304,20 +316,16 @@ import {
   getPluginInstanceLogs,
   getPluginInstance
 } from '@/api/sys/plugin'
+import {
+  msgTypeLabel as typeLabel,
+  msgTypeColor as typeColor,
+  pluginStateLabel as stateLabel,
+  pluginStateBadge as badgeClass,
+  fmtNumber as fmt
+} from '@/utils/gateway'
 
 const { proxy } = getCurrentInstance()
 
-const TYPE_META = {
-  alarm: { label: '告警事件', color: '#dc2626' },
-  telemetry: { label: '监测数据', color: '#2563eb' },
-  device_add: { label: '监测数据', color: '#2563eb' },
-  device_upd: { label: '设备事件', color: '#d97706' },
-  device_del: { label: '设备事件', color: '#d97706' },
-  device_online: { label: '设备事件', color: '#d97706' },
-  device_offline: { label: '设备事件', color: '#d97706' },
-  control: { label: '指令回执', color: '#0891b2' },
-  event: { label: '事件', color: '#0891b2' }
-}
 const PLUGIN_COLORS = [
   'linear-gradient(135deg,#dc2626,#f97316)',
   'linear-gradient(135deg,#2563eb,#06b6d4)',
@@ -344,9 +352,36 @@ const loading = ref(false)
 const instances = ref([])
 const summary = ref({ running: 0, stopped: 0, installed: 0, abnormal: 0, total: 0 })
 const types = ref([])
+// 默认只看运行中的插件；顶部的状态统计可一键切换
 const filters = reactive({ keyword: '', state: 'running', protocol: undefined })
 const queryParams = reactive({ pageNum: 1, pageSize: 9 })
 const busy = ref({})
+let listRequestId = 0
+
+const summaryChips = computed(() => {
+  const s = summary.value || {}
+  return [
+    { value: '', label: '全部', count: fmt(s.total), cls: '' },
+    { value: 'running', label: '运行中', count: fmt(s.running), cls: 'ok' },
+    { value: 'abnormal', label: '异常', count: fmt(s.abnormal), cls: Number(s.abnormal) > 0 ? 'err' : '' },
+    { value: 'stopped', label: '已停止', count: fmt(s.stopped), cls: '' },
+    { value: 'installed', label: '已安装', count: fmt(s.installed), cls: '' }
+  ]
+})
+const hasFilter = computed(() => !!(filters.keyword || filters.state || filters.protocol))
+const emptyText = computed(() => {
+  if (!hasFilter.value) return '暂无插件，请先安装插件包或创建实例'
+  if (filters.state && !filters.keyword && !filters.protocol) return `当前没有「${stateLabel(filters.state)}」的插件`
+  return '没有符合条件的插件'
+})
+function pickState(state) {
+  filters.state = state || undefined
+  handleQuery()
+}
+function resetFilters() {
+  Object.assign(filters, { keyword: '', state: undefined, protocol: undefined })
+  handleQuery()
+}
 
 const installOpen = ref(false)
 const installing = ref(false)
@@ -365,6 +400,8 @@ const cfgOpen = ref(false)
 const cfgTitle = ref('')
 const cfgForm = ref({ instanceId: '', ip: '', port: undefined, apis: '', remark: '', config: {} })
 const schemaFields = ref([])
+const cfgFormRef = ref()
+let cfgSavedSnapshot = ''
 const saving = ref(false)
 const testing = ref(false)
 
@@ -454,9 +491,6 @@ const healthSummary = computed(() => {
   return h.healthReason || h.connectionInfo || '暂无健康检查结果'
 })
 
-function fmt(v) {
-  return Number(v || 0).toLocaleString('zh-CN')
-}
 function formatTime(value) {
   return value ? new Date(value).toLocaleString('zh-CN') : '—'
 }
@@ -470,12 +504,6 @@ function pluginColor(code) {
   for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0
   return PLUGIN_COLORS[hash % PLUGIN_COLORS.length]
 }
-function stateLabel(s) {
-  return { running: '运行中', stopped: '已停止', installed: '已安装', abnormal: '异常' }[s] || s
-}
-function badgeClass(s) {
-  return { running: 'ok', abnormal: 'err', stopped: 'off', installed: 'info' }[s] || 'off'
-}
 function capsText(row) {
   const caps = row.capabilities || []
   if (!caps.length) return ''
@@ -487,12 +515,6 @@ function failColor(row) {
   if ((row.state === 'stopped' || row.state === 'installed') && !row.todayMsgCount) return '#64748b'
   return n > 0 ? '#dc2626' : '#16a34a'
 }
-function typeLabel(t) {
-  return TYPE_META[t]?.label || t || '未知'
-}
-function typeColor(t) {
-  return TYPE_META[t]?.color || '#94a3b8'
-}
 function setBusy(id, v) {
   busy.value = { ...busy.value, [id]: v }
 }
@@ -503,20 +525,24 @@ function handleQuery() {
 }
 
 async function loadList() {
+  const requestId = ++listRequestId
   loading.value = true
   try {
     const [sumRes, listRes, typeRes] = await Promise.all([
       pluginSummary().catch(() => ({ data: {} })),
-      listPluginInstances({ ...filters }),
+      listPluginInstances({ keyword: (filters.keyword || '').trim(), state: filters.state, protocol: filters.protocol }),
       listPluginTypes().catch(() => ({ data: [] }))
     ])
+    if (requestId !== listRequestId) return
     summary.value = sumRes.data || {}
     instances.value = listRes.data || []
     types.value = typeRes.data || []
     const maxPage = Math.max(1, Math.ceil(instances.value.length / queryParams.pageSize) || 1)
     if (queryParams.pageNum > maxPage) queryParams.pageNum = maxPage
+  } catch {
+    /* 错误提示由请求拦截器统一弹出，保留上一次的列表 */
   } finally {
-    loading.value = false
+    if (requestId === listRequestId) loading.value = false
   }
 }
 
@@ -660,8 +686,31 @@ function normalizeSchema(schema) {
     .filter(Boolean)
 }
 
+/** schema 标了必填的字段在保存前校验；数值型 0 是合法值，只有空值才算未填 */
+function fieldRules(field) {
+  if (!field.required || field.type === 'boolean') return []
+  return [
+    {
+      trigger: ['blur', 'change'],
+      validator: (rule, value, callback) => {
+        const empty = value === undefined || value === null || String(value).trim() === ''
+        callback(empty ? new Error(`请填写${field.name}`) : undefined)
+      }
+    }
+  ]
+}
+function cfgSnapshot() {
+  const f = cfgForm.value || {}
+  return JSON.stringify({ remark: f.remark, config: f.config })
+}
+
 async function openConfig(row) {
-  const res = await getPluginInstance(row.instanceId)
+  let res
+  try {
+    res = await getPluginInstance(row.instanceId)
+  } catch {
+    return
+  }
   const d = res.data || {}
   const config = { ...(d.config || {}) }
   const schema = normalizeSchema(d.configSchema)
@@ -686,22 +735,34 @@ async function openConfig(row) {
     config
   }
   cfgTitle.value = `接入参数配置 · ${d.name}（实例 ${d.instanceId}）`
+  cfgSavedSnapshot = cfgSnapshot()
   cfgOpen.value = true
 }
 
 async function doTest() {
+  // 后端测试的是已保存的配置，表单有改动时先说明，避免误以为测的是正在填写的参数
+  const dirty = cfgSnapshot() !== cfgSavedSnapshot
   testing.value = true
   try {
     const res = await testPluginConnection(cfgForm.value.instanceId)
     const d = res.data || {}
-    if (d.success) proxy.$modal.msgSuccess(d.message || '连接正常')
-    else proxy.$modal.msgWarning(d.message || '连接失败')
+    const suffix = dirty ? '（表单中的修改尚未保存，本次测试的是已保存的配置）' : ''
+    if (d.success) proxy.$modal.msgSuccess((d.message || '连接正常') + suffix)
+    else proxy.$modal.msgWarning((d.message || '连接失败') + suffix)
+  } catch {
+    /* 错误提示由请求拦截器统一弹出 */
   } finally {
     testing.value = false
   }
 }
 
 async function saveConfig() {
+  try {
+    await cfgFormRef.value?.validate()
+  } catch {
+    proxy.$modal.msgWarning('还有必填项未填写')
+    return
+  }
   saving.value = true
   try {
     await updatePluginConfig(cfgForm.value.instanceId, {
@@ -714,6 +775,8 @@ async function saveConfig() {
     proxy.$modal.msgSuccess('已保存并生效')
     cfgOpen.value = false
     await loadList()
+  } catch {
+    /* 错误提示由请求拦截器统一弹出，保留弹窗内容便于修改后重试 */
   } finally {
     saving.value = false
   }
@@ -727,13 +790,15 @@ async function openDrawer(row) {
   drawerOpen.value = true
   logKeyword.value = ''
   logLevel.value = undefined
-  await Promise.all([loadDrawerStats(row.instanceId), loadLogs()])
+  // 「运行日志」页签目前未启用，不再每次打开都白拉 200 条日志
+  await loadDrawerStats(row.instanceId)
 }
 
 async function loadDrawerStats(id) {
   drawerStatsLoading.value = true
   try {
     const res = await getPluginInstanceStats(id)
+    if (currentId.value !== id) return
     const d = res.data || {}
     drawerStats.value = {
       total: Number(d.total || 0),
@@ -755,6 +820,8 @@ async function loadDrawerStats(id) {
       })
     }
     nextTick(() => renderTrend())
+  } catch {
+    /* 错误提示由请求拦截器统一弹出 */
   } finally {
     drawerStatsLoading.value = false
   }
@@ -893,19 +960,49 @@ loadList()
   gap: 12px;
   flex-wrap: wrap;
 }
-.plugin-summary-text {
+.plugin-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sum-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
   color: #64748b;
   font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    color 0.15s;
 }
-.plugin-summary-text b {
+.sum-chip b {
   color: #0f172a;
   font-weight: 700;
 }
-.plugin-summary-text b.ok {
+.sum-chip.ok b {
   color: #16a34a;
 }
-.plugin-summary-text b.err {
+.sum-chip.err b {
   color: #dc2626;
+}
+.sum-chip:hover {
+  border-color: #94a3b8;
+}
+.sum-chip:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+.sum-chip.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 .plugin-summary-actions {
   display: flex;
@@ -945,15 +1042,6 @@ loadList()
 .pc-health.err {
   color: #dc2626;
 }
-.gw-tag {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 5px;
-  font-size: 12px;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
 .cfg-hint {
   margin: 0 0 14px;
   color: #64748b;
@@ -982,12 +1070,6 @@ loadList()
 .cfg-grid :deep(.el-form-item.full),
 .cfg-grid .full {
   grid-column: 1 / -1;
-}
-.field-hint {
-  margin-left: 4px;
-  margin-top: 4px;
-  font-size: 12px;
-  color: #94a3b8;
 }
 :deep(.el-drawer__header) {
   margin-bottom: 8px;

@@ -1,135 +1,254 @@
 <template>
   <div class="gw-page">
-    <div class="page-summary">
-      今日 <b>{{ fmt(today.total) }}</b> 条 · 同步成功率 <b class="ok">{{ today.successRate ?? 100 }}%</b> · 待补推 <b class="warn">{{ fmt(today.pendingCount) }}</b>
+    <div class="gw-page-summary">
+      <span>
+        今日 <b>{{ fmtNumber(today.total) }}</b> 条 · 推送成功率 <b :class="rateClass">{{ today.successRate ?? 100 }}%</b> · 待同步
+        <b :class="Number(today.pendingCount) > 0 ? 'warn' : ''">{{ fmtNumber(today.pendingCount) }}</b> · 失败
+        <b :class="Number(today.failedCount) > 0 ? 'err' : ''">{{ fmtNumber(today.failedCount) }}</b>
+      </span>
+      <span class="auto-refresh">
+        <el-switch v-model="autoRefresh" size="small" />
+        <span>自动刷新</span>
+        <span class="gw-muted" v-if="autoRefresh">每 {{ AUTO_REFRESH_SECONDS }} 秒 · 仅第 1 页</span>
+      </span>
     </div>
 
     <div class="gw-card">
       <div class="gw-card-body gw-filter-bar">
-        <el-input v-model="filters.keyword" clearable placeholder="消息ID / 设备编码" style="width: 200px" @keyup.enter="handleQuery" />
-        <el-select-v2 v-model="filters.type" :options="msgTypeOptions" clearable placeholder="全部类型" style="width: 120px" />
-        <el-select-v2 v-model="filters.pfCode" :options="platformSelectOptions" clearable filterable placeholder="全部插件" style="width: 120px" />
-        <el-select-v2 v-model="filters.sendStatus" :options="SEND_STATUS_OPTIONS" clearable placeholder="同步状态" style="width: 120px" />
+        <el-input
+          v-model="filters.keyword"
+          clearable
+          placeholder="消息ID / 设备编码"
+          style="width: 220px"
+          @clear="handleQuery"
+          @keyup.enter="handleQuery"
+        />
+        <el-select-v2
+          v-model="filters.type"
+          clearable
+          :options="MSG_TYPE_OPTIONS"
+          placeholder="全部类型"
+          style="width: 130px"
+          @change="handleQuery"
+        />
+        <el-select-v2
+          v-model="filters.pfCode"
+          clearable
+          filterable
+          :options="platformSelectOptions"
+          placeholder="全部插件"
+          style="width: 150px"
+          @change="handleQuery"
+        />
+        <el-select-v2
+          v-model="filters.sendStatus"
+          clearable
+          :options="SEND_STATUS_OPTIONS"
+          placeholder="同步状态"
+          style="width: 130px"
+          @change="handleQuery"
+        />
         <el-date-picker
           v-model="dateRange"
-          type="datetimerange"
-          range-separator="~"
-          start-placeholder="开始时间"
+          :default-time="DEFAULT_RANGE_TIME"
           end-placeholder="结束时间"
+          range-separator="~"
+          :shortcuts="DATE_SHORTCUTS"
+          start-placeholder="开始时间"
+          style="width: 360px; flex: 0 0 360px"
+          type="datetimerange"
           value-format="YYYY-MM-DD HH:mm:ss"
-          style="width: 100px"
+          @change="handleQuery"
         />
-        <el-button type="primary" icon="Search" @click="handleQuery">查询</el-button>
+        <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <div class="spacer" />
-        <el-button plain :loading="batchRetryLoading" v-hasPermi="['sys:message:edit']" @click="batchRetryFailed">失败消息批量重推</el-button>
-        <el-button plain icon="Download" v-hasPermi="['sys:message:export']" @click="handleExport">导出</el-button>
+        <el-button :loading="batchRetryLoading" plain v-hasPermi="['sys:message:edit']" @click="batchRetryFailed">失败消息批量重推</el-button>
+        <el-button icon="Download" plain v-hasPermi="['sys:message:export']" @click="handleExport">导出</el-button>
       </div>
     </div>
 
     <div class="gw-card">
       <div class="gw-card-body no-pad">
         <el-table :data="messageList" v-loading="loading">
-
-          <el-table-column label="消息ID" width="160" show-overflow-tooltip>
-            <template #default="{ row }"><span class="gw-mono gw-medium">{{ row.messageId || row.id }}</span></template>
-          </el-table-column>
-          <el-table-column label="类型" width="280" align="left">
+          <el-table-column label="消息ID" show-overflow-tooltip width="170">
             <template #default="{ row }">
-              <span v-for="item in groupedTypes(row.type)" class="gw-tag" :class="typeTagClass(item.type)" :key="item.type">{{ typeTagText(item) }}</span>
+              <span class="gw-mono">{{ row.messageId || row.id }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="设备编码" min-width="140" show-overflow-tooltip>
-            <template #default="{ row }"><span class="gw-mono" style="font-weight:600">{{ row.deviceCode || '-' }}</span></template>
+          <el-table-column class-name="gw-cell-wrap" label="类型" min-width="170">
+            <template #default="{ row }">
+              <div class="gw-tag-group">
+                <span v-for="item in groupMsgTypes(row.type)" class="gw-tag" :class="msgTypeClass(item.type)" :key="item.type">
+                  {{ typeTagText(item) }}
+                </span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="设备编码" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="gw-mono" style="font-weight: 600">{{ row.deviceCode || '-' }}</span>
+            </template>
           </el-table-column>
           <el-table-column label="来源插件" min-width="120" show-overflow-tooltip>
             <template #default="{ row }">{{ platformName(row.pfCode) }}</template>
           </el-table-column>
-          <el-table-column label="处理时间(ms)" min-width="120" show-overflow-tooltip>
-            <template #default="{ row }">{{ platformName(row.costTime) }}</template>
-          </el-table-column>
           <el-table-column label="摘要" min-width="200" show-overflow-tooltip>
-            <template #default="{ row }"><span class="gw-muted">{{ row.summary || '-' }}</span></template>
+            <template #default="{ row }">
+              <span class="gw-muted">{{ row.summary || '-' }}</span>
+            </template>
           </el-table-column>
-          <el-table-column label="时间" width="160" align="center">
-            <template #default="{ row }"><span class="gw-mono gw-muted gw-small">{{ row.createTime }}</span></template>
+          <el-table-column align="right" label="处理耗时" width="100">
+            <template #default="{ row }">
+              <span class="gw-mono" :class="costClass(row.costTime)">{{ costText(row.costTime) }}</span>
+            </template>
           </el-table-column>
-          <el-table-column label="状态" width="150" align="center">
+          <el-table-column align="center" label="时间" width="165">
+            <template #default="{ row }">
+              <span class="gw-mono gw-muted">{{ row.createTime }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="同步状态" width="140">
             <template #default="{ row }">
               <span class="gw-badge plain" :class="syncClass(row)">{{ row.syncLabel || syncFallback(row) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="140" align="center" fixed="right">
+          <el-table-column align="center" fixed="right" label="操作" width="120">
             <template #default="{ row }">
               <el-button link type="primary" @click="openDetail(row)">详情</el-button>
               <el-button
-                v-if="!isControlType(row.type) && row.sendStatus === 'failed'"
                 link
-                type="primary"
                 :loading="pushingMap[row.id]"
+                type="primary"
                 v-hasPermi="['sys:message:edit']"
                 @click="handlePush(row)"
-              >重推</el-button>
+                v-if="canRetry(row)"
+              >
+                重推
+              </el-button>
             </template>
           </el-table-column>
+          <template #empty>
+            <el-empty :description="hasFilter ? '没有符合条件的消息' : '暂无接入消息'" :image-size="70" />
+          </template>
         </el-table>
-        <div class="table-foot">
-          <span class="gw-muted gw-small">共 {{ total }} 条记录</span>
-          <pagination v-show="total > 0" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" :total="total" @pagination="getList" />
+        <div class="gw-table-foot">
+          <span class="gw-muted gw-small">共 {{ fmtNumber(total) }} 条记录</span>
+          <pagination
+            v-model:limit="queryParams.pageSize"
+            v-model:page="queryParams.pageNum"
+            :total="total"
+            @pagination="getList"
+            v-show="total > 0"
+          />
         </div>
       </div>
     </div>
 
     <!-- 消息详情 -->
-    <el-dialog v-model="detailOpen" :title="`消息详情 · ${shortId(detail.messageId || detail.id)}`" width="960px" append-to-body destroy-on-close class="msg-detail-dialog">
-      <div class="detail-grid">
-        <div v-for="panel in detailPanels" :key="panel.key">
-          <div class="detail-label">
-            <span>{{ panel.label }}</span>
-            <el-button link type="primary" icon="DocumentCopy" @click="copyJson(panel.data, panel.label)">复制</el-button>
+    <el-dialog
+      v-model="detailOpen"
+      append-to-body
+      class="msg-detail-dialog"
+      destroy-on-close
+      :title="`消息详情 · ${shortId(detail.messageId || detail.id)}`"
+      width="960px"
+    >
+      <div v-loading="detailLoading">
+        <div class="detail-meta">
+          <div class="meta-item wide">
+            <span class="k">消息ID</span>
+            <span class="gw-mono v">{{ detail.messageId || detail.id || '-' }}</span>
+            <el-button icon="DocumentCopy" link type="primary" @click="copyValue(detail.messageId || detail.id, '消息ID')" />
           </div>
-          <div class="json-view"><JsonPretty :data="panel.data" show-icon /></div>
+          <div class="meta-item">
+            <span class="k">类型</span>
+            <span class="gw-tag-group">
+              <span v-for="item in groupMsgTypes(detail.type)" class="gw-tag" :class="msgTypeClass(item.type)" :key="item.type">
+                {{ typeTagText(item) }}
+              </span>
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="k">设备编码</span>
+            <span class="gw-mono v">{{ detail.deviceCode || '-' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="k">来源插件</span>
+            <span class="v">{{ platformName(detail.pfCode) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="k">接入时间</span>
+            <span class="gw-mono v">{{ detail.createTime || '-' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="k">处理耗时</span>
+            <span class="gw-mono v">{{ costText(detail.costTime) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="k">同步状态</span>
+            <span class="gw-badge plain" :class="syncClass(detail)">{{ detail.syncLabel || syncFallback(detail) }}</span>
+          </div>
         </div>
-      </div>
 
-      <template v-if="!isControlType(detail.type)">
-        <div class="detail-label" style="margin-top: 16px">上级平台同步记录</div>
-        <div class="sync-table-wrap">
-          <el-table :data="pushLogs" size="small" v-loading="pushLogLoading" border max-height="220">
-            <el-table-column label="目标平台" min-width="140">
+        <div class="detail-grid">
+          <div v-for="panel in detailPanels" :key="panel.key">
+            <div class="detail-label">
+              <span>{{ panel.label }}</span>
+              <el-button icon="DocumentCopy" link type="primary" @click="copyValue(toPrettyJson(panel.data), panel.label)">复制</el-button>
+            </div>
+            <div class="gw-json-view">
+              <JsonPretty :data="panel.data" show-icon v-if="panel.data != null && panel.data !== ''" />
+              <span class="gw-muted" v-else>无内容</span>
+            </div>
+          </div>
+        </div>
+
+        <template v-if="!isControlType(detail.type)">
+          <div class="detail-label" style="margin-top: 16px">
+            <span>上级平台同步记录</span>
+            <span class="gw-muted gw-small" v-if="detail.retryCount">已重推 {{ detail.retryCount }} 次 · 最近 {{ detail.retryTime || '-' }}</span>
+          </div>
+          <el-table border :data="pushLogs" max-height="220" size="small" v-loading="pushLogLoading">
+            <el-table-column label="目标平台" min-width="140" show-overflow-tooltip>
               <template #default="{ row }">{{ platformFromTarget(row.target) }}</template>
             </el-table-column>
-            <el-table-column label="推送方式" width="100" align="center">
-              <template #default="{ row }"><span class="gw-tag">{{ pushModeLabel(row.type) }}</span></template>
+            <el-table-column align="center" label="推送方式" width="100">
+              <template #default="{ row }">
+                <span class="gw-tag">{{ pushTypeLabel(row.type) }}</span>
+              </template>
             </el-table-column>
-            <el-table-column label="结果" width="90" align="center">
+            <el-table-column align="center" label="结果" width="90">
               <template #default="{ row }">
                 <span class="gw-badge" :class="row.status === 'success' ? 'ok' : 'err'">{{ row.status === 'success' ? '成功' : '失败' }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="重试次数" width="90" align="center">
-              <template #default>-</template>
+            <el-table-column align="center" label="时间" width="165">
+              <template #default="{ row }">
+                <span class="gw-mono gw-small">{{ row.time }}</span>
+              </template>
             </el-table-column>
-            <el-table-column label="耗时" width="90" align="center">
-              <template #default>-</template>
+            <el-table-column label="失败原因" min-width="200" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span class="gw-muted gw-small">{{ row.failReason || '—' }}</span>
+              </template>
             </el-table-column>
-            <el-table-column label="时间" width="160" align="center">
-              <template #default="{ row }"><span class="gw-mono gw-small">{{ row.time }}</span></template>
-            </el-table-column>
-            <el-table-column label="失败原因" min-width="160" show-overflow-tooltip>
-              <template #default="{ row }"><span class="gw-muted gw-small">{{ row.failReason || '—' }}</span></template>
-            </el-table-column>
+            <template #empty>
+              <span class="gw-muted gw-small">暂无推送记录（尚未配置上级平台，或该消息还没有推送过）</span>
+            </template>
           </el-table>
-        </div>
-      </template>
+        </template>
+      </div>
 
       <template #footer>
         <el-button
-          v-if="!isControlType(detail.type)"
           :loading="pushingMap[detail.id]"
           v-hasPermi="['sys:message:edit']"
           @click="handlePush(detail)"
-        >重推所选平台</el-button>
+          v-if="detail.id && !isControlType(detail.type)"
+        >
+          重推到上级平台
+        </el-button>
         <el-button type="primary" @click="detailOpen = false">关闭</el-button>
       </template>
     </el-dialog>
@@ -138,12 +257,14 @@
       <p class="retry-hint">
         将 <b>{{ retryTargets.length }}</b> 条消息重推到勾选的上级通道。未勾选的通道保持原结果，不会再次推送。
       </p>
-      <el-table ref="retryUpstreamRef" :data="upstreamList" size="small" @selection-change="(rows) => (retryUpstreams = rows)">
+      <el-table :data="upstreamList" size="small" ref="retryUpstreamRef" @selection-change="(rows) => (retryUpstreams = rows)">
         <el-table-column type="selection" width="48" />
         <el-table-column label="通道" min-width="160" prop="name" show-overflow-tooltip />
         <el-table-column label="编码" min-width="120" prop="code" show-overflow-tooltip />
         <el-table-column align="center" label="方式" width="100">
-          <template #default="{ row }"><span class="gw-tag">{{ pushModeLabel(row.pushType) }}</span></template>
+          <template #default="{ row }">
+            <span class="gw-tag">{{ pushTypeLabel(row.pushType) }}</span>
+          </template>
         </el-table-column>
       </el-table>
       <template #footer>
@@ -152,12 +273,18 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="progress.open" append-to-body :close-on-click-modal="false" :show-close="!progress.running" title="消息重推进度" width="880px">
+    <el-dialog
+      v-model="progress.open"
+      append-to-body
+      :close-on-click-modal="false"
+      :close-on-press-escape="!progress.running"
+      :show-close="!progress.running"
+      title="消息重推进度"
+      width="880px"
+    >
       <el-progress :percentage="progressPercent" :status="progressStatus" :stroke-width="16" />
       <div class="progress-summary">
-        已处理 {{ progress.done }} / {{ progress.total }}
-        · 成功 <b class="ok">{{ progressOk }}</b>
-        · 仍失败 <b class="err">{{ progressFail }}</b>
+        已处理 {{ progress.done }} / {{ progress.total }} · 成功 <b class="ok">{{ progressOk }}</b> · 仍失败 <b class="err">{{ progressFail }}</b>
       </div>
       <el-table :data="progress.items" max-height="360" size="small">
         <el-table-column label="消息ID" min-width="150" prop="messageId" show-overflow-tooltip />
@@ -179,30 +306,39 @@
 
 <script setup name="Message">
 import JsonPretty from 'vue-json-pretty'
-import {
-  listMessage, getMessage, listMessagePushLogs,
-  messageTodayStats, retryMessage
-} from '@/api/sys/message'
+import { useRoute } from 'vue-router'
+import { listMessage, getMessage, listMessagePushLogs, messageTodayStats, retryMessage } from '@/api/sys/message'
 import { selectPlatform } from '@/api/sys/platform'
 import { selectUpstream } from '@/api/sys/upstream'
+import { MSG_TYPE_OPTIONS, msgTypeLabel, msgTypeClass, groupMsgTypes, pushTypeLabel, fmtNumber, toPrettyJson, copyText } from '@/utils/gateway'
 
 const { proxy } = getCurrentInstance()
+const route = useRoute()
 
-const MSG_TYPES = {
-  alarm: { label: '告警', short: '告警', cls: 'red' },
-  telemetry: { label: '监测', short: '监测', cls: 'blue' },
-  device_add: { label: '设备新增', short: '设备新增', cls: 'green' },
-  device_upd: { label: '设备更新', short: '设备更新', cls: 'blue' },
-  device_del: { label: '设备删除', short: '设备删除', cls: 'gray' },
-  device_online: { label: '设备在线', short: '设备在线', cls: 'green' },
-  device_offline: { label: '设备离线', short: '设备离线  ', cls: 'orange' },
-  control: { label: '反控', short: '反控指令', cls: 'purple' }
-}
-const msgTypeOptions = Object.entries(MSG_TYPES).map(([value, meta]) => ({ value, label: meta.label }))
+const AUTO_REFRESH_SECONDS = 10
 const SEND_STATUS_OPTIONS = [
   { value: 'sent', label: '全部成功' },
   { value: 'failed', label: '失败' },
   { value: 'pending', label: '待同步' }
+]
+// 只选日期时，开始取当天 00:00:00、结束取 23:59:59
+const DEFAULT_RANGE_TIME = [new Date(2000, 0, 1, 0, 0, 0), new Date(2000, 0, 1, 23, 59, 59)]
+function recentRange(ms) {
+  const end = new Date()
+  return [new Date(end.getTime() - ms), end]
+}
+const DATE_SHORTCUTS = [
+  { text: '近 1 小时', value: () => recentRange(3600 * 1000) },
+  {
+    text: '今天',
+    value: () => {
+      const start = new Date()
+      start.setHours(0, 0, 0, 0)
+      return [start, new Date()]
+    }
+  },
+  { text: '近 24 小时', value: () => recentRange(24 * 3600 * 1000) },
+  { text: '近 7 天', value: () => recentRange(7 * 24 * 3600 * 1000) }
 ]
 
 const loading = ref(false)
@@ -220,8 +356,13 @@ const platformSelectOptions = computed(() => {
   return options
 })
 const today = ref({ total: 0, successRate: 100, pendingCount: 0 })
+const rateClass = computed(() => {
+  const rate = Number(today.value.successRate ?? 100)
+  return rate >= 95 ? 'ok' : rate >= 80 ? 'warn' : 'err'
+})
 const filters = reactive({ keyword: '', type: undefined, pfCode: undefined, sendStatus: undefined })
 const dateRange = ref([])
+const hasFilter = computed(() => !!(filters.keyword || filters.type || filters.pfCode || filters.sendStatus || dateRange.value?.length === 2))
 const queryParams = reactive({ pageNum: 1, pageSize: 10, orderByColumn: 'id', isAsc: 'DESC' })
 const pushingMap = reactive({})
 const batchRetryLoading = ref(false)
@@ -240,51 +381,22 @@ const progressStatus = computed(() => {
 })
 
 const detailOpen = ref(false)
+const detailLoading = ref(false)
 const detail = ref({})
 const pushLogs = ref([])
 const pushLogLoading = ref(false)
 
-function fmt(v) {
-  return Number(v || 0).toLocaleString('zh-CN')
-}
-function toCopyText(data) {
-  if (data == null || data === '') return ''
-  if (typeof data === 'string') {
-    try {
-      return JSON.stringify(JSON.parse(data), null, 2)
-    } catch {
-      return data
-    }
-  }
-  try {
-    return JSON.stringify(data, null, 2)
-  } catch {
-    return String(data)
-  }
-}
-async function copyJson(data, label) {
-  const text = toCopyText(data)
-  if (!text) {
+const autoRefresh = ref(false)
+let autoRefreshTimer = null
+let listRequestId = 0
+
+async function copyValue(text, label) {
+  if (text == null || text === '') {
     proxy.$modal.msgWarning(`${label || '内容'}为空，无法复制`)
     return
   }
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      const ta = document.createElement('textarea')
-      ta.value = text
-      ta.style.position = 'fixed'
-      ta.style.left = '-9999px'
-      document.body.appendChild(ta)
-      ta.select()
-      document.execCommand('copy')
-      document.body.removeChild(ta)
-    }
-    proxy.$modal.msgSuccess(`${label || '内容'}已复制`)
-  } catch {
-    proxy.$modal.msgError('复制失败，请手动选择复制')
-  }
+  if (await copyText(String(text))) proxy.$modal.msgSuccess(`${label || '内容'}已复制`)
+  else proxy.$modal.msgError('复制失败，请手动选择复制')
 }
 function shortId(id) {
   const s = String(id || '')
@@ -292,7 +404,14 @@ function shortId(id) {
   return s.slice(0, 4) + '…' + s.slice(-4)
 }
 function isControlType(type) {
-  return type === 'control'
+  const parts = String(type || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+  return parts.length > 0 && parts.every((item) => item === 'control')
+}
+function canRetry(row) {
+  return !isControlType(row.type) && row.sendStatus === 'failed'
 }
 const detailPanels = computed(() => {
   const d = detail.value || {}
@@ -307,56 +426,37 @@ const detailPanels = computed(() => {
     { key: 'raw', label: '厂商原始报文（转换前）', data: d.content }
   ]
 })
-function getMsgTypeLabel(type) {
-  return MSG_TYPES[type]?.short || type || '-'
-}
-function groupedTypes(type) {
-  const counts = new Map()
-  const order = []
-  String(type || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .forEach((item) => {
-      if (!counts.has(item)) {
-        counts.set(item, 0)
-        order.push(item)
-      }
-      counts.set(item, counts.get(item) + 1)
-    })
-  return order.map((item) => ({ type: item, count: counts.get(item) }))
-}
 function typeTagText(item) {
-  const label = getMsgTypeLabel(item.type)
-  return item.count > 1 ? `${label} * ${item.count}` : label
-}
-function typeTagClass(type) {
-  return MSG_TYPES[type]?.cls || ''
+  const label = msgTypeLabel(item.type)
+  return item.count > 1 ? `${label} × ${item.count}` : label
 }
 function platformName(code) {
   return platformOptions.value.find((p) => p.code === code)?.name || code || '-'
 }
+function costText(cost) {
+  if (cost == null || cost === '') return '-'
+  const ms = Number(cost)
+  if (!Number.isFinite(ms)) return '-'
+  return ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : `${ms} ms`
+}
+function costClass(cost) {
+  const ms = Number(cost)
+  if (cost == null || !Number.isFinite(ms)) return 'gw-muted'
+  return ms >= 3000 ? 'cost-slow' : ms >= 1000 ? 'cost-warn' : 'gw-muted'
+}
+/** 后端未返回 syncLabel 时的兜底文案 */
 function syncFallback(row) {
-  if (isControlType(row.type)) {} return '— 下行消息'
+  if (isControlType(row.type)) return '下行指令'
   if (row.sendStatus === 'sent') return '已推送'
-  if (row.sendStatus === 'failed') return '失败'
+  if (row.sendStatus === 'failed') return '推送失败'
   return '待同步'
 }
 function syncClass(row) {
-  if (isControlType(row.type)) {
-    if (row.syncSuccess === 1){
-      return 'ok'
-    } else {
-      return 'err'
-    }
-  }
+  if (isControlType(row.type)) return row.syncSuccess === 1 ? 'ok' : 'err'
+  if (String(row.syncLabel || '').includes('部分')) return 'warn'
   if (row.sendStatus === 'sent') return 'ok'
   if (row.sendStatus === 'failed') return 'err'
-  if (row.syncLabel && String(row.syncLabel).includes('部分')) return 'warn'
   return 'off'
-}
-function pushModeLabel(mode) {
-  return { mq: 'MQ', url: 'HTTP', redis: 'Redis', kafka: 'Kafka', mqtt: 'MQTT', unknown: '未知' }[mode] || mode || '-'
 }
 function platformFromTarget(target) {
   if (!target) return '-'
@@ -369,39 +469,44 @@ async function loadToday() {
   try {
     const res = await messageTodayStats()
     today.value = res.data || {}
-  } catch { /* */ }
+  } catch {
+    /* 摘要加载失败不影响列表 */
+  }
 }
 
-function getList() {
-  loading.value = true
-  const params = {
-    ...queryParams,
+/** 列表与导出共用的筛选条件；关键字、待同步都由后端过滤，保证分页总数准确 */
+function buildFilterQuery() {
+  const params = {}
+  const keyword = (filters.keyword || '').trim()
+  if (keyword) params.keyword = keyword
+  if (filters.sendStatus === 'pending') params.pending = '1'
+  if (dateRange.value?.length === 2) {
+    params.beginCreateTime = dateRange.value[0]
+    params.endCreateTime = dateRange.value[1]
+  }
+  return {
     type: filters.type || null,
     pfCode: filters.pfCode || null,
-    deviceCode: filters.keyword || null,
-    sendStatus: filters.sendStatus === 'pending' ? null : (filters.sendStatus || null),
-    params: {}
+    sendStatus: filters.sendStatus && filters.sendStatus !== 'pending' ? filters.sendStatus : null,
+    params
   }
-  if (dateRange.value?.length === 2) {
-    params.params.beginCreateTime = dateRange.value[0]
-    params.params.endCreateTime = dateRange.value[1]
-  }
-  listMessage(params).then((res) => {
-    let rows = res.rows || []
-    if (filters.sendStatus === 'pending') {
-      rows = rows.filter((r) => !r.sendStatus && !isControlType(r.type))
-    }
-    if (filters.keyword) {
-      const kw = filters.keyword.toLowerCase()
-      rows = rows.filter((r) =>
-        String(r.deviceCode || '').toLowerCase().includes(kw) ||
-        String(r.messageId || '').toLowerCase().includes(kw) ||
-        String(r.id || '').includes(kw)
-      )
-    }
-    messageList.value = rows
+}
+
+/** silent：自动刷新时不显示 loading，避免表格闪烁 */
+async function getList({ silent = false } = {}) {
+  const requestId = ++listRequestId
+  if (!silent) loading.value = true
+  try {
+    const res = await listMessage({ ...queryParams, ...buildFilterQuery() })
+    if (requestId !== listRequestId) return
+    messageList.value = res.rows || []
     total.value = res.total || 0
-  }).finally(() => { loading.value = false })
+  } catch {
+    // 错误提示由请求拦截器统一弹出；自动刷新失败就关掉开关，避免每 10 秒弹一次错误
+    if (silent) autoRefresh.value = false
+  } finally {
+    if (requestId === listRequestId) loading.value = false
+  }
 }
 
 function handleQuery() {
@@ -419,19 +524,32 @@ async function openDetail(row) {
   detailOpen.value = true
   detail.value = { ...row }
   pushLogs.value = []
-  pushLogLoading.value = true
+  detailLoading.value = true
+  pushLogLoading.value = !isControlType(row.type)
   try {
-    const res = await getMessage(row.id)
+    const [res, logs] = await Promise.all([
+      getMessage(row.id),
+      isControlType(row.type) ? null : listMessagePushLogs(row.id).catch(() => ({ data: [] }))
+    ])
     const d = res.data || {}
-    try { d.content = d.content ? (typeof d.content === 'string' ? JSON.parse(d.content) : d.content) : d.content } catch { /* */ }
-    try { d.unifiedContent = d.unifiedContent ? (typeof d.unifiedContent === 'string' ? JSON.parse(d.unifiedContent) : d.unifiedContent) : null } catch { /* */ }
+    d.content = parseContent(d.content)
+    d.unifiedContent = parseContent(d.unifiedContent)
     detail.value = d
-    if (!isControlType(d.type || row.type)) {
-      const logs = await listMessagePushLogs(row.id)
-      pushLogs.value = logs.data || []
-    }
+    pushLogs.value = logs?.data || []
+  } catch {
+    /* 保留列表行数据展示 */
   } finally {
+    detailLoading.value = false
     pushLogLoading.value = false
+  }
+}
+/** 报文可能不是合法 JSON（如厂商私有文本协议），解析失败时保留原文 */
+function parseContent(value) {
+  if (value == null || value === '' || typeof value !== 'string') return value ?? null
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
   }
 }
 
@@ -470,11 +588,12 @@ async function openRetry(rows) {
   }
   await loadUpstreams()
   if (!upstreamList.value.length) {
-    proxy.$modal.msgWarning('还没有启用的上级通道')
+    proxy.$modal.msgWarning('还没有启用的上级通道，请先在「系统配置 → 上级平台配置」中添加')
     return
   }
   retryTargets.value = targets
   retryOpen.value = true
+  // 单条重推默认只勾选上次失败的通道；批量时默认全选
   const failedNames = targets.length === 1 ? await failedChannelNames(targets[0]) : null
   await nextTick()
   retryUpstreamRef.value?.clearSelection?.()
@@ -538,7 +657,7 @@ async function batchRetryFailed() {
     const res = await listMessage({ pageNum: 1, pageSize: 50, sendStatus: 'failed', orderByColumn: 'id', isAsc: 'DESC' })
     const rows = (res.rows || []).filter((row) => !isControlType(row.type))
     if (!rows.length) {
-      proxy.$modal.msgWarning('最近没有失败消息')
+      proxy.$modal.msgSuccess('没有推送失败的消息，无需重推')
       return
     }
     await openRetry(rows)
@@ -548,62 +667,149 @@ async function batchRetryFailed() {
 }
 
 function handleExport() {
-  proxy.download('sys/message/export', {
-    ...queryParams,
-    type: filters.type,
-    pfCode: filters.pfCode,
-    deviceCode: filters.keyword
-  }, `message_${Date.now()}.xlsx`)
+  proxy.download('sys/message/export', buildFilterQuery(), `message_${Date.now()}.xlsx`)
 }
 
-selectPlatform().then((r) => { platformOptions.value = r.data || [] })
+// ---------- 自动刷新 ----------
+function stopAutoRefresh() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer)
+    autoRefreshTimer = null
+  }
+}
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (!autoRefresh.value) return
+  autoRefreshTimer = setInterval(() => {
+    // 翻到后面的页、或正在看详情/重推时不打扰
+    if (queryParams.pageNum !== 1 || detailOpen.value || retryOpen.value || progress.open || loading.value) return
+    getList({ silent: true })
+    loadToday()
+  }, AUTO_REFRESH_SECONDS * 1000)
+}
+watch(autoRefresh, startAutoRefresh)
+// 页面被 keep-alive 缓存：切走时暂停轮询，切回来再恢复
+onActivated(() => {
+  if (consumeRouteQuery()) {
+    getList()
+    loadToday()
+  }
+  startAutoRefresh()
+})
+onDeactivated(stopAutoRefresh)
+onBeforeUnmount(stopAutoRefresh)
+
+/** 首页告警等入口会带 keyword / type，只在查询条件变化时重查 */
+let appliedRouteQuery = ''
+function consumeRouteQuery() {
+  const keyword = route.query.keyword ? String(route.query.keyword) : ''
+  const type = route.query.type ? String(route.query.type) : ''
+  const sendStatus = route.query.sendStatus ? String(route.query.sendStatus) : ''
+  const key = `${keyword}|${type}|${sendStatus}`
+  if (key === appliedRouteQuery) return false
+  appliedRouteQuery = key
+  if (!keyword && !type && !sendStatus) return false
+  filters.keyword = keyword
+  filters.type = type || undefined
+  filters.sendStatus = sendStatus || undefined
+  dateRange.value = []
+  queryParams.pageNum = 1
+  return true
+}
+consumeRouteQuery()
+
+selectPlatform()
+  .then((r) => {
+    platformOptions.value = r.data || []
+  })
+  .catch(() => {})
 loadToday()
 getList()
 </script>
 
 <style scoped>
-.retry-hint { margin: 0 0 12px; color: #64748b; font-size: 13px; }
-.retry-hint b { color: #0f172a; }
-.progress-summary { margin: 12px 0; color: #64748b; font-size: 13px; }
-.progress-summary b.ok { color: #16a34a; }
-.progress-summary b.err { color: #dc2626; }
-.page-summary { color: #64748b; font-size: 13px; }
-.page-summary b { color: #0f172a; font-weight: 700; }
-.page-summary b.ok { color: #16a34a; }
-.page-summary b.warn { color: #d97706; }
-.gw-tag {
-  margin-right: 3px;
-  display: inline-block; padding: 1px 8px; border-radius: 5px; font-size: 12px;
-  background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+.auto-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
 }
-.gw-tag.red { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-.gw-tag.blue { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
-.gw-tag.orange { background: #fffbeb; color: #d97706; border-color: #fde68a; }
-.gw-tag.purple { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
-.gw-tag.green { background: #f0fdf4;color: #16a34a;border-color: #bbf7d0; }
-.gw-tag.gray { background: #f9fafb;color: #6b7280;border-color: #d1d5db; }
-
-.table-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-top: 1px solid #e2e8f0; gap: 12px; flex-wrap: wrap;
+.retry-hint {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 13px;
 }
-.table-foot :deep(.pagination-container) {
-  margin: 0 !important; padding: 0 !important; border: none !important; height: auto !important;
-  box-shadow: none !important;
+.retry-hint b {
+  color: #0f172a;
 }
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.detail-label {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  font-size: 13px; color: #64748b; margin-bottom: 8px;
+.progress-summary {
+  margin: 12px 0;
+  color: #64748b;
+  font-size: 13px;
 }
-.json-view {
-  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-  padding: 12px; max-height: 280px; overflow: auto;
+.progress-summary b.ok {
+  color: #16a34a;
 }
-.sync-table-wrap {
-  max-height: 240px;
-  overflow: hidden;
+.progress-summary b.err {
+  color: #dc2626;
+}
+.cost-warn {
+  color: #d97706;
+}
+.cost-slow {
+  color: #dc2626;
+  font-weight: 600;
+}
+.detail-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 20px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
+  background: #f8fafc;
 }
-@media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.meta-item.wide {
+  grid-column: 1 / -1;
+}
+.meta-item .k {
+  flex-shrink: 0;
+  width: 60px;
+  color: #64748b;
+}
+.meta-item .v {
+  min-width: 0;
+  overflow: hidden;
+  color: #0f172a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.detail-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+@media (max-width: 900px) {
+  .detail-grid,
+  .detail-meta {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

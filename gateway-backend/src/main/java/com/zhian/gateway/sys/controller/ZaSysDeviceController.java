@@ -6,7 +6,10 @@ import com.alibaba.fastjson2.JSONObject;
 import com.zhian.gateway.common.annotation.Log;
 import com.zhian.gateway.common.core.controller.BaseController;
 import com.zhian.gateway.common.core.domain.R;
+import com.zhian.gateway.common.constant.HttpStatus;
+import com.zhian.gateway.common.core.page.PageDomain;
 import com.zhian.gateway.common.core.page.TableDataInfo;
+import com.zhian.gateway.common.core.page.TableSupport;
 import com.zhian.gateway.common.enums.BusinessType;
 import com.zhian.gateway.common.utils.poi.ExcelUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -72,10 +75,56 @@ public class ZaSysDeviceController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(ZaSysDevice zaSysDevice)
     {
+        Object syncStatus = zaSysDevice.getParams().get("syncStatus");
+        if (SYNC_STATUS_SYNCED.equals(syncStatus) || SYNC_STATUS_UNSYNCED.equals(syncStatus)) {
+            return listBySyncStatus(zaSysDevice, SYNC_STATUS_SYNCED.equals(syncStatus));
+        }
         startPage();
         List<ZaSysDevice> list = deviceService.selectZaSysDeviceList(zaSysDevice);
         enrichSync(list);
         return getDataTable(list);
+    }
+
+    private static final String SYNC_STATUS_SYNCED = "synced";
+    private static final String SYNC_STATUS_UNSYNCED = "unsynced";
+    /** 查询设备最近同步消息时，单次 in 列表的最大长度 */
+    private static final int SYNC_QUERY_BATCH = 500;
+
+    /**
+     * 按「同步状态」筛选的分页查询。
+     * 同步状态不是设备表的列，而是由每台设备最近一条档案同步消息推算出来的，
+     * 所以这里先取出符合其它条件的全部设备、算出同步状态后在内存中过滤并分页，保证总数和页码准确。
+     */
+    private TableDataInfo listBySyncStatus(ZaSysDevice query, boolean wantSynced)
+    {
+        startOrderBy();
+        List<ZaSysDevice> all = deviceService.selectZaSysDeviceList(query);
+        enrichSync(all);
+        List<ZaSysDevice> matched = new ArrayList<>();
+        for (ZaSysDevice d : all) {
+            int syncTotal = d.getSyncTotal() == null ? 0 : d.getSyncTotal();
+            int syncSuccess = d.getSyncSuccess() == null ? 0 : d.getSyncSuccess();
+            boolean synced = syncTotal > 0 && syncSuccess >= syncTotal;
+            if (synced == wantSynced) {
+                matched.add(d);
+            }
+        }
+
+        PageDomain page = TableSupport.buildPageRequest();
+        int pageSize = page.getPageSize() == null || page.getPageSize() <= 0 ? 10 : page.getPageSize();
+        int pageNum = page.getPageNum() == null || page.getPageNum() <= 0 ? 1 : page.getPageNum();
+        // 与 PageHelper 的 reasonable 行为一致：页码超出范围时落到最后一页
+        int lastPage = Math.max(1, (matched.size() + pageSize - 1) / pageSize);
+        pageNum = Math.min(pageNum, lastPage);
+        int from = Math.min((pageNum - 1) * pageSize, matched.size());
+        int to = Math.min(from + pageSize, matched.size());
+
+        TableDataInfo rspData = new TableDataInfo();
+        rspData.setCode(HttpStatus.SUCCESS);
+        rspData.setMsg("查询成功");
+        rspData.setRows(new ArrayList<>(matched.subList(from, to)));
+        rspData.setTotal(matched.size());
+        return rspData;
     }
 
     private void enrichSync(List<ZaSysDevice> list) {
@@ -96,17 +145,22 @@ public class ZaSysDeviceController extends BaseController
             }
         }
         Map<Long, String> synced = new HashMap<>();
-        if (!ids.isEmpty()) {
-            try {
-                List<ZaSysMessage> latest = messageMapper.selectLatestDeviceSync(ids);
-                if (latest != null) {
-                    for (ZaSysMessage msg : latest) {
-                        if (msg.getDeviceId() != null) {
-                            synced.put(msg.getDeviceId(), msg.getSendStatus());
+        // 没有启用的上级平台时全部显示「未配置上级」，无需再查同步消息
+        if (total > 0) {
+            for (int start = 0; start < ids.size(); start += SYNC_QUERY_BATCH) {
+                List<Long> batch = ids.subList(start, Math.min(start + SYNC_QUERY_BATCH, ids.size()));
+                try {
+                    List<ZaSysMessage> latest = messageMapper.selectLatestDeviceSync(batch);
+                    if (latest != null) {
+                        for (ZaSysMessage msg : latest) {
+                            if (msg.getDeviceId() != null) {
+                                synced.put(msg.getDeviceId(), msg.getSendStatus());
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    logger.warn("查询设备同步状态失败: {}", e.getMessage());
                 }
-            } catch (Exception ignored) {
             }
         }
         for (ZaSysDevice d : list) {

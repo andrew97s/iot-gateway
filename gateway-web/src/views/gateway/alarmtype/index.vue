@@ -5,7 +5,7 @@
       <div class="gw-card-body gw-filter-bar">
         <el-input v-model="queryParams.name" clearable placeholder="类型名称" style="width: 170px" @keyup.enter="handleQuery" />
         <el-input v-model="queryParams.code" clearable placeholder="类型编码" style="width: 150px" @keyup.enter="handleQuery" />
-        <el-select-v2 v-model="queryParams.type" :options="LEVEL_OPTIONS" clearable placeholder="类型" style="width: 100px" @change="handleQuery" />
+        <el-select-v2 v-model="queryParams.type" :options="LEVEL_OPTIONS" clearable placeholder="告警类别" style="width: 120px" @change="handleQuery" />
         <el-select-v2 v-model="queryParams.status" :options="STATUS_OPTIONS" clearable placeholder="状态" style="width: 100px" @change="handleQuery" />
         <el-button icon="Search" type="primary" @click="handleQuery">查询</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -91,7 +91,10 @@
             </template>
           </el-table-column>
         </el-table>
-        <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :total="total" @pagination="getList" v-show="total > 0" />
+        <div class="gw-table-foot">
+          <span class="gw-muted gw-small">共 {{ total }} 条记录</span>
+          <pagination v-model:limit="queryParams.pageSize" v-model:page="queryParams.pageNum" :total="total" @pagination="getList" v-show="total > 0" />
+        </div>
       </div>
     </div>
 
@@ -104,8 +107,8 @@
         <el-form-item label="类型名称" prop="name">
           <el-input v-model="form.name" placeholder="如：火警" />
         </el-form-item>
-        <el-form-item label="告警类别">
-          <el-select-v2 v-model="form.level" :options="LEVEL_OPTIONS" :teleported="false" style="width: 200px" />
+        <el-form-item label="告警类别" prop="type">
+          <el-select-v2 v-model="form.type" :options="LEVEL_OPTIONS" placeholder="请选择告警类别" :teleported="false" style="width: 200px" />
         </el-form-item>
         <el-form-item label="恢复事件">
           <el-select-v2
@@ -152,6 +155,7 @@
 <script setup name="AlarmType">
 import AliasEditor from '@/components/business/AliasEditor/index.vue'
 import { alarmTypeApi } from '@/api/sys/businessType'
+import { ALARM_CATEGORY_OPTIONS as LEVEL_OPTIONS, alarmCategoryLabel as levelLabel, alarmCategoryTag as levelTag } from '@/utils/gateway'
 
 const { proxy } = getCurrentInstance()
 
@@ -164,7 +168,8 @@ const emptyForm = () => ({
   id: null,
   code: '',
   name: '',
-  level: 2,
+  // 告警类别对应后端 ZaAlarmType.type：1 火警 / 2 预警 / 3 故障 / 4 事件
+  type: 2,
   aliases: '',
   cancelCode: '',
   recoveryCode: '',
@@ -197,18 +202,13 @@ const typeSelectOptions = computed(() => {
 
 const rules = {
   code: [{ required: true, message: '请输入类型编码', trigger: 'blur' }],
-  name: [{ required: true, message: '请输入类型名称', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入类型名称', trigger: 'blur' }],
+  type: [{ required: true, type: 'number', message: '请选择告警类别', trigger: 'change' }]
 }
 
 const STATUS_OPTIONS = [
   { value: '1', label: '启用' },
   { value: '0', label: '停用' }
-]
-const LEVEL_OPTIONS = [
-  { value: 1, label: '火警' },
-  { value: 2, label: '预警' },
-  { value: 3, label: '故障' },
-  { value: 4, label: '事件' }
 ]
 
 const queryParams = reactive({
@@ -216,12 +216,9 @@ const queryParams = reactive({
   pageSize: 10,
   name: null,
   code: null,
+  type: undefined,
   status: undefined
 })
-
-const LEVELS = { 1: { label: '火警', tag: 'danger' }, 2: { label: '预警', tag: 'primary' }, 3: { label: '故障', tag: 'warning' }, 4: { label: '事件', tag: '' } }
-function levelLabel(l) { return LEVELS[l]?.label || l || '-' }
-function levelTag(l) { return LEVELS[l]?.tag || 'info' }
 
 function parseAliases(str) {
   if (!str) return []
@@ -261,11 +258,18 @@ function loadAllTypes() {
 
 function getList() {
   loading.value = true
-  alarmTypeApi.list(queryParams).then(res => {
-    list.value = res.rows
-    total.value = res.total
-    loading.value = false
-  })
+  alarmTypeApi
+    .list(queryParams)
+    .then((res) => {
+      list.value = res.rows || []
+      total.value = res.total || 0
+    })
+    .catch(() => {
+      /* 错误提示由请求拦截器统一弹出 */
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
 function handleQuery() {
@@ -276,6 +280,7 @@ function handleQuery() {
 function resetQuery() {
   queryParams.name = null
   queryParams.code = null
+  queryParams.type = undefined
   queryParams.status = undefined
   handleQuery()
 }
@@ -285,7 +290,8 @@ function openDialog(row) {
     ? {
         ...emptyForm(),
         ...row,
-        level: Number(row.level) || 2,
+        // 历史数据可能没有类别（此前这里绑定错了字段，类别一直存不进去），留空让用户补选
+        type: Number(row.type) || undefined,
         cancelCodes: parseCodes(row.cancelCode),
         recoveryCodes: parseCodes(row.recoveryCode)
       }
@@ -315,6 +321,8 @@ async function submitForm() {
     open.value = false
     getList()
     loadAllTypes()
+  } catch {
+    /* 错误提示由请求拦截器统一弹出，保留弹窗内容便于修改后重试 */
   } finally {
     saving.value = false
   }
